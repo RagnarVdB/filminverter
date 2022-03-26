@@ -1,0 +1,3 @@
+[submodule "rawloader-wasm"]
+	path = rawloader-wasm
+	url = git@github.com:RagnarVdB/rawloader-wasm.git
