@@ -19,12 +19,11 @@ async function read_file(file: File): Promise<Uint8Array> {
 }
 
 onmessage = async function(e) {
-	const files: File[] = e.data
+	const files: [number, File][]= e.data
 	await init()
 	for (const file of files) {
 		const arr = await read_file(file[1])
 		const decoded = decode_image(arr)
-
 		const rawImage: RawImage = {
 			image: decoded.get_data(),
 			width: decoded.get_width(),

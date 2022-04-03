@@ -1,14 +1,17 @@
 <script lang="ts">
+    import { createEventDispatcher } from 'svelte';
     import Dropzone from "svelte-file-dropzone";
     import { number_of_workers } from "./utils"
+    import type { ProcessedImage } from "./RawImage"
+    const dispatch = createEventDispatcher();
 
     function handleFilesSelect(e) {
         const { acceptedFiles, fileRejections }: { acceptedFiles: File[], fileRejections: File[] } = e.detail;
         if (fileRejections.length != 0) {
-            console.log(fileRejections)
+            console.log("Rejected files: ", fileRejections)
         }
         const files = Array.from(acceptedFiles.entries())
-        
+
         const nWorkers = number_of_workers(files.length)
         const filesPerWorker = Math.floor(files.length / nWorkers)
         const remainder = files.length % nWorkers
@@ -20,9 +23,16 @@
                 files.slice(i*filesPerWorker, (i+1)*filesPerWorker)
             // console.log(workerFiles.map(x => x[0]))
             worker.postMessage(workerFiles)
-            worker.onmessage = message => console.log(message.data)
+            worker.onmessage = message => {
+                const [index, image]: [number, ProcessedImage] = message.data
+                // console.log(`${index} received`)
+                dispatch('image', {
+                    index,
+                    image
+                })
+            }
         }
-
+    
     }
 </script>
 

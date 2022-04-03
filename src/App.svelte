@@ -1,12 +1,31 @@
 <script lang="ts">
     import logo from './assets/svelte.png'
     import FileSelector from './lib/FileSelector.svelte'
+    import ImageArea from './lib/ImageArea.svelte'
     import Presets from './lib/Presets.svelte'
     import Settings from './lib/Settings/Settings.svelte'
+    import type { ProcessedImage } from './lib/RawImage'
+
+    let images: ProcessedImage[] = []
+    let showImages = false
+
+
+    function receivedImage(event) {
+        const { index, image }: { index: number, image: ProcessedImage } = event.detail
+        console.log("received: ", index)
+        images[index] = image
+
+        showImages = true
+    }
+
 </script>
 
 <main>
-    <FileSelector/>
+    {#if showImages}
+    <ImageArea images={images}/>
+    {:else}
+    <FileSelector on:image={receivedImage}/>
+    {/if}
     <Settings/>
     <Presets/>
 </main>
