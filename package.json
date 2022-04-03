@@ -4,13 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "wasm": "cd rawloader-wasm && wasm-pack build --target web",
+    "wasm": "cd rawloader-wasm && wasm-pack build --release --target web",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
+    "@bulatdashiev/svelte-slider": "^1.0.3",
     "@sveltejs/vite-plugin-svelte": "^1.0.0-next.30",
     "@tsconfig/svelte": "^2.0.1",
     "svelte": "^3.44.0",
