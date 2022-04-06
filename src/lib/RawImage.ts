@@ -1,13 +1,19 @@
+import { chunks, chunksRgba, zip } from "./utils"
+import { } from "gl-matrix"
 export interface RawImage {
-    image: Uint16Array, // RAW
-    width: number,
+    image: Uint16Array // RAW
+    width: number
     height: number
 }
 
 export interface ProcessedImage {
-    image: Uint16Array, // RGBA
-    width: number,
+    image: Uint16Array // RGBA 14bit
+    width: number
     height: number
+    bps: number
+    cam_to_xyz: ConversionMatrix
+    orientation: 0 | 1 | 2 | 3
+    settings: Settings
 }
 
 export interface CFA {
@@ -16,7 +22,18 @@ export interface CFA {
     height: number
 }
 
-export function deBayer(image: RawImage, cfa: CFA): ProcessedImage {
+export interface Settings {
+    gamma: [number, number, number]
+    offset: [number, number, number]
+}
+
+export interface ConversionMatrix {
+    matrix: number[] | Float32Array
+    n: number // naar
+    m: number // van
+}
+
+export function deBayer(image: RawImage, cfa: CFA, bpp: number=14): RawImage {
     // Tel voorkomen in cfa
     const nR = cfa.str.match(/R/g).length
     const nG = cfa.str.match(/G/g).length
@@ -63,4 +80,62 @@ export function deBayer(image: RawImage, cfa: CFA): ProcessedImage {
         }
     }
         return {image: im, width: n, height: m}
+}
+
+const xyz_to_rgb: ConversionMatrix = {
+    matrix: [3.2404542, -1.5371385, -0.4985314,
+        -0.9692660, 1.8760108, 0.0415560,
+        0.0556434, -0.2040259, 1.0572252],
+    n:  3,
+    m: 3
+}
+
+function gammaTranform(linear: number): number {
+    const gamma = 1/2.4
+    if (linear < 0.0031308) {
+        return linear * 12.92*256
+    } else {
+        return (Math.pow(linear*1.055,gamma) - 0.055)*256
+    }
+}
+
+function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
+    if (matrix1.n != matrix2.m) {
+        throw new Error("Invalid shapes")
+    }
+}
+
+function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
+    const result: number[] = []
+    const { n, m } = matrix
+    for (let i = 0; i < n; i++) {
+        result.push(zip(
+            Array.from(matrix.matrix.slice(i*m, (i+1)*m)),
+            vec)
+            .reduce((acc, val) => acc + val[0]*val[1], 0)
+        )
+    }
+    return result
+}
+
+export function applyConversionMatrix(image: ProcessedImage, matrix: ConversionMatrix): number[] {
+    return chunksRgba(image.image).flatMap((vec) => applyMatrixVector(vec, matrix))
+
+
+}
+
+export async function showImage(image: ProcessedImage): Promise<ImageBitmap> {
+
+    const clamped = Uint8ClampedArray.from(image.image.map(x => x/(2**14)), gammaTranform)
+    console.log(gammaTranform(0), gammaTranform(2**14-1), gammaTranform(2**16-1))
+    console.log(image)
+    console.log(clamped)
+    const imdat = new ImageData(clamped, image.width, image.height)
+    const bitmap = await createImageBitmap(imdat)
+    return bitmap
+}
+
+export const defaultSettings: Settings = {
+    gamma: [1, 1, 1],
+    offset: [1, 1, 1]
 }

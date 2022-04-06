@@ -1,6 +1,6 @@
 import init, { decode_image, Image as WasmImage } from '../../rawloader-wasm/pkg/rawloader_wasm.js'
-import { deBayer } from './RawImage'
-import type { RawImage, ProcessedImage, CFA } from './RawImage'
+import { deBayer, defaultSettings } from './RawImage'
+import type { RawImage, ProcessedImage, CFA, ConversionMatrix } from './RawImage'
 
 async function read_file(file: File): Promise<Uint8Array> {
 	return new Promise((resolve, reject) => {
@@ -35,8 +35,20 @@ onmessage = async function(e) {
 			width: decoded.get_cfawidth(),
 			height: decoded.get_cfaheight()
 		}
-
-		const processed = deBayer(rawImage, cfa)
+		console.log("bps", decoded.get_bps())
+		const deBayered = deBayer(rawImage, cfa)
+		const cam_to_xyz: ConversionMatrix = {
+			matrix: decoded.get_cam_to_xyz(),
+			n: 3,
+			m: 4
+		}
+		const processed: ProcessedImage = {
+			...deBayered,
+			bps: decoded.get_bps(),
+			cam_to_xyz,
+			orientation: 0,
+			settings: defaultSettings
+		}
 
 		postMessage([file[0], processed])
 	}
