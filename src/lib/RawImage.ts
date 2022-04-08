@@ -11,6 +11,7 @@ export interface ProcessedImage {
     height: number
     bps: number
     cam_to_xyz: ConversionMatrix
+    blacks: number[]
     orientation: 0 | 1 | 2 | 3
     settings: Settings
 }
@@ -73,8 +74,8 @@ export function deBayer(image: RawImage, cfa: CFA, bpp: number=14): RawImage {
                 }
             }
             im[(i*n+j)*4] = red/nR
-            im[(i*n+j)*4+1] = blue/nB
-            im[(i*n+j)*4+2] = green/nG
+            im[(i*n+j)*4+1] = green/nG
+            im[(i*n+j)*4+2] = blue/nB
             im[(i*n+j)*4+3] = 2**16 - 1
         }
     }
@@ -125,25 +126,18 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
 export async function showImage(image: ProcessedImage): Promise<ImageBitmap> {
     console.log("processing")
     const im = Array.from(image.image)
-    console.log("orig", im)
-    console.log("000", applyMatrixVector([0, 0, 0, 0], image.cam_to_xyz))
+    const blacks = image.blacks
     let rgbImage = []
     for (let i = 0; i < im.length; i += 4) {
         // console.log(im.slice(i, i+1))
-        const xyz = applyMatrixVector(im.slice(i, i+4), image.cam_to_xyz)
+        const xyz = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], image.cam_to_xyz)
         // console.log("xyz", xyz)
         const rgb = applyMatrixVector(xyz, xyz_to_rgb)
         // console.log("rgb", rgb)
         rgbImage.push(...rgb, 1)
     }
-    console.log("rgb", rgbImage)
-    // const xyz = applyConversionMatrix(image.image, image.cam_to_xyz)
-    // const rgb = applyConversionMatrix(xyz, xyz_to_rgb)
     const clamped = Uint8ClampedArray.from(rgbImage, gammaTranform)
-    console.log("clamped", clamped)
-    console.log(gammaTranform(0), gammaTranform(1))
-    // console.log(image)
-    // console.log(clamped)
+
     const imdat = new ImageData(clamped, image.width, image.height)
     const bitmap = await createImageBitmap(imdat)
     return bitmap

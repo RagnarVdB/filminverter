@@ -35,7 +35,6 @@ onmessage = async function(e) {
 			width: decoded.get_cfawidth(),
 			height: decoded.get_cfaheight()
 		}
-		console.log("bps", decoded.get_bps())
 		const deBayered = deBayer(rawImage, cfa)
 		const cam_to_xyz: ConversionMatrix = {
 			matrix: decoded.get_cam_to_xyz(),
@@ -45,6 +44,7 @@ onmessage = async function(e) {
 		const processed: ProcessedImage = {
 			...deBayered,
 			bps: decoded.get_bps(),
+			blacks: Array.from(decoded.get_blacklevels()),
 			cam_to_xyz,
 			orientation: 0,
 			settings: defaultSettings
