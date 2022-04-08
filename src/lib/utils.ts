@@ -20,7 +20,7 @@ export function chunks<T>(array: ArrayLike<T>, chunkSize: number): T[][] {
     return result
 }
 
-export function chunksRgba(array: Uint16Array): [number, number, number, number][] {
+export function chunksRgba(array: Uint16Array | number[]): [number, number, number, number][] {
     const result = []
     for (let i = 0; i < array.length; i += 4) {
         result.push(Array.prototype.slice.call(array).slice(i, i + 4))

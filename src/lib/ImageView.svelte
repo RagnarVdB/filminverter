@@ -8,10 +8,10 @@
     
     async function drawImage() {
         const bitmap = await showImage(image)
-        canvas.width = processed.width
-        canvas.height = processed.height
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(bitmap, 0, 0)
+        const ctx = canvas.getContext('2d')
+        //ctx.translate(canvas.width/4 - 100, 100)
+        //ctx.rotate(3*Math.PI/2)
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     }
 
     $: processed = {
@@ -26,3 +26,15 @@
 <div class="view">
     <canvas id="imagecanvas" bind:this={canvas}></canvas>
 </div>
+
+<style>
+    .view {
+        width: 100%;
+        height: 100%;
+    }
+
+    #imagecanvas {
+        width: 100%;
+        height: 100%;
+    }
+</style>

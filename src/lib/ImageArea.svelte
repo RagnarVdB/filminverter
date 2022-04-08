@@ -8,11 +8,11 @@
 
 <div class="ImageArea">
     <ImageView image={currentImage}/>
-    <div id="strip">
+    <!-- <div id="strip">
         {#each images as image}
             <ImageView image={image}/>
         {/each}
-    </div>
+    </div> -->
 </div>
 
 <style>
@@ -22,11 +22,14 @@
     border-radius: 15px;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    width: 100%;
 }
 
 #strip {
     display: flex;
     flex-direction: row;
     width: 100%;
+    height: 100px;
 }
-    </style>
+</style>

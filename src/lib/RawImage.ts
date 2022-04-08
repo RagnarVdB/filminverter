@@ -1,5 +1,4 @@
 import { chunks, chunksRgba, zip } from "./utils"
-import { } from "gl-matrix"
 export interface RawImage {
     image: Uint16Array // RAW
     width: number
@@ -99,10 +98,11 @@ function gammaTranform(linear: number): number {
     }
 }
 
-function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
+function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix) {
     if (matrix1.n != matrix2.m) {
         throw new Error("Invalid shapes")
     }
+    
 }
 
 function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
@@ -110,7 +110,7 @@ function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
     const { n, m } = matrix
     for (let i = 0; i < n; i++) {
         result.push(zip(
-            Array.from(matrix.matrix.slice(i*m, (i+1)*m)),
+            Array.from(matrix.matrix).slice(i*m, (i+1)*m),
             vec)
             .reduce((acc, val) => acc + val[0]*val[1], 0)
         )
@@ -118,18 +118,32 @@ function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
     return result
 }
 
-export function applyConversionMatrix(image: ProcessedImage, matrix: ConversionMatrix): number[] {
-    return chunksRgba(image.image).flatMap((vec) => applyMatrixVector(vec, matrix))
-
-
+export function applyConversionMatrix(image: number[] | Uint16Array, matrix: ConversionMatrix): number[] {
+    return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
 export async function showImage(image: ProcessedImage): Promise<ImageBitmap> {
-
-    const clamped = Uint8ClampedArray.from(image.image.map(x => x/(2**14)), gammaTranform)
-    console.log(gammaTranform(0), gammaTranform(2**14-1), gammaTranform(2**16-1))
-    console.log(image)
-    console.log(clamped)
+    console.log("processing")
+    const im = Array.from(image.image)
+    console.log("orig", im)
+    console.log("000", applyMatrixVector([0, 0, 0, 0], image.cam_to_xyz))
+    let rgbImage = []
+    for (let i = 0; i < im.length; i += 4) {
+        // console.log(im.slice(i, i+1))
+        const xyz = applyMatrixVector(im.slice(i, i+4), image.cam_to_xyz)
+        // console.log("xyz", xyz)
+        const rgb = applyMatrixVector(xyz, xyz_to_rgb)
+        // console.log("rgb", rgb)
+        rgbImage.push(...rgb, 1)
+    }
+    console.log("rgb", rgbImage)
+    // const xyz = applyConversionMatrix(image.image, image.cam_to_xyz)
+    // const rgb = applyConversionMatrix(xyz, xyz_to_rgb)
+    const clamped = Uint8ClampedArray.from(rgbImage, gammaTranform)
+    console.log("clamped", clamped)
+    console.log(gammaTranform(0), gammaTranform(1))
+    // console.log(image)
+    // console.log(clamped)
     const imdat = new ImageData(clamped, image.width, image.height)
     const bitmap = await createImageBitmap(imdat)
     return bitmap
