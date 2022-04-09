@@ -33,7 +33,7 @@ export interface ConversionMatrix {
     m: number // van
 }
 
-export function deBayer(image: RawImage, cfa: CFA, bpp: number=14): RawImage {
+export function deBayer(image: RawImage, cfa: CFA): RawImage {
     // Tel voorkomen in cfa
     const nR = cfa.str.match(/R/g).length
     const nG = cfa.str.match(/G/g).length
@@ -73,13 +73,14 @@ export function deBayer(image: RawImage, cfa: CFA, bpp: number=14): RawImage {
                     }
                 }
             }
-            im[(i*n+j)*4] = red/nR
-            im[(i*n+j)*4+1] = green/nG
-            im[(i*n+j)*4+2] = blue/nB
-            im[(i*n+j)*4+3] = 2**16 - 1
+            im[(n*j+i)*4] = red/nR
+            im[(n*j+i)*4+1] = green/nG
+            im[(n*j+i)*4+2] = blue/nB
+            im[(n*j+i)*4+3] = 2**16 - 1
         }
     }
-        return {image: im, width: n, height: m}
+    console.log("debayered", im)
+    return {image: im, width: n, height: m}
 }
 
 const xyz_to_rgb: ConversionMatrix = {
