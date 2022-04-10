@@ -73,6 +73,7 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
                     }
                 }
             }
+
             im[(n*j+i)*4] = red/nR
             im[(n*j+i)*4+1] = green/nG
             im[(n*j+i)*4+2] = blue/nB

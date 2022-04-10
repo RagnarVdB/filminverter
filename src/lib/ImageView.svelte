@@ -4,14 +4,16 @@
 
     export let image: ProcessedImage
     let canvas: HTMLCanvasElement
+    let wrapper: HTMLDivElement
 
-    
     async function drawImage() {
         const bitmap = await showImage(image)
+        canvas.width = wrapper.clientWidth
+        canvas.height = wrapper.clientHeight
+
         const ctx = canvas.getContext('2d')
-        //ctx.translate(canvas.width/4 - 100, 100)
-        //ctx.rotate(3*Math.PI/2)
-        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+        const factor = Math.min(canvas.width/image.width, canvas.height, image.height)
+        ctx.drawImage(bitmap, 0, 0, image.width, image.height, 0, 0, image.width*factor, image.height*factor)
     }
 
     $: processed = {
@@ -23,7 +25,7 @@
 
 </script>
 
-<div class="view">
+<div class="view" bind:this={wrapper}>
     <canvas id="imagecanvas" bind:this={canvas}></canvas>
 </div>
 
