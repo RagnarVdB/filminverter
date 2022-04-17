@@ -46,8 +46,9 @@ onmessage = async function(e) {
 			bps: decoded.get_bps(),
 			blacks: Array.from(decoded.get_blacklevels()),
 			cam_to_xyz,
-			orientation: 0,
-			settings: defaultSettings
+			orientation: decoded.get_orientation(),
+			settings: defaultSettings,
+			iter:0
 		}
 
 		postMessage([file[0], processed])

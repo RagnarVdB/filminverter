@@ -12,8 +12,9 @@ export interface ProcessedImage {
     bps: number
     cam_to_xyz: ConversionMatrix
     blacks: number[]
-    orientation: 0 | 1 | 2 | 3
+    orientation: String
     settings: Settings
+    iter: number
 }
 
 export interface CFA {
@@ -80,7 +81,6 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
             im[(n*j+i)*4+3] = 2**16 - 1
         }
     }
-    console.log("debayered", im)
     return {image: im, width: n, height: m}
 }
 

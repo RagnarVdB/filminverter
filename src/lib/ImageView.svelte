@@ -3,25 +3,31 @@
     import { onMount } from "svelte"
 
     export let image: ProcessedImage
+    export let index: number = null
+    let prevIter: number = -1
     let canvas: HTMLCanvasElement
     let wrapper: HTMLDivElement
 
-    async function drawImage() {
-        const bitmap = await showImage(image)
-        canvas.width = wrapper.clientWidth
-        canvas.height = wrapper.clientHeight
-
-        const ctx = canvas.getContext('2d')
-        const factor = Math.min(canvas.width/image.width, canvas.height, image.height)
-        ctx.drawImage(bitmap, 0, 0, image.width, image.height, 0, 0, image.width*factor, image.height*factor)
+    async function drawImage(image: ProcessedImage) {
+        if (!image) {
+            console.log(`image ${index} doesn't exist yet`)
+        } else if (image.iter == prevIter){
+            console.log(`image ${index} didn't change`)
+        } else {
+            prevIter = image.iter
+            console.log(`drawing ${index}`)
+            const bitmap = await showImage(image)
+            canvas.width = wrapper.clientWidth
+            canvas.height = wrapper.clientHeight
+    
+            const ctx = canvas.getContext('2d')
+            const factor = Math.min(canvas.width/image.width, canvas.height, image.height)
+            ctx.drawImage(bitmap, 0, 0, image.width, image.height, 0, 0, image.width*factor, image.height*factor)
+        }
     }
 
-    $: processed = {
-        height: image.height,
-        width: image.width,
-        image: image.image
-    }
-    onMount(drawImage)
+    onMount(() => drawImage(image))
+    $: drawImage(image)
 
 </script>
 
