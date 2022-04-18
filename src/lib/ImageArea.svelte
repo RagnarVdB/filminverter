@@ -1,20 +1,40 @@
 <script lang="ts">
     import ImageView from "./ImageView.svelte"
-    import type { ProcessedImage } from "./RawImage";
+    import { ProcessedImage, showImage } from "./RawImage";
+    import { number_of_workers } from "./utils";
 
     export let images: ProcessedImage[] = []
-    let currentImage: ProcessedImage = images[0]
+    let bitmaps: {bitmap: ImageBitmap; width: number; height: number}[] = []
+    let iterations: number[] = []
 
-    $: images: {console.log("images changed", images.map(x => x ? "ok" : x))}
+    let currentIndex: number = 0
+
+    $: {
+        for (let i=0; i<images.length; i++) {
+            console.log("updating", iterations)
+            const image = images[i]
+            if (image) {
+                if (image.iter != iterations[i]) {
+                    // update bitmap
+                    showImage(image)
+                        .then(bitmap => {
+                            bitmaps[i] = {bitmap, width: image.width, height: image.height}
+                            iterations[i] = image.iter
+                        })
+                }
+            }
+        }
+    }
+
 </script>
 
 <div class="ImageArea">
     <div id="main">
-        <ImageView image={images[0]} index={0}/>
+        <ImageView image={bitmaps[currentIndex]} index={currentIndex}/>
     </div>
     <div id="strip">
-        {#each images as image, index}
-        <div class="preview">
+        {#each bitmaps as image, index}
+        <div class="preview" on:click={() => {currentIndex = index; console.log("clicked")}}>
             <ImageView image={image} index={index}/>
         </div>
         {/each}
