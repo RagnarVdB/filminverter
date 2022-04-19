@@ -8,11 +8,17 @@
     let canvas: HTMLCanvasElement
     let wrapper: HTMLDivElement
 
-    async function drawImage(image: {bitmap: ImageBitmap; width: number; height: number}) {
-        if (image) {
+    function drawImage(image: {bitmap: ImageBitmap; width: number; height: number}) {
+        if (image && wrapper && canvas) {
             console.log(`drawing ${index}`)
+            console.log(wrapper.clientWidth, wrapper.clientHeight)
+            console.log(wrapper.offsetWidth, wrapper.offsetHeight)
+            console.log(wrapper.style.height)
+            console.log(canvas.width, canvas.height)
             canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientHeight
+            canvas.height = wrapper.clientHeight - 4
+            console.log(wrapper.clientWidth, wrapper.clientHeight)
+            console.log(canvas.width, canvas.height)
     
             const ctx = canvas.getContext('2d')
             const factor = Math.min(canvas.width/image.width, canvas.height, image.height)
@@ -33,10 +39,13 @@
     .view {
         width: 100%;
         height: 100%;
+        padding: none;
     }
 
     #imagecanvas {
         width: 100%;
         height: 100%;
+        margin: none;
+        padding: none;
     }
 </style>
