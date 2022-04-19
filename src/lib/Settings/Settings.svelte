@@ -3,6 +3,9 @@
     import Advanced from './Advanced.svelte'
 
     let mode: "Basic" | "Advanced" = "Basic"
+
+    let settings: { gr: number, or: number, gg: number, og: number, gb: number, ob: number }
+
 </script>
 
 
@@ -14,7 +17,7 @@
     {#if mode === "Basic"}
         <Basic/>
     {:else}
-        <Advanced/>
+        <Advanced bind:settings={settings}/>
     {/if}
     
 </div>
