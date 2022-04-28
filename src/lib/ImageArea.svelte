@@ -12,9 +12,10 @@
 
 
     export let images: ProcessedImage[] = []
-    let canvases: cvsobj[] = []
+    let canvases: HTMLCanvasElement[] = []
+    let iterations: number[] = []
+    let urls: {url: string, width: number, height: number}[] = []
     let currentIndex: number = 0
-    $: currentCanvas = canvases[currentIndex]
 
     function updateCanvases(images: ProcessedImage[]) {
         for (let i=0; i<images.length; i++) {
@@ -22,56 +23,21 @@
             console.log("canvases: ", canvases)
             const image = images[i]
             if (!image && !canvases[i]) {
-                canvases[i] = {
-                        canvas: undefined,
-                        width: null,
-                        height: null,
-                        image: null,
-                        iteration: -1
-                    }
+                canvases[i] = undefined
+                urls[i] = {url: undefined, width: null, height: null}
             } else if (image && !canvases[i]) {
-                canvases[i] = {
-                        canvas: undefined,
-                        width: image.width,
-                        height: image.height,
-                        image: image,
-                        iteration: -1
-                    }
+                canvases[i] = undefined
+                urls[i] = {url: undefined, width: image.width, height: image.height}
                 setTimeout(() => {updateCanvases(images); console.log("retrying")}, 20)
-            } else if (image && !canvases[i].width) {
-                canvases[i].width = image.width
-                canvases[i].height = image.height
-                canvases[i].image = image
             } else {
                 const canvas = canvases[i]
-                if (image.iter != canvas.iteration) {
-                    draw(canvas.canvas, image)
+                if (image.iter != iterations[i]) {
+                    draw(canvas, image)
+                    urls[i] = {url: canvas.toDataURL("image/png"), width: image.width, height: image.height}
                     canvases = canvases
-                    canvas.iteration = image.iter
+                    iterations[i] = image.iter
                 }
             }
-
-
-
-
-            // if (!canvases[i]) {
-            //     console.log("setting canvas", i)
-            //     canvases[i] = {
-            //         canvas: undefined,
-            //         width: image.width,
-            //         height: image.height,
-            //         image: null,
-            //         iteration: -1
-            //     }
-            //     setTimeout(() => {updateCanvases(images); console.log("retrying")}, 20)
-            // } else if (image) {
-            //     const canvas = canvases[i]
-            //     if (image.iter != canvas.iteration) {
-            //         draw(canvas.canvas, image)
-            //         canvases = canvases
-            //         canvas.iteration = image.iter
-            //     }
-            // }
         }
     }
 
@@ -81,16 +47,15 @@
 
 <div class="ImageArea">
     <div id="main">
-        <ImageView image={currentCanvas}/>
+        <ImageView url={urls[currentIndex]}/>
     </div>
     <div id="strip">
         {#each canvases as canvas, index}
         <div class="preview" on:click={() => {currentIndex = index; console.log("clicked", index)}}>
-            <canvas bind:this={canvas.canvas}></canvas>
+            <canvas bind:this={canvas}></canvas>
         </div>
         {/each}
     </div>
-    <button on:click={() => {draw(canvases[0].canvas, images[0])}}></button>
 </div>
 
 <style>

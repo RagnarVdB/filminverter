@@ -1,31 +1,24 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { draw } from "./RawImage"
-    import type {ProcessedImage} from "./RawImage"
-    type cvsobj = {
-        canvas: HTMLCanvasElement, 
-        width: number,
-        image: ProcessedImage,
-        height: number,
-        iteration: number
-    }
-
-    export let image: cvsobj
+    export let url: {url: string, width: number, height: number}
     let canvas: HTMLCanvasElement
     let ctx
 
     let wrapper: HTMLDivElement
 
-    function drawImage(image: cvsobj) {
-        if (image && image.canvas && canvas && image.image) {
+    function drawImage(image: {url: string, width: number, height: number}) {
+        if (image && image.url && canvas) {
             console.log("drawing main", image)
             //canvas.width = wrapper.clientWidth
             //canvas.height = wrapper.clientHeight
             // ctx.rect(0, 0, 100, 100)
             // ctx.stroke()
             // draw(image.canvas, image.image)
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            ctx.drawImage(image.canvas, 0, 0)
+            const destinationImage = new Image;
+            destinationImage.onload = () => {
+                ctx.drawImage(destinationImage,0,0);
+            };
+            destinationImage.src = image.url;
             console.log(canvas, image.width, image.height, canvas.width, canvas.height)
         } else {
             console.log("cannot show yet", image, canvas)
@@ -34,14 +27,13 @@
 
     onMount(() => {
         ctx = canvas.getContext("2d")
-        drawImage(image);
+        drawImage(url);
     })
-    $: {drawImage(image)}
+    $: {drawImage(url)}
 
 </script>
 
 <div class="view" bind:this={wrapper}>
-    <button on:click={() => drawImage(image)}></button>
     <canvas id="imagecanvas" bind:this={canvas}></canvas>
 </div>
 
