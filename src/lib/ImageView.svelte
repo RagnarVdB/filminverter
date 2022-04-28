@@ -1,37 +1,47 @@
 <script lang="ts">
-    import { ProcessedImage, showImage } from "./RawImage";
     import { onMount } from "svelte"
+    import { draw } from "./RawImage"
+    import type {ProcessedImage} from "./RawImage"
+    type cvsobj = {
+        canvas: HTMLCanvasElement, 
+        width: number,
+        image: ProcessedImage,
+        height: number,
+        iteration: number
+    }
 
-    export let image: {bitmap: ImageBitmap; width: number; height: number}
-    export let index: number = null
-    let prevIter: number = -1
+    export let image: cvsobj
     let canvas: HTMLCanvasElement
+    let ctx
+
     let wrapper: HTMLDivElement
 
-    function drawImage(image: {bitmap: ImageBitmap; width: number; height: number}) {
-        if (image && wrapper && canvas) {
-            console.log(`drawing ${index}`)
-            console.log(wrapper.clientWidth, wrapper.clientHeight)
-            console.log(wrapper.offsetWidth, wrapper.offsetHeight)
-            console.log(wrapper.style.height)
-            console.log(canvas.width, canvas.height)
-            canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientHeight - 4
-            console.log(wrapper.clientWidth, wrapper.clientHeight)
-            console.log(canvas.width, canvas.height)
-    
-            const ctx = canvas.getContext('2d')
-            const factor = Math.min(canvas.width/image.width, canvas.height, image.height)
-            ctx.drawImage(image.bitmap, 0, 0, image.width, image.height, 0, 0, image.width*factor, image.height*factor)
+    function drawImage(image: cvsobj) {
+        if (image && image.canvas && canvas && image.image) {
+            console.log("drawing main", image)
+            //canvas.width = wrapper.clientWidth
+            //canvas.height = wrapper.clientHeight
+            // ctx.rect(0, 0, 100, 100)
+            // ctx.stroke()
+            // draw(image.canvas, image.image)
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(image.canvas, 0, 0)
+            console.log(canvas, image.width, image.height, canvas.width, canvas.height)
+        } else {
+            console.log("cannot show yet", image, canvas)
         }
     }
 
-    onMount(() => drawImage(image))
-    $: drawImage(image)
+    onMount(() => {
+        ctx = canvas.getContext("2d")
+        drawImage(image);
+    })
+    $: {drawImage(image)}
 
 </script>
 
 <div class="view" bind:this={wrapper}>
+    <button on:click={() => drawImage(image)}></button>
     <canvas id="imagecanvas" bind:this={canvas}></canvas>
 </div>
 
@@ -48,4 +58,5 @@
         margin: none;
         padding: none;
     }
+
 </style>

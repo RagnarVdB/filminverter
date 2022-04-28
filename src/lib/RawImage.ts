@@ -1,4 +1,9 @@
 import { chunks, chunksRgba, zip } from "./utils"
+//@ts-ignore
+import vertex_shader from "./glsl/vertex_shader.glsl"
+//@ts-ignore
+import fragment_shader from "./glsl/fragment_shader.glsl"
+
 export interface RawImage {
     image: Uint16Array // RAW
     width: number
@@ -125,7 +130,7 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
-export async function showImage(image: ProcessedImage): Promise<ImageBitmap> {
+export function showImage(image: ProcessedImage): ImageData {
     console.log("processing")
     const im = Array.from(image.image)
     const blacks = image.blacks
@@ -141,8 +146,61 @@ export async function showImage(image: ProcessedImage): Promise<ImageBitmap> {
     const clamped = Uint8ClampedArray.from(rgbImage, gammaTranform)
 
     const imdat = new ImageData(clamped, image.width, image.height)
-    const bitmap = await createImageBitmap(imdat)
-    return bitmap
+    return imdat
+}
+
+export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
+    const imdat = showImage(image)
+    
+    const gl = canvas.getContext("webgl")
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
+
+    // Create our vertex shader
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)
+    gl.shaderSource(vertexShader, vertex_shader)
+    gl.compileShader(vertexShader)
+
+    // // Create our fragment shader
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+    gl.shaderSource(fragmentShader, fragment_shader)
+    gl.compileShader(fragmentShader)
+
+    // Create our program
+    const program = gl.createProgram()
+    gl.attachShader(program, vertexShader)
+    gl.attachShader(program, fragmentShader)
+    gl.linkProgram(program)
+
+    // Enable the program
+    gl.useProgram(program)
+
+    // Bind VERTICES as the active array buffer.
+    const VERTICES = new Float32Array([-1, -1, -1, 1, 1, 1, -1, -1, 1, 1, 1, -1])
+
+    const vertexBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, VERTICES, gl.STATIC_DRAW)
+
+    // Set and enable our array buffer as the program's "position" variable
+    const positionLocation = gl.getAttribLocation(program, "position")
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(positionLocation)
+
+    
+    
+    const texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imdat);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    
+    // Draw our 6 VERTICES as 1 triangle
+    gl.clearColor(1.0, 1.0, 1.0, 1.0)
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 6)
 }
 
 export const defaultSettings: Settings = {
