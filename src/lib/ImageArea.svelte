@@ -34,7 +34,7 @@
                 if (image.iter != iterations[i]) {
                     draw(canvas, image)
                     urls[i] = {url: canvas.toDataURL("image/png"), width: image.width, height: image.height}
-                    canvases = canvases
+                    urls = urls
                     iterations[i] = image.iter
                 }
             }

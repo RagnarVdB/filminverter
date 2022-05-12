@@ -6,17 +6,22 @@
 
     let wrapper: HTMLDivElement
 
-    function drawImage(image: {url: string, width: number, height: number}) {
+    async function drawImage(image: {url: string, width: number, height: number}) {
         if (image && image.url && canvas) {
             console.log("drawing main", image)
-            //canvas.width = wrapper.clientWidth
-            //canvas.height = wrapper.clientHeight
-            // ctx.rect(0, 0, 100, 100)
-            // ctx.stroke()
-            // draw(image.canvas, image.image)
+            canvas.width = wrapper.clientWidth
+            canvas.height = wrapper.clientHeight
+
+            // console.log("waiting")
+            // await new Promise((resolve, reject) => {
+            //     setTimeout(resolve, 5000)
+            // })
+            // console.log("proceeding")
+
             const destinationImage = new Image;
             destinationImage.onload = () => {
-                ctx.drawImage(destinationImage,0,0);
+                // ctx.drawImage(destinationImage, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(destinationImage, 0, 0, canvas.width, canvas.height);
             };
             destinationImage.src = image.url;
             console.log(canvas, image.width, image.height, canvas.width, canvas.height)

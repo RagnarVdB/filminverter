@@ -1,3 +1,5 @@
+import type { ConversionMatrix } from "./RawImage"
+
 export function number_of_workers(nFiles: number): number {
     const nthreads = navigator.hardwareConcurrency
     let maxWorkers = 1
@@ -35,3 +37,9 @@ export function chunksRgb(array: Uint16Array): [number, number, number][] {
     }
     return result
 }
+
+// export function multiply(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
+//     if (matrix1.m) {
+
+//     }
+// }

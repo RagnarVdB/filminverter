@@ -34,7 +34,7 @@ export interface Settings {
 }
 
 export interface ConversionMatrix {
-    matrix: number[] | Float32Array
+    matrix: number[]
     n: number // naar
     m: number // van
 }
@@ -106,9 +106,25 @@ function gammaTranform(linear: number): number {
     }
 }
 
-function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix) {
-    if (matrix1.n != matrix2.m) {
+function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
+    if (matrix1.m != matrix2.n) {
         throw new Error("Invalid shapes")
+    }
+    let result: number[] = []
+    for (let i=0; i<matrix1.n; i++) {
+        const row = matrix1.matrix.slice(i*matrix1.m, (i+1)*matrix1.m)
+        for (let j=0; j<matrix2.m; j++) {
+            let col: number[] = []
+            for (let k=0; k<matrix2.n; k++) {
+                col[k] = matrix2.matrix[j + k*matrix2.m]
+            }
+            result[i*matrix2.m + j] = zip(row, col).reduce((acc, [x, y]) => acc+x*y , 0)
+        }
+    }
+    return {
+        matrix: result,
+        n: matrix1.n,
+        m: matrix2.m
     }
     
 }
@@ -135,12 +151,16 @@ export function showImage(image: ProcessedImage): ImageData {
     const im = Array.from(image.image)
     const blacks = image.blacks
     let rgbImage = []
+    console.log(image.cam_to_xyz, xyz_to_rgb)
+    const mult = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz) 
+    console.log(mult)
     for (let i = 0; i < im.length; i += 4) {
         // console.log(im.slice(i, i+1))
-        const xyz = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], image.cam_to_xyz)
-        // console.log("xyz", xyz)
-        const rgb = applyMatrixVector(xyz, xyz_to_rgb)
-        // console.log("rgb", rgb)
+        //const xyz = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], image.cam_to_xyz)
+        // // console.log("xyz", xyz)
+        //const rgb = applyMatrixVector(xyz, xyz_to_rgb)
+
+        const rgb = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], mult)
         rgbImage.push(...rgb, 1)
     }
     const clamped = Uint8ClampedArray.from(rgbImage, gammaTranform)
@@ -200,6 +220,14 @@ export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
     // Draw our 6 VERTICES as 1 triangle
     gl.clearColor(1.0, 1.0, 1.0, 1.0)
     gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Set uniforms
+    const locexp = gl.getUniformLocation(program, "exposure")
+    gl.uniform1f(locexp, 0)
+
+    const locmat = gl.getUniformLocation(program, "matrix")
+    gl.uniformMatrix3fv(locmat, false, [1, 0, 0, 0, 1, 0, 0, 0, 1])
+
     gl.drawArrays(gl.TRIANGLES, 0, 6)
 }
 
