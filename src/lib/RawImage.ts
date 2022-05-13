@@ -169,9 +169,18 @@ export function showImage(image: ProcessedImage): ImageData {
     return imdat
 }
 
+function getImageData(image: ProcessedImage): ImageData {
+    const im = Array.from(image.image)
+    console.log(im.slice(0, 100))
+    const clamped = Uint8ClampedArray.from(im, x => x/64)
+    console.log(clamped.slice(0, 100))
+    return new ImageData(clamped, image.width, image.height)
+}
+
 export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
-    const imdat = showImage(image)
-    
+    //const imdat = showImage(image)
+    const imdat = getImageData(image)
+
     const gl = canvas.getContext("webgl")
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
 
@@ -225,8 +234,24 @@ export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
     const locexp = gl.getUniformLocation(program, "exposure")
     gl.uniform1f(locexp, 0)
 
+    const locBlack = gl.getUniformLocation(program, "black")
+    console.log(image.blacks[0])
+    gl.uniform1f(locBlack, image.blacks[0]/2**14)
+
+
+    const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
+    console.log(matr) 
+    let matr3d: number[] = []
+    for (let i=0; i<3; i++) {
+        for (let j=0; j<3; j++) {
+            matr3d[i*3 + j] = matr.matrix[i*4 + j] * 2**14
+        }
+    }
+    console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**16], matr))
+    console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**14], matr))
+    console.log(matr3d)
     const locmat = gl.getUniformLocation(program, "matrix")
-    gl.uniformMatrix3fv(locmat, false, [1, 0, 0, 0, 1, 0, 0, 0, 1])
+    gl.uniformMatrix3fv(locmat, false, matr3d)
 
     gl.drawArrays(gl.TRIANGLES, 0, 6)
 }
