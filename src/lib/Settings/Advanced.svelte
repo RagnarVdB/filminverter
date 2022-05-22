@@ -1,5 +1,6 @@
 <script lang="ts">
     import Slider from '@bulatdashiev/svelte-slider'
+    import type { Settings } from '../RawImage';
 
     let gr = [1, 0]
     let or = [1, 0]
@@ -8,8 +9,11 @@
     let gb = [1, 0]
     let ob = [1, 0]
 
-    export let settings: { gr: number, or: number, gg: number, og: number, gb: number, ob: number }
-    $: settings = { gr: gr[0], or: or[0], gg: gg[0], og: og[0], gb: gb[0], ob: ob[0] }
+    export let settings: Settings
+    $: settings = {
+        gamma: [gr[0], gg[0], gb[0]],
+        offset: [or[0], og[0], ob[0]]
+    }
 </script>
 
 

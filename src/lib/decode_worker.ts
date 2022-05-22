@@ -37,7 +37,7 @@ onmessage = async function(e) {
 		}
 		const deBayered = deBayer(rawImage, cfa)
 		const cam_to_xyz: ConversionMatrix = {
-			matrix: decoded.get_cam_to_xyz(),
+			matrix: Array.from(decoded.get_cam_to_xyz()),
 			n: 3,
 			m: 4
 		}
@@ -48,7 +48,8 @@ onmessage = async function(e) {
 			cam_to_xyz,
 			orientation: decoded.get_orientation(),
 			settings: defaultSettings,
-			iter:0
+			iter:0,
+			filename: file[1].name
 		}
 
 		postMessage([file[0], processed])

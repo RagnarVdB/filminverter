@@ -1,40 +1,71 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    export let url: {url: string, width: number, height: number}
-    let canvas: HTMLCanvasElement
-    let ctx
+    import { setUpShaders, draw } from "./RawImage";
+    import type { ProcessedImage } from "./RawImage";
 
+
+    export let image: ProcessedImage
+    let iter: number = -1
+    let filename: String = ""
+    let canvas: HTMLCanvasElement
+    let gl: WebGLRenderingContext
+    let program: WebGLProgram
     let wrapper: HTMLDivElement
 
-    async function drawImage(image: {url: string, width: number, height: number}) {
-        if (image && image.url && canvas) {
-            console.log("drawing main", image)
-            canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientHeight
-
-            // console.log("waiting")
-            // await new Promise((resolve, reject) => {
-            //     setTimeout(resolve, 5000)
-            // })
-            // console.log("proceeding")
-
-            const destinationImage = new Image;
-            destinationImage.onload = () => {
-                // ctx.drawImage(destinationImage, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
-                ctx.drawImage(destinationImage, 0, 0, canvas.width, canvas.height);
-            };
-            destinationImage.src = image.url;
-            console.log(canvas, image.width, image.height, canvas.width, canvas.height)
+    async function drawImage(image: ProcessedImage) {
+        if (image && image.image && canvas) {
+            draw(gl, program, image)            
         } else {
-            console.log("cannot show yet", image, canvas)
         }
     }
+    
+    function setSize(image: ProcessedImage) {
+        const imRatio = image.width/image.height
+        const wrapperRatio = wrapper.clientWidth/wrapper.clientHeight
 
+        if (imRatio > wrapperRatio) {
+            canvas.width = wrapper.clientWidth
+            canvas.height = wrapper.clientWidth/imRatio
+        } else {
+            canvas.height = wrapper.clientHeight
+            canvas.width = wrapper.clientHeight*imRatio
+        }
+    }
+    
     onMount(() => {
-        ctx = canvas.getContext("2d")
-        drawImage(url);
+        if (image && image.image) {
+            setSize(image)
+            gl = canvas.getContext("webgl")
+            setUpShaders(gl)
+                .then(pg=> {
+                    program = pg
+                    drawImage(image);
+                    iter = 0
+                })
+        }
     })
-    $: {drawImage(url)}
+    $: {
+        if (image && wrapper) {
+            if (image.filename != filename) {
+                filename = image.filename
+                setSize(image)
+                gl = canvas.getContext("webgl")
+                setUpShaders(gl)
+                    .then(pg=> {
+                        program = pg
+                        drawImage(image);
+                        iter = image.iter
+                    })
+            } else if (image.iter != iter) {
+                drawImage(image)
+                iter = image.iter
+            } else {
+                console.log("Not updating")
+            }
+        } else {
+            console.log("Updating nonexisting image")
+        }
+    }
 
 </script>
 
@@ -50,8 +81,6 @@
     }
 
     #imagecanvas {
-        width: 100%;
-        height: 100%;
         margin: none;
         padding: none;
     }

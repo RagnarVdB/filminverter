@@ -11,6 +11,7 @@ export interface RawImage {
 }
 
 export interface ProcessedImage {
+    filename: String
     image: Uint16Array // RGBA 14bit
     width: number
     height: number
@@ -151,7 +152,6 @@ export function showImage(image: ProcessedImage): ImageData {
     const im = Array.from(image.image)
     const blacks = image.blacks
     let rgbImage = []
-    console.log(image.cam_to_xyz, xyz_to_rgb)
     const mult = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz) 
     console.log(mult)
     for (let i = 0; i < im.length; i += 4) {
@@ -171,17 +171,11 @@ export function showImage(image: ProcessedImage): ImageData {
 
 function getImageData(image: ProcessedImage): ImageData {
     const im = Array.from(image.image)
-    console.log(im.slice(0, 100))
     const clamped = Uint8ClampedArray.from(im, x => x/64)
-    console.log(clamped.slice(0, 100))
     return new ImageData(clamped, image.width, image.height)
 }
 
-export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
-    //const imdat = showImage(image)
-    const imdat = getImageData(image)
-
-    const gl = canvas.getContext("webgl")
+export async function setUpShaders(gl: WebGLRenderingContext): Promise<WebGLProgram> {
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
 
     // Create our vertex shader
@@ -194,11 +188,19 @@ export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
     gl.shaderSource(fragmentShader, fragment_shader)
     gl.compileShader(fragmentShader)
 
-    // Create our program
     const program = gl.createProgram()
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
     gl.linkProgram(program)
+    return program
+}
+
+
+export async function draw(gl: WebGLRenderingContext , program: WebGLProgram, image: ProcessedImage) {
+    console.log("drawing", image.settings.gamma[0])
+    //const imdat = showImage(image)
+    const imdat = getImageData(image)
+
 
     // Enable the program
     gl.useProgram(program)
@@ -232,24 +234,20 @@ export function draw(canvas: HTMLCanvasElement, image: ProcessedImage) {
 
     // Set uniforms
     const locexp = gl.getUniformLocation(program, "exposure")
-    gl.uniform1f(locexp, 0)
+    gl.uniform1f(locexp, image.settings.gamma[0]/10)
 
     const locBlack = gl.getUniformLocation(program, "black")
-    console.log(image.blacks[0])
     gl.uniform1f(locBlack, image.blacks[0]/2**14)
 
 
     const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
-    console.log(matr) 
     let matr3d: number[] = []
     for (let i=0; i<3; i++) {
         for (let j=0; j<3; j++) {
             matr3d[i*3 + j] = matr.matrix[i*4 + j] * 2**14
         }
     }
-    console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**16], matr))
-    console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**14], matr))
-    console.log(matr3d)
+
     const locmat = gl.getUniformLocation(program, "matrix")
     gl.uniformMatrix3fv(locmat, false, matr3d)
 

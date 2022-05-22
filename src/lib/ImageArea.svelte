@@ -1,6 +1,6 @@
 <script lang="ts">
     import ImageView from "./ImageView.svelte"
-    import { ProcessedImage, draw } from "./RawImage";
+    import type { ProcessedImage } from "./RawImage";
 
     type cvsobj = {
         canvas: HTMLCanvasElement, 
@@ -12,47 +12,20 @@
 
 
     export let images: ProcessedImage[] = []
-    let canvases: HTMLCanvasElement[] = []
     let iterations: number[] = []
-    let urls: {url: string, width: number, height: number}[] = []
-    let currentIndex: number = 0
-
-    function updateCanvases(images: ProcessedImage[]) {
-        for (let i=0; i<images.length; i++) {
-            console.log("updating: images", images)
-            console.log("canvases: ", canvases)
-            const image = images[i]
-            if (!image && !canvases[i]) {
-                canvases[i] = undefined
-                urls[i] = {url: undefined, width: null, height: null}
-            } else if (image && !canvases[i]) {
-                canvases[i] = undefined
-                urls[i] = {url: undefined, width: image.width, height: image.height}
-                setTimeout(() => {updateCanvases(images); console.log("retrying")}, 20)
-            } else {
-                const canvas = canvases[i]
-                if (image.iter != iterations[i]) {
-                    draw(canvas, image)
-                    urls[i] = {url: canvas.toDataURL("image/png"), width: image.width, height: image.height}
-                    urls = urls
-                    iterations[i] = image.iter
-                }
-            }
-        }
-    }
-
-    $: updateCanvases(images)
+    export let currentIndex: number = 0
 
 </script>
 
 <div class="ImageArea">
+    <!-- <button on:click="{updateAll}">update</button> -->
     <div id="main">
-        <ImageView url={urls[currentIndex]}/>
+        <ImageView image={images[currentIndex]}/>
     </div>
     <div id="strip">
-        {#each canvases as canvas, index}
+        {#each images as image, index}
         <div class="preview" on:click={() => {currentIndex = index; console.log("clicked", index)}}>
-            <canvas bind:this={canvas}></canvas>
+            <ImageView image={image}/>
         </div>
         {/each}
     </div>
@@ -71,7 +44,8 @@
 }
 
 #main {
-    height: auto;
+    width: 100%;
+    height: 100%;
 }
 #strip {
     display: flex;
