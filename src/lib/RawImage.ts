@@ -188,7 +188,9 @@ export async function setUpShaders(gl: WebGLRenderingContext): Promise<WebGLProg
     gl.shaderSource(fragmentShader, fragment_shader)
     gl.compileShader(fragmentShader)
 
+    
     const program = gl.createProgram()
+    console.log(gl.getError())
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
     gl.linkProgram(program)

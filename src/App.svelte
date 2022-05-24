@@ -4,60 +4,37 @@
     import type { ProcessedImage, Settings as SettingType } from './lib/RawImage'
     import logo from './assets/svelte.png'
 
+    import { images } from './stores'
+
     import Presets from './lib/Presets.svelte'
     import Settings from './lib/Settings/Settings.svelte'
-    import { create_in_transition } from 'svelte/internal';
 
 
-    let images: ProcessedImage[] = []
     let currentIndex: number = 0
     let showImages = false
-    let settings: SettingType = {gamma: [2, 2, 2], offset: [0, 1, 2]}
 
     function receivedImage(event) {
         const { index, image }: { index: number, image: ProcessedImage } = event.detail
         console.log("received: ", index) 
-        if (index > images.length) {
+        if (index > $images.length) {
             for (let i=0; i<index; i++) {
-                images[i] = null
+                $images[i] = null
             }
         }
-        images[index] = image
+        $images[index] = image
 
         showImages = true
     }
-
-    function changeSettings(settings: SettingType) {
-        console.log("Changing settings", currentIndex)
-        const current = images[currentIndex]
-        if (current) {
-            current.settings = settings
-            current.iter += 1
-            images = images
-        } else {
-            console.log("No image selected")
-        }
-    }
-
-    function imageChange(index: number) {
-        if (images[index]) {
-            settings = images[index].settings
-            console.log("index changed", index)
-        }
-    }
-
-    $: {changeSettings(settings)}
-    $: {imageChange(currentIndex)}
 
 </script>
 
 <main>
     {#if showImages}
-    <ImageArea images={images} bind:currentIndex={currentIndex}/>
+    <ImageArea/>
     {:else}
     <FileSelector on:image={receivedImage}/>
     {/if}
-    <Settings bind:settings={settings}/>
+    <Settings/>
     <!-- <Presets/> -->
 </main>
 

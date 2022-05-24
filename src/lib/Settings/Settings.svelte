@@ -2,32 +2,33 @@
     import Basic from './Basic.svelte'
     import Advanced from './Advanced.svelte'
     import type { Settings } from '../RawImage';
-
+    import { images, index } from '../../stores'
+    
     let mode: "Basic" | "Advanced" = "Basic"
 
-    export let settings: Settings
-    let innerSettings: Settings
+    let settings: Settings
     let changes: number = 0
 
     function updateSettings(sets: Settings) {
         changes += 1
         let currentChanges = changes
         setTimeout(() => {
-            if (changes == currentChanges) {
-                settings = sets
+            if (changes == currentChanges && $images[$index]) {
+                $images[$index].settings = sets
+                $images[$index].iter += 1
                 changes = 0
             }
         }, 200)
     }
     
-    function externalChange(sets: Settings) {
-        console.log("settings updated")
-        if (sets != innerSettings)
-            innerSettings = sets
+    function updateIndex(i: number) {
+        console.log("index changed to", i)
+        if ($images[i])
+            settings = $images[i].settings
     }
 
-    $: {updateSettings(innerSettings)}
-    $: {externalChange(settings)}
+    $: {updateSettings(settings)}
+    $: {updateIndex($index)}
 
 </script>
 
@@ -40,7 +41,7 @@
     {#if mode === "Basic"}
         <Basic/>
     {:else}
-        <Advanced bind:settings={innerSettings}/>
+        <Advanced bind:settings={settings}/>
     {/if}
     
 </div>

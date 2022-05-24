@@ -1,5 +1,8 @@
 <script lang="ts">
     import ImageView from "./ImageView.svelte"
+
+    import { images, index as currentIndex } from "../stores";
+
     import type { ProcessedImage } from "./RawImage";
 
     type cvsobj = {
@@ -11,20 +14,18 @@
     }
 
 
-    export let images: ProcessedImage[] = []
     let iterations: number[] = []
-    export let currentIndex: number = 0
 
 </script>
 
 <div class="ImageArea">
     <!-- <button on:click="{updateAll}">update</button> -->
     <div id="main">
-        <ImageView image={images[currentIndex]}/>
+        <ImageView image={$images[$currentIndex]}/>
     </div>
     <div id="strip">
-        {#each images as image, index}
-        <div class="preview" on:click={() => {currentIndex = index; console.log("clicked", index)}}>
+        {#each $images as image, index}
+        <div class="preview" on:click={() => {$currentIndex = index; console.log("clicked", index)}}>
             <ImageView image={image}/>
         </div>
         {/each}

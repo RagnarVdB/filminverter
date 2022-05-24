@@ -10,10 +10,29 @@
     let ob = [1, 0]
 
     export let settings: Settings
+
+
     $: settings = {
         gamma: [gr[0], gg[0], gb[0]],
         offset: [or[0], og[0], ob[0]]
     }
+
+    function updateSettings(sets: Settings) {
+        // Sliders change to match settings of selected image
+        if (sets != {
+            gamma: [gr[0], gg[0], gb[0]],
+            offset: [or[0], og[0], ob[0]]
+        }) {
+            gr[0] = sets.gamma[0]
+            or[0] = sets.offset[0]
+            gg[0] = sets.gamma[1]
+            og[0] = sets.offset[1]
+            gb[0] = sets.gamma[2]
+            ob[0] = sets.offset[2]
+        } 
+    }
+
+    $: {updateSettings(settings)}
 </script>
 
 
