@@ -21,11 +21,11 @@ vec4 subtractBlack(vec4 color, float black) {
 
 vec4 correctGamma(vec4 color) {
   float gamma = 0.41666666;
-    return pow(color*1.055, vec4(gamma, gamma, gamma, 1)) - 0.055;
+    return (pow(color, vec4(gamma, gamma, gamma, 1))*1.055) - 0.055;
 }
 
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
-out vec4 fooColor;
+out vec4 outColor;
 void main() {
     uvec4 unsignedIntValues = texture(tex, pixelCoordinate);
     vec4 floatValues0To65535 = vec4(unsignedIntValues);
@@ -33,6 +33,5 @@ void main() {
     color = subtractBlack(color, black);
     color = expose(color, exposure);
     color = applyMatrix(color, matrix);
-    color = correctGamma(color);
-    fooColor = pow(color, vec4(1.0/2.4, 1.0/2.4, 1.0/2.4, 1));
+    outColor = correctGamma(color);
 }
