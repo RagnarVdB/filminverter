@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { setUpShaders, draw } from "./RawImage";
+    import { setUpShaders, draw, webGLTest } from "./RawImage";
     import type { ProcessedImage } from "./RawImage";
 
 
@@ -8,13 +8,14 @@
     let iter: number = -1
     let filename: String = ""
     let canvas: HTMLCanvasElement
-    let gl: WebGLRenderingContext
+    let gl: WebGL2RenderingContext
     let program: WebGLProgram
     let wrapper: HTMLDivElement
 
     async function drawImage(image: ProcessedImage) {
         if (image && image.image && canvas) {
-            draw(gl, program, image)            
+            // draw(gl, program, image)  
+            webGLTest(gl, image)
         } else {
         }
     }
@@ -35,13 +36,15 @@
     onMount(() => {
         if (image && image.image) {
             setSize(image)
-            gl = canvas.getContext("webgl")
-            setUpShaders(gl)
-                .then(pg=> {
-                    program = pg
-                    drawImage(image);
-                    iter = 0
-                })
+            gl = canvas.getContext("webgl2")
+            // setUpShaders(gl)
+            //     .then(pg=> {
+            //         program = pg
+            //         drawImage(image);
+            //         iter = 0
+            //     })
+        drawImage(image)
+        iter = 0
         }
     })
     $: {
@@ -49,13 +52,15 @@
             if (image.filename != filename) {
                 filename = image.filename
                 setSize(image)
-                gl = canvas.getContext("webgl")
-                setUpShaders(gl)
-                    .then(pg=> {
-                        program = pg
-                        drawImage(image);
-                        iter = image.iter
-                    })
+                gl = canvas.getContext("webgl2")
+                // setUpShaders(gl)
+                //     .then(pg=> {
+                //         program = pg
+                //         drawImage(image);
+                //         iter = image.iter
+                //     })
+                drawImage(image);
+                iter = image.iter
             } else if (image.iter != iter) {
                 drawImage(image)
                 iter = image.iter

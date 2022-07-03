@@ -38,6 +38,19 @@ export function chunksRgb(array: Uint16Array): [number, number, number][] {
     return result
 }
 
+export function changeBitDepth(image: Uint16Array, oldDepth: number, newDepth: number): Uint16Array{
+    const factor = newDepth / oldDepth
+    const n = new Uint16Array(image.length)
+    for (let i = 0; i < image.length; i += 4) {
+        n[i    ] = image[i    ] * factor
+        n[i + 1] = image[i + 1] * factor
+        n[i + 2] = image[i + 2] * factor
+        n[i + 3] = image[i + 3]
+    }
+
+    return n
+}
+
 // export function multiply(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
 //     if (matrix1.m) {
 

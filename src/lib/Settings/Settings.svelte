@@ -9,6 +9,8 @@
     let settings: Settings
     let changes: number = 0
 
+    const delay = 5 //ms
+
     function updateSettings(sets: Settings) {
         changes += 1
         let currentChanges = changes
@@ -18,7 +20,7 @@
                 $images[$index].iter += 1
                 changes = 0
             }
-        }, 200)
+        }, delay)
     }
     
     function updateIndex(i: number) {
