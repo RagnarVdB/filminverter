@@ -175,49 +175,32 @@ function getImageData(image: ProcessedImage): ImageData {
     return new ImageData(clamped, image.width, image.height)
 }
 
-export function webGLTest(gl: WebGL2RenderingContext, image: ProcessedImage) {
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     if (!gl) console.log("No gl")
     console.log("test drawing")
-    // var w = 128;
-    // var h = 128;
-    // var size = w * h * 4;
-    // var img = new Uint16Array(size); // need Uint16Array
-    // for (var i = 0; i < img.length; i += 4) {
-    //     img[i + 0] = 65535; // r
-    //     img[i + 1] = i/64 * 256; // g
-    //     img[i + 2] = i/64 * 256; // b
-    //     img[i + 3] = 65535; // a
-    // }
+
 
     const w = image.width
     const h = image.height
-    //const img = changeBitDepth(image.image, 14, 16)
     const img = image.image
-
+    // const img_8bit = Uint8ClampedArray.from(image.image.map(x => x/2**6))
 
     // program
+    const program: any = gl.createProgram()
+    var ext = gl.getExtension('EXT_color_buffer_float')
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, 256, 256)
 
-    const program: any = gl.createProgram();
-    const color_buffer_float_16ui = gl.getExtension('EXT_color_buffer_float'); // add for 16-bit
 
     // texture
     const tex = gl.createTexture(); // create empty texture
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(
-        gl.TEXTURE_2D, // target
-        0, // mip level
-        gl.RGBA16UI, // internal format -> gl.RGBA16UI
-        w, h, // width and height
-        0, // border
-        gl.RGBA_INTEGER, //format -> gm.RGBA_INTEGER
-        gl.UNSIGNED_SHORT, // type -> gl.UNSIGNED_SHORT
-        img // texture data
-    );
-
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    
+    
+    
     // buffer
-    const buffer = gl.createBuffer();
+    const buffer = gl.createBuffer()
     const bufferData =  new Float32Array([
         -1, -1,
         1, -1,
@@ -226,50 +209,68 @@ export function webGLTest(gl: WebGL2RenderingContext, image: ProcessedImage) {
         -1, 1,
         -1, -1
     ]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW);
-
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.STATIC_DRAW)
+    
     // shaders
-    program.vs = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(program.vs, vertex_shader);
-
-    program.fs = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(program.fs, fragment_shader);
-
-    gl.compileShader(program.vs);
-    checkCompileError(program.vs);
-    gl.compileShader(program.fs);
-    checkCompileError(program.fs);
-
+    program.vs = gl.createShader(gl.VERTEX_SHADER)
+    gl.shaderSource(program.vs, vertex_shader)
+    
+    program.fs = gl.createShader(gl.FRAGMENT_SHADER)
+    gl.shaderSource(program.fs, fragment_shader)
+    
+    gl.compileShader(program.vs)
+    checkCompileError(program.vs)
+    gl.compileShader(program.fs)
+    checkCompileError(program.fs)
+    
     function checkCompileError(s) {
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-    console.error(gl.getShaderInfoLog(s));
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+            console.error(gl.getShaderInfoLog(s))
+        }
     }
-    }
-
-    gl.attachShader(program,program.vs);
-    gl.attachShader(program,program.fs);
-
-    gl.deleteShader(program.vs);
-    gl.deleteShader(program.fs);
-
+    
+    gl.attachShader(program,program.vs)
+    gl.attachShader(program,program.fs)
+    
+    gl.deleteShader(program.vs)
+    gl.deleteShader(program.fs)
+    
     
     // program
-    gl.bindAttribLocation(program, 0, "vertex");
-    gl.linkProgram(program);
-    gl.useProgram(program);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindAttribLocation(program, 0, "vertex")
+    gl.linkProgram(program)
+    gl.useProgram(program)
+    gl.enableVertexAttribArray(0)
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+    
+    // Load image
+    gl.texImage2D(
+        gl.TEXTURE_2D, // target
+        0, // mip level
+        gl.RGBA16UI, // internal format -> gl.RGBA16UI
+        w, h, // width and height
+        0, // border
+        gl.RGBA_INTEGER, //format -> gm.RGBA_INTEGER
+        gl.UNSIGNED_SHORT,
+        // gl.UNSIGNED_BYTE, // type -> gl.UNSIGNED_SHORT
+        img // texture data
+        // Uint16Array.from(out)
+        // img_8bit
+    );
 
     // Set uniforms
     const locexp = gl.getUniformLocation(program, "exposure")
     gl.uniform1f(locexp, image.settings.gamma[0]/10)
-
+    
     const locBlack = gl.getUniformLocation(program, "black")
     gl.uniform1f(locBlack, image.blacks[0]/2**14)
     console.log(image.blacks)
 
+    // Calculate Matrix
     const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
     console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**16], image.cam_to_xyz))
     console.log("original: ")
@@ -281,37 +282,26 @@ export function webGLTest(gl: WebGL2RenderingContext, image: ProcessedImage) {
         for (let j=0; j<4; j++) {
             matr3d[i*4 + j] = matr.matrix[i*4 + j] * 2**14
         }
-        //matr3d[i*4 + 3] = 0
     }
     matr3d[12] = 0
     matr3d[13] = 0
     matr3d[14] = 0
     matr3d[15] = 1
-    console.log("New: ")
-    const obj: ConversionMatrix = {matrix: matr3d, n: 4, m: 4}
-    console.log(obj)
-    console.log(applyMatrixVector([1, 1, 1, 1], obj))
-    console.log("img: ", img)
-    for (let i=4*20000; i<4*20100; i+=40) {
-        console.log("value")
-        console.log(Array.from(img.slice(i, i+4)))
-        const sl = [
-            img[i] - 1024,
-            img[i + 1] - 1024,
-            img[i + 2] - 1024,
-            img[i + 3],
-        ]
+    // const obj: ConversionMatrix = {matrix: matr3d, n: 4, m: 4}
 
-        console.log(applyMatrixVector(sl, obj))
+
+    // Transpose
+    const transpose = []
+    for (let i=0; i<4; i++) {
+        for (let j=0; j<4; j++) {
+            transpose[i*4 + j] = matr3d[j*4 + i]
+        }
     }
+    
     const locmat = gl.getUniformLocation(program, "matrix")
-    // matr3d = [4, 0, 0, 0,
-    //           0, 1, 0, 0,
-    //           0, 0, 1, 0,
-    //           0, 0, 0, 1]
-    gl.uniformMatrix4fv(locmat, false, matr3d)
-
-
+    gl.uniformMatrix4fv(locmat, false, transpose)
+    
+    
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
 }
 
@@ -338,7 +328,7 @@ export async function setUpShaders(gl: WebGLRenderingContext): Promise<WebGLProg
 }
 
 
-export async function draw(gl: WebGLRenderingContext , program: WebGLProgram, image: ProcessedImage) {
+export async function draw_old(gl: WebGLRenderingContext , program: WebGLProgram, image: ProcessedImage) {
     console.log("drawing", image.settings.gamma[0])
     //const imdat = showImage(image)
     const imdat = getImageData(image)
@@ -359,16 +349,15 @@ export async function draw(gl: WebGLRenderingContext , program: WebGLProgram, im
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(positionLocation)
 
-    
-    
-    const texture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imdat);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+   
+    const texture = gl.createTexture()
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imdat)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     
     // Draw our 6 VERTICES as 1 triangle
     gl.clearColor(1.0, 1.0, 1.0, 1.0)

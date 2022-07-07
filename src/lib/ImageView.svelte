@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { setUpShaders, draw, webGLTest } from "./RawImage";
+    import { setUpShaders, draw } from "./RawImage";
     import type { ProcessedImage } from "./RawImage";
 
 
@@ -14,9 +14,7 @@
 
     async function drawImage(image: ProcessedImage) {
         if (image && image.image && canvas) {
-            // draw(gl, program, image)  
-            webGLTest(gl, image)
-        } else {
+            draw(gl, image)
         }
     }
     
