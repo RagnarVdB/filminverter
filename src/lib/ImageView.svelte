@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { setUpShaders, draw } from "./RawImage";
+    import { draw } from "./RawImage";
     import type { ProcessedImage } from "./RawImage";
 
 

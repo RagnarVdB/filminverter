@@ -98,14 +98,6 @@ const xyz_to_rgb: ConversionMatrix = {
     m: 3
 }
 
-function gammaTranform(linear: number): number {
-    const gamma = 1/2.4
-    if (linear < 0.0031308) {
-        return linear * 12.92*256
-    } else {
-        return (Math.pow(linear*1.055,gamma) - 0.055)*256
-    }
-}
 
 function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
     if (matrix1.m != matrix2.n) {
@@ -145,34 +137,6 @@ function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
 
 export function applyConversionMatrix(image: number[] | Uint16Array, matrix: ConversionMatrix): number[] {
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
-}
-
-export function showImage(image: ProcessedImage): ImageData {
-    console.log("processing")
-    const im = Array.from(image.image)
-    const blacks = image.blacks
-    let rgbImage = []
-    const mult = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz) 
-    console.log(mult)
-    for (let i = 0; i < im.length; i += 4) {
-        // console.log(im.slice(i, i+1))
-        //const xyz = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], image.cam_to_xyz)
-        // // console.log("xyz", xyz)
-        //const rgb = applyMatrixVector(xyz, xyz_to_rgb)
-
-        const rgb = applyMatrixVector([im[i]-blacks[0], im[i+1]-blacks[1], im[i+2]-blacks[2], im[i+3]-blacks[3]], mult)
-        rgbImage.push(...rgb, 1)
-    }
-    const clamped = Uint8ClampedArray.from(rgbImage, gammaTranform)
-
-    const imdat = new ImageData(clamped, image.width, image.height)
-    return imdat
-}
-
-function getImageData(image: ProcessedImage): ImageData {
-    const im = Array.from(image.image)
-    const clamped = Uint8ClampedArray.from(im, x => x/64)
-    return new ImageData(clamped, image.width, image.height)
 }
 
 export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
@@ -305,85 +269,6 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
 }
 
-export async function setUpShaders(gl: WebGLRenderingContext): Promise<WebGLProgram> {
-    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight)
-
-    // Create our vertex shader
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER)
-    gl.shaderSource(vertexShader, vertex_shader)
-    gl.compileShader(vertexShader)
-
-    // // Create our fragment shader
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
-    gl.shaderSource(fragmentShader, fragment_shader)
-    gl.compileShader(fragmentShader)
-
-    
-    const program = gl.createProgram()
-    console.log(gl.getError())
-    gl.attachShader(program, vertexShader)
-    gl.attachShader(program, fragmentShader)
-    gl.linkProgram(program)
-    return program
-}
-
-
-export async function draw_old(gl: WebGLRenderingContext , program: WebGLProgram, image: ProcessedImage) {
-    console.log("drawing", image.settings.gamma[0])
-    //const imdat = showImage(image)
-    const imdat = getImageData(image)
-
-
-    // Enable the program
-    gl.useProgram(program)
-
-    // Bind VERTICES as the active array buffer.
-    const VERTICES = new Float32Array([-1, -1, -1, 1, 1, 1, -1, -1, 1, 1, 1, -1])
-
-    const vertexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, VERTICES, gl.STATIC_DRAW)
-
-    // Set and enable our array buffer as the program's "position" variable
-    const positionLocation = gl.getAttribLocation(program, "position")
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(positionLocation)
-
-   
-    const texture = gl.createTexture()
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, texture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imdat)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    
-    // Draw our 6 VERTICES as 1 triangle
-    gl.clearColor(1.0, 1.0, 1.0, 1.0)
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // Set uniforms
-    const locexp = gl.getUniformLocation(program, "exposure")
-    gl.uniform1f(locexp, image.settings.gamma[0]/10)
-
-    const locBlack = gl.getUniformLocation(program, "black")
-    gl.uniform1f(locBlack, image.blacks[0]/2**14)
-
-
-    const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
-    let matr3d: number[] = []
-    for (let i=0; i<3; i++) {
-        for (let j=0; j<3; j++) {
-            matr3d[i*3 + j] = matr.matrix[i*4 + j] * 2**14
-        }
-    }
-
-    const locmat = gl.getUniformLocation(program, "matrix")
-    gl.uniformMatrix3fv(locmat, false, matr3d)
-
-    gl.drawArrays(gl.TRIANGLES, 0, 6)
-}
 
 export const defaultSettings: Settings = {
     gamma: [1, 1, 1],
