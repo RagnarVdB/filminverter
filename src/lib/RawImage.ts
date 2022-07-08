@@ -139,7 +139,7 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
-export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean) {
     if (!gl) console.log("No gl")
     console.log("test drawing")
 
@@ -227,8 +227,8 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     );
 
     // Set uniforms
-    const locexp = gl.getUniformLocation(program, "exposure")
-    gl.uniform1f(locexp, image.settings.gamma[0]/10)
+    // const locexp = gl.getUniformLocation(program, "exposure")
+    // gl.uniform1f(locexp, image.settings.gamma[0]/10)
     
     const locBlack = gl.getUniformLocation(program, "black")
     gl.uniform1f(locBlack, image.blacks[0]/2**14)
@@ -265,6 +265,31 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const locmat = gl.getUniformLocation(program, "matrix")
     gl.uniformMatrix4fv(locmat, false, transpose)
     
+    const locinvert = gl.getUniformLocation(program, "inv")
+    gl.uniform1i(locinvert, invert ? 1 : 0)
+
+    const gamma = image.settings.gamma
+    const offset = image.settings.offset
+    const light = 1
+    const factor: [number, number, number, number] = [
+        light**(1/gamma[0]) / offset[0],
+        light**(1/gamma[1]) / offset[1],
+        light**(1/gamma[2]) / offset[2],
+        1
+    ]
+    const exponent: [number, number, number, number] = [
+        1/gamma[0],
+        1/gamma[1],
+        1/gamma[2],
+        1
+    ]
+
+    const locfac = gl.getUniformLocation(program, "fac")
+    gl.uniform4f(locfac, ...factor)
+
+    const locexp = gl.getUniformLocation(program, "exponent")
+    gl.uniform4f(locexp, ...exponent)
+
     
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
 }

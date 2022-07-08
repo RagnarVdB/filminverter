@@ -14,7 +14,7 @@
 
     async function drawImage(image: ProcessedImage) {
         if (image && image.image && canvas) {
-            draw(gl, image)
+            draw(gl, image, true)
         }
     }
     
