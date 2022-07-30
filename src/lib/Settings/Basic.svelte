@@ -1,14 +1,14 @@
 <script lang="ts">
     import Slider from '@bulatdashiev/svelte-slider'
-    $: settings = {
-        exposure: exposure[0],
-        contrast: contrast[0]
-    }
+    import type { Settings } from '../RawImage';
 
     let exposure = [1, 0]
     let contrast = [1, 0]
     let temperature = [1, 0]
     let tint = [1, 0]
+
+    const mask = [1000, 1000, 1000]
+
 </script>
 
 

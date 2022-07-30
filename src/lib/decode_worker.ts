@@ -46,6 +46,7 @@ onmessage = async function(e) {
 			bps: decoded.get_bps(),
 			blacks: Array.from(decoded.get_blacklevels()),
 			cam_to_xyz,
+			wb_coeffs: Array.from(decoded.get_wb_coeffs()),
 			orientation: decoded.get_orientation(),
 			settings: defaultSettings,
 			iter:0,

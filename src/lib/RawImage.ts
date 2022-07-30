@@ -17,6 +17,7 @@ export interface ProcessedImage {
     height: number
     bps: number
     cam_to_xyz: ConversionMatrix
+    wb_coeffs: number[]
     blacks: number[]
     orientation: String
     settings: Settings
@@ -32,6 +33,8 @@ export interface CFA {
 export interface Settings {
     gamma: [number, number, number]
     offset: [number, number, number]
+    light: [number, number, number]
+    //mask: [number, number, number]
 }
 
 export interface ConversionMatrix {
@@ -139,9 +142,8 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
-export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean) {
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean, cc: number) {
     if (!gl) console.log("No gl")
-    console.log("test drawing")
 
 
     const w = image.width
@@ -232,15 +234,10 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
     
     const locBlack = gl.getUniformLocation(program, "black")
     gl.uniform1f(locBlack, image.blacks[0]/2**14)
-    console.log(image.blacks)
 
     // Calculate Matrix
     const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
-    console.log(applyMatrixVector([2**14, 2**14, 2**14, 2**16], image.cam_to_xyz))
-    console.log("original: ")
-    console.log(matr)
     const v = 2**14 - 1024
-    console.log(applyMatrixVector([v, v, v, 0], matr))
     let matr3d: number[] = []
     for (let i=0; i<3; i++) {
         for (let j=0; j<4; j++) {
@@ -262,6 +259,23 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         }
     }
     
+    const r = [ 11434,-4948,-1210,-3746,12042,1903,-666,1479,5235 ].map(x => x/1000)
+    const alt = [r[0], r[3], r[6], 0, r[1], r[4], r[7], 0, r[2], r[5], r[8], 0, 0, 0, 0, 1]
+
+    // // Get maximum
+    // let min = [10000, 10000, 10000]
+    // let max = [0, 0, 0]
+    // for (let i = 0; i<image.image.length; i+=4) {
+    //     for (let j=0; j<3; j++) {
+    //         if (image.image[i+j] < min[j])
+    //             min[j] = image.image[i+j]
+    //         if (image.image[i+j] > max[j])
+    //             max[j] = image.image[i+j]
+    //     }
+    // }
+    // console.log("Min: ", min)
+    // console.log("Max: ", max)
+
     const locmat = gl.getUniformLocation(program, "matrix")
     gl.uniformMatrix4fv(locmat, false, transpose)
     
@@ -269,14 +283,6 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
     gl.uniform1i(locinvert, invert ? 1 : 0)
 
     const gamma = image.settings.gamma
-    const offset = image.settings.offset
-    const light = 1
-    const factor: [number, number, number, number] = [
-        light**(1/gamma[0]) / offset[0],
-        light**(1/gamma[1]) / offset[1],
-        light**(1/gamma[2]) / offset[2],
-        1
-    ]
     const exponent: [number, number, number, number] = [
         1/gamma[0],
         1/gamma[1],
@@ -284,18 +290,43 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         1
     ]
 
+    const offset = image.settings.offset.map(x => (x-10)/100)
+    const light = [9694.72607681304, 9548.695452615684, 7324.635494154855]
+    const c=1/cc
+    const factor: [number, number, number, number] = [
+        (light[0]/2**14)**exponent[0] * 10**(-offset[0]*exponent[0]) * c,
+        (light[1]/2**14)**exponent[1] * 10**(-offset[1]*exponent[1]) * c,
+        (light[2]/2**14)**exponent[2] * 10**(-offset[2]*exponent[2]) * c,
+        1
+    ]
+    
+    const old: [number, number, number, number] = [
+        75.44195869 * 9694.72607681304**exponent[0]*2**(-14 - 14*exponent[0]),
+        24.97675115 * 9548.695452615684**exponent[1]*2**(-14 - 14*exponent[1]),
+        23.97550122 * 7324.635494154855**exponent[2]*2**(-14 - 14*exponent[2]),
+        1
+    ]
+
+    console.log("offsets:  ", offset)
+    console.log("factor:   ", factor)
+    console.log("exponent: ", exponent)
+
     const locfac = gl.getUniformLocation(program, "fac")
     gl.uniform4f(locfac, ...factor)
 
     const locexp = gl.getUniformLocation(program, "exponent")
     gl.uniform4f(locexp, ...exponent)
 
-    
+    const locwb = gl.getUniformLocation(program, "wb")
+    gl.uniform4f(locwb, image.wb_coeffs[0]/image.wb_coeffs[1]/2, image.wb_coeffs[1]/image.wb_coeffs[1], image.wb_coeffs[2]/image.wb_coeffs[1]/2, 1)
+    //console.log(image.wb_coeffs[0]/image.wb_coeffs[1], 2*image.wb_coeffs[1]/image.wb_coeffs[1], image.wb_coeffs[2]/image.wb_coeffs[1], 1)
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
 }
 
 
 export const defaultSettings: Settings = {
     gamma: [1, 1, 1],
-    offset: [1, 1, 1]
+    offset: [1, 1, 1],
+    light: [0, 0, 0],
+    //mask: [0, 0, 0]
 }
