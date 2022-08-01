@@ -7,7 +7,7 @@
     export let image: ProcessedImage
     let iter: number = -1
     let filename: String = ""
-    let canvas: HTMLCanvasElement
+    export let canvas: HTMLCanvasElement = undefined
     let gl: WebGL2RenderingContext
     let program: WebGLProgram
     let wrapper: HTMLDivElement

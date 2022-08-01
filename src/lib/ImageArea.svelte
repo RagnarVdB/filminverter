@@ -1,7 +1,7 @@
 <script lang="ts">
     import ImageView from "./ImageView.svelte"
 
-    import { images, index as currentIndex } from "../stores";
+    import { images, index as currentIndex, mainCanvas } from "../stores";
 
     import type { ProcessedImage } from "./RawImage";
 
@@ -13,7 +13,6 @@
         iteration: number
     }
 
-
     let iterations: number[] = []
 
 </script>
@@ -21,7 +20,7 @@
 <div class="ImageArea">
     <!-- <button on:click="{updateAll}">update</button> -->
     <div id="main">
-        <ImageView image={$images[$currentIndex]}/>
+        <ImageView image={$images[$currentIndex]} bind:canvas={$mainCanvas}/>
     </div>
     <div id="strip">
         {#each $images as image, index}

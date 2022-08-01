@@ -31,9 +31,14 @@ export interface CFA {
 }
 
 export interface Settings {
-    gamma: [number, number, number]
-    offset: [number, number, number]
-    light: [number, number, number]
+    mode: "advanced" | "basic"
+    advanced: {
+        neutral: [number, number, number]
+        exposure: number,
+        gamma: number,
+        facG: number,
+        facB: number
+    }
     //mask: [number, number, number]
 }
 
@@ -87,7 +92,7 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
             im[(n*j+i)*4] = red/nR
             im[(n*j+i)*4+1] = green/nG
             im[(n*j+i)*4+2] = blue/nB
-            im[(n*j+i)*4+3] = 2**16 - 1
+            im[(n*j+i)*4+3] = 65535
         }
     }
     return {image: im, width: n, height: m}
@@ -149,7 +154,130 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
     const w = image.width
     const h = image.height
     const img = image.image
-    // const img_8bit = Uint8ClampedArray.from(image.image.map(x => x/2**6))
+    //let img
+    
+    // Test neutral color
+
+    const inverse = [
+        0.222, 0.02456, 0.03352, 0,
+        0.06363, 0.45789, 0.12199, 0,
+        0.00850, 0.08808, 0.30311, 0,
+        0, 0, 0, 1]
+
+
+    const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
+    
+
+    // Calculate Matrix
+    const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
+    let matr3d: number[] = []
+    for (let i=0; i<3; i++) {
+        for (let j=0; j<4; j++) {
+            matr3d[i*4 + j] = matr.matrix[i*4 + j] * 2**14
+        }
+    }
+    matr3d[12] = 0
+    matr3d[13] = 0
+    matr3d[14] = 0
+    matr3d[15] = 1
+    const obj: ConversionMatrix = {matrix: matr3d, n: 4, m: 4}
+    // Transpose
+    const transpose = []
+    for (let i=0; i<4; i++) {
+        for (let j=0; j<4; j++) {
+            transpose[i*4 + j] = matr3d[j*4 + i]
+        }
+    }
+
+
+
+
+
+    let exponent: [number, number, number, number]
+    let factor: [number, number, number, number]
+
+    const wb: [number, number, number] = [
+        image.wb_coeffs[0]/image.wb_coeffs[1]/2,
+        1,
+        image.wb_coeffs[2]/image.wb_coeffs[1]/2]
+
+
+
+    if (image.settings.mode == "advanced") {
+        const s = image.settings.advanced
+        console.log(s)
+        const black = image.blacks[0]
+        const gamma = [s.gamma, s.gamma*s.facG, s.gamma*s.facB]
+        const neutral = s.neutral.map(x => (x-black)/ 2**14)
+        const exposure = s.exposure
+
+        
+        const neutralValue: [number, number, number] = 
+            [2**exposure*neutralColor[0]/wb[0],
+             2**exposure*neutralColor[1]/wb[1],
+             2**exposure*neutralColor[2]/wb[2]]
+        
+        exponent= [
+            1/gamma[0],
+            1/gamma[1],
+            1/gamma[2],
+            1
+        ]
+        
+        factor = [
+            (neutralValue[0]*(neutral[0]**exponent[0]))**(-gamma[0]),
+            (neutralValue[1]*(neutral[1]**exponent[1]))**(-gamma[1]),
+            (neutralValue[2]*(neutral[2]**exponent[2]))**(-gamma[2]),
+            1
+        ]
+
+        // let arr = []
+        // const kl = [1908, 1682, 1133]
+        // //const kl = [0.234958656539, 0.32177733406, 0.115905554186].map(x => x*2**14)
+        // //const kl=[0, 0, 0]
+        // for (let i=0; i<image.width*image.height*4; i+=4) {
+        //     arr[i] = kl[0]
+        //     arr[i + 1] = kl[1]
+        //     arr[i + 2] = kl[2]
+        //     arr[i + 3] = 65535
+        // }
+        // console.log("kl", kl)
+        // img = Uint16Array.from(arr)
+        // console.log(img)
+
+    }
+
+    // const ec = 1
+    // factor = [0.000684**(-1/2), 0.000519**(-1/2), 0.00000513**(-1/2), 1]
+
+    console.log("factor:   ", factor)
+    console.log("exponent: ", exponent)
+
+    // const kl = [1908, 1682, 1133]
+    // console.log(Math.pow(factor[0]*(kl[0]/16384 - image.blacks[0]/16384), exponent[0]))
+    
+    // const r = [ 11434,-4948,-1210,-3746,12042,1903,-666,1479,5235 ].map(x => x/1000)
+    // const alt = [r[0], r[3], r[6], 0, r[1], r[4], r[7], 0, r[2], r[5], r[8], 0, 0, 0, 0, 1]
+
+    // // Get maximum
+    // let min = [10000, 10000, 10000]
+    // let max = [0, 0, 0]
+    // for (let i = 0; i<image.image.length; i+=4) {
+    //     for (let j=0; j<3; j++) {
+    //         if (image.image[i+j] < min[j])
+    //             min[j] = image.image[i+j]
+    //         if (image.image[i+j] > max[j])
+    //             max[j] = image.image[i+j]
+    //     }
+    // }
+    // console.log("Min: ", min)
+    // console.log("Max: ", max)
+
+
+    
+
+
+
 
     // program
     const program: any = gl.createProgram()
@@ -227,89 +355,19 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         // Uint16Array.from(out)
         // img_8bit
     );
-
-    // Set uniforms
-    // const locexp = gl.getUniformLocation(program, "exposure")
-    // gl.uniform1f(locexp, image.settings.gamma[0]/10)
     
     const locBlack = gl.getUniformLocation(program, "black")
-    gl.uniform1f(locBlack, image.blacks[0]/2**14)
-
-    // Calculate Matrix
-    const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
-    const v = 2**14 - 1024
-    let matr3d: number[] = []
-    for (let i=0; i<3; i++) {
-        for (let j=0; j<4; j++) {
-            matr3d[i*4 + j] = matr.matrix[i*4 + j] * 2**14
-        }
-    }
-    matr3d[12] = 0
-    matr3d[13] = 0
-    matr3d[14] = 0
-    matr3d[15] = 1
-    // const obj: ConversionMatrix = {matrix: matr3d, n: 4, m: 4}
+    gl.uniform1f(locBlack, image.blacks[0]/16384)
 
 
-    // Transpose
-    const transpose = []
-    for (let i=0; i<4; i++) {
-        for (let j=0; j<4; j++) {
-            transpose[i*4 + j] = matr3d[j*4 + i]
-        }
-    }
-    
-    const r = [ 11434,-4948,-1210,-3746,12042,1903,-666,1479,5235 ].map(x => x/1000)
-    const alt = [r[0], r[3], r[6], 0, r[1], r[4], r[7], 0, r[2], r[5], r[8], 0, 0, 0, 0, 1]
 
-    // // Get maximum
-    // let min = [10000, 10000, 10000]
-    // let max = [0, 0, 0]
-    // for (let i = 0; i<image.image.length; i+=4) {
-    //     for (let j=0; j<3; j++) {
-    //         if (image.image[i+j] < min[j])
-    //             min[j] = image.image[i+j]
-    //         if (image.image[i+j] > max[j])
-    //             max[j] = image.image[i+j]
-    //     }
-    // }
-    // console.log("Min: ", min)
-    // console.log("Max: ", max)
+
 
     const locmat = gl.getUniformLocation(program, "matrix")
     gl.uniformMatrix4fv(locmat, false, transpose)
     
     const locinvert = gl.getUniformLocation(program, "inv")
     gl.uniform1i(locinvert, invert ? 1 : 0)
-
-    const gamma = image.settings.gamma
-    const exponent: [number, number, number, number] = [
-        1/gamma[0],
-        1/gamma[1],
-        1/gamma[2],
-        1
-    ]
-
-    const offset = image.settings.offset.map(x => (x-10)/100)
-    const light = [9694.72607681304, 9548.695452615684, 7324.635494154855]
-    const c=1/cc
-    const factor: [number, number, number, number] = [
-        (light[0]/2**14)**exponent[0] * 10**(-offset[0]*exponent[0]) * c,
-        (light[1]/2**14)**exponent[1] * 10**(-offset[1]*exponent[1]) * c,
-        (light[2]/2**14)**exponent[2] * 10**(-offset[2]*exponent[2]) * c,
-        1
-    ]
-    
-    const old: [number, number, number, number] = [
-        75.44195869 * 9694.72607681304**exponent[0]*2**(-14 - 14*exponent[0]),
-        24.97675115 * 9548.695452615684**exponent[1]*2**(-14 - 14*exponent[1]),
-        23.97550122 * 7324.635494154855**exponent[2]*2**(-14 - 14*exponent[2]),
-        1
-    ]
-
-    console.log("offsets:  ", offset)
-    console.log("factor:   ", factor)
-    console.log("exponent: ", exponent)
 
     const locfac = gl.getUniformLocation(program, "fac")
     gl.uniform4f(locfac, ...factor)
@@ -318,15 +376,19 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
     gl.uniform4f(locexp, ...exponent)
 
     const locwb = gl.getUniformLocation(program, "wb")
-    gl.uniform4f(locwb, image.wb_coeffs[0]/image.wb_coeffs[1]/2, image.wb_coeffs[1]/image.wb_coeffs[1], image.wb_coeffs[2]/image.wb_coeffs[1]/2, 1)
+    gl.uniform4f(locwb, ...wb, 1)
     //console.log(image.wb_coeffs[0]/image.wb_coeffs[1], 2*image.wb_coeffs[1]/image.wb_coeffs[1], image.wb_coeffs[2]/image.wb_coeffs[1], 1)
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
 }
 
 
 export const defaultSettings: Settings = {
-    gamma: [1, 1, 1],
-    offset: [1, 1, 1],
-    light: [0, 0, 0],
-    //mask: [0, 0, 0]
+    mode: "advanced",
+    advanced: {
+        neutral: [1886, 1657, 1135],
+        exposure: 0,
+        gamma: 0.5,
+        facB: 1,
+        facG: 1            
+        }
 }

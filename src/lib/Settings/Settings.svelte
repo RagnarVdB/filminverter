@@ -2,11 +2,12 @@
     import Basic from './Basic.svelte'
     import Advanced from './Advanced.svelte'
     import type { Settings } from '../RawImage';
+    import { defaultSettings } from '../RawImage';
     import { images, index } from '../../stores'
     
-    let mode: "Basic" | "Advanced" = "Basic"
+    let mode: "basic" | "advanced" = "advanced"
 
-    let settings: Settings
+    let settings: Settings = defaultSettings
     let changes: number = 0
 
     const delay = 5 //ms
@@ -37,10 +38,10 @@
 
 <div class="settings">
     <div class="menu">
-        <div class="menuItem" id="left" class:selected="{mode === 'Basic'}" on:click="{() => mode = 'Basic'}">Basic</div>
-        <div class="menuItem" id="right" class:selected="{mode === 'Advanced'}" on:click="{() => mode = 'Advanced'}">Advanced</div>
+        <div class="menuItem" id="left" class:selected="{mode === 'basic'}" on:click="{() => {mode = 'basic'; $images[$index].settings.mode = 'basic'}}">Basic</div>
+        <div class="menuItem" id="right" class:selected="{mode === 'advanced'}" on:click="{() => {mode = 'advanced'; $images[$index].settings.mode = 'advanced'}}">Advanced</div>
     </div>
-    {#if mode === "Basic"}
+    {#if mode === "basic"}
         <Basic/>
     {:else}
         <Advanced bind:settings={settings}/>
