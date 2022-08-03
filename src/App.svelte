@@ -4,13 +4,13 @@
     import type { ProcessedImage, Settings as SettingType } from './lib/RawImage'
     import logo from './assets/svelte.png'
 
-    import { images } from './stores'
+    import { images, index } from './stores'
 
     import Presets from './lib/Presets.svelte'
     import Settings from './lib/Settings/Settings.svelte'
+import { number_of_workers } from './lib/utils';
 
 
-    let currentIndex: number = 0
     let showImages = false
 
     function receivedImage(event) {
@@ -26,6 +26,60 @@
         showImages = true
     }
 
+    function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
+        return URL.createObjectURL(new Blob([arr.buffer], {type: mimeType}))
+    }
+
+    function download(url: string, filename: string) {
+        const a = document.createElement("a")
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);  
+    	}, 0);
+    }
+
+    function save(e: CustomEvent<{all: boolean}>) {
+        if (!e.detail.all) {
+            const worker = new Worker(new URL("./lib/encode_worker.ts", import.meta.url), { type: "module" })
+            const image = $images[$index]
+            worker.postMessage([image])
+            worker.onmessage = message => {
+                const [filename, url]: [string, string] = message.data
+                console.log("received", filename)
+                download(url, filename)
+            }
+        } else {
+            const nWorkers =  number_of_workers($images.length)
+            const imagesPerWorker = Math.floor($images.length / nWorkers)
+            const remainder = $images.length % nWorkers
+
+            for (let i=0; i<nWorkers; i++) {
+                const worker = new Worker(new URL("./lib/encode_worker.ts", import.meta.url), { type: "module" })
+                const workerImages = (i < remainder) ?
+                [...$images.slice(i*imagesPerWorker, (i+1)*imagesPerWorker), $images[nWorkers*imagesPerWorker + i]] : 
+                $images.slice(i*imagesPerWorker, (i+1)*imagesPerWorker)
+                worker.postMessage(workerImages)
+                
+                worker.onmessage = message => {
+                    const [filename, url]: [string, string] = message.data
+                    console.log("received", filename)
+                    download(url, filename)
+                }
+            }
+        }
+    }
+
+    function applyAll(e: CustomEvent) {
+        const settings = $images[$index].settings
+        for (let i=0; i<$images.length; i++) {
+            $images[i].settings = settings
+        }
+    }
+
 </script>
 
 <main>
@@ -34,7 +88,7 @@
     {:else}
     <FileSelector on:image={receivedImage}/>
     {/if}
-    <Settings/>
+    <Settings on:save={save} on:applyAll={applyAll}/>
     <!-- <Presets/> -->
 </main>
 
