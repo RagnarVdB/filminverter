@@ -6,6 +6,7 @@
 
     export let image: ProcessedImage
     let iter: number = -1
+    let rotation = -1
     let filename: String = ""
     export let canvas: HTMLCanvasElement = undefined
     let gl: WebGL2RenderingContext
@@ -19,18 +20,41 @@
     }
     
     function setSize(image: ProcessedImage) {
-        const imRatio = image.width/image.height
-        const wrapperRatio = wrapper.clientWidth/wrapper.clientHeight
-
-        if (imRatio > wrapperRatio) {
-            canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientWidth/imRatio
-        } else {
-            canvas.height = wrapper.clientHeight
-            canvas.width = wrapper.clientHeight*imRatio
-        }
+        if (image && image.settings.rotation != rotation) {
+            if (image.settings.rotation == 0 || image.settings.rotation == 2) {
+                console.log("normal")
+                const imRatio = image.width/image.height
+                const wrapperRatio = wrapper.clientWidth/wrapper.clientHeight
+                
+                if (imRatio > wrapperRatio) {
+                    canvas.width = wrapper.clientWidth
+                    canvas.height = wrapper.clientWidth/imRatio
+                } else {
+                    canvas.height = wrapper.clientHeight
+                    canvas.width = wrapper.clientHeight*imRatio
+                }
+            } else {
+                const imRatio = image.height/image.width
+                const wrapperRatio = wrapper.clientWidth/wrapper.clientHeight
+                if (imRatio > wrapperRatio) {
+                    canvas.width = wrapper.clientWidth
+                    canvas.height = wrapper.clientWidth/imRatio
+                } else {
+                    console.log("test")
+                    canvas.height = wrapper.clientHeight
+                    canvas.width = wrapper.clientHeight*imRatio
+                }
+            }
+            rotation = image.settings.rotation
+        }    
     }
     
+    function rotateHandle(rot) {
+        if (image && wrapper) setSize(image)
+    }
+
+    $: rotateHandle(image)
+
     onMount(() => {
         if (image && image.image) {
             setSize(image)
@@ -63,7 +87,7 @@
                 drawImage(image)
                 iter = image.iter
             } else {
-                console.log("Not updating")
+                console.log("not updating")
             }
         } else {
             console.log("Updating nonexisting image")

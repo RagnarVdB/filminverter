@@ -1,8 +1,10 @@
 import { chunks, chunksRgba, zip, changeBitDepth } from "./utils"
+import type { Image as WasmImage } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
 //@ts-ignore
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
 import fragment_shader from "./glsl/fragment_shader.glsl"
+import { missing_component } from "svelte/internal"
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -13,6 +15,7 @@ export interface RawImage {
 export interface ProcessedImage {
     filename: String
     image: Uint16Array // RGBA 14bit
+    original: Uint8Array
     width: number
     height: number
     bps: number
@@ -32,6 +35,7 @@ export interface CFA {
 
 export interface Settings {
     mode: "advanced" | "basic"
+    rotation: number
     advanced: {
         neutral: [number, number, number]
         exposure: number,
@@ -98,6 +102,31 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
     return {image: im, width: n, height: m}
 }
 
+export function invertRaw(image: RawImage, cfa: CFA, settings: Settings, blacks: number[], wb_coeffs: number[]): Uint16Array {
+    const w = image.width,
+          h = image.height
+    const {factor, exponent} = calculateConversionValues(settings, blacks, wb_coeffs)
+
+    let out = new Uint16Array(w*h)
+    for (let i=0; i<w; i++) {
+        for (let j=0; j<h; j++) {
+            const color = cfa.str[i%cfa.width + (j%cfa.height)*cfa.width]
+            switch (color) {
+                case "R":
+                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[0])/16384*factor[0])**(-exponent[0])*16384) + 1024
+                    break
+                case "G":
+                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[1])/16384*factor[1])**(-exponent[1])*16384) + 1024
+                    break
+                case "B":
+                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[2])/16384*factor[2])**(-exponent[2])*16384) + 1024
+                    break
+            }
+        }
+    }
+    return out
+}
+
 const xyz_to_rgb: ConversionMatrix = {
     matrix: [3.2404542, -1.5371385, -0.4985314,
         -0.9692660, 1.8760108, 0.0415560,
@@ -147,26 +176,60 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
+
+function calculateConversionValues(settings: Settings, blacks: number[], wb_coeffs: number[]): {
+    factor: [number, number, number, number]
+    exponent: [number, number, number, number]
+} {
+    if (settings.mode == "advanced") {
+
+        const inverse = [
+            0.222, 0.02456, 0.03352, 0,
+            0.06363, 0.45789, 0.12199, 0,
+            0.00850, 0.08808, 0.30311, 0,
+            0, 0, 0, 1]
+    
+        const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
+
+        const wb: [number, number, number] = [
+            wb_coeffs[0]/wb_coeffs[1]/2,
+            1,
+            wb_coeffs[2]/wb_coeffs[1]/2]
+
+        const s = settings.advanced
+        const black = blacks[0]
+        const gamma = [s.gamma, s.gamma*s.facG, s.gamma*s.facB]
+        const neutral = s.neutral.map(x => (x-black)/ 2**14)
+        const exposure = s.exposure
+
+        
+        const neutralValue: [number, number, number] = 
+            [2**exposure*neutralColor[0]/wb[0],
+             2**exposure*neutralColor[1]/wb[1],
+             2**exposure*neutralColor[2]/wb[2]]
+        
+        const exponent: [number, number, number, number] = [
+            1/gamma[0],
+            1/gamma[1],
+            1/gamma[2],
+            1
+        ]
+        
+        const factor: [number, number, number, number] = [
+            (neutralValue[0]*(neutral[0]**exponent[0]))**(-gamma[0]),
+            (neutralValue[1]*(neutral[1]**exponent[1]))**(-gamma[1]),
+            (neutralValue[2]*(neutral[2]**exponent[2]))**(-gamma[2]),
+            1
+        ]
+        return {exponent: exponent, factor: factor}
+    }
+}
+
 export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean, cc: number) {
     if (!gl) console.log("No gl")
-
-
     const w = image.width
     const h = image.height
     const img = image.image
-    //let img
-    
-    // Test neutral color
-
-    const inverse = [
-        0.222, 0.02456, 0.03352, 0,
-        0.06363, 0.45789, 0.12199, 0,
-        0.00850, 0.08808, 0.30311, 0,
-        0, 0, 0, 1]
-
-
-    const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
-    
 
     // Calculate Matrix
     const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
@@ -189,94 +252,44 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         }
     }
 
-
-
-
-
-    let exponent: [number, number, number, number]
-    let factor: [number, number, number, number]
-
     const wb: [number, number, number] = [
         image.wb_coeffs[0]/image.wb_coeffs[1]/2,
         1,
         image.wb_coeffs[2]/image.wb_coeffs[1]/2]
 
+    const {factor, exponent} = calculateConversionValues(image.settings, image.blacks, image.wb_coeffs)
 
+    let RotX: [number, number]
+    let RotY: [number, number]
+    let trans: [number, number]
 
-    if (image.settings.mode == "advanced") {
-        const s = image.settings.advanced
-        console.log(s)
-        const black = image.blacks[0]
-        const gamma = [s.gamma, s.gamma*s.facG, s.gamma*s.facB]
-        const neutral = s.neutral.map(x => (x-black)/ 2**14)
-        const exposure = s.exposure
-
-        
-        const neutralValue: [number, number, number] = 
-            [2**exposure*neutralColor[0]/wb[0],
-             2**exposure*neutralColor[1]/wb[1],
-             2**exposure*neutralColor[2]/wb[2]]
-        
-        exponent= [
-            1/gamma[0],
-            1/gamma[1],
-            1/gamma[2],
-            1
-        ]
-        
-        factor = [
-            (neutralValue[0]*(neutral[0]**exponent[0]))**(-gamma[0]),
-            (neutralValue[1]*(neutral[1]**exponent[1]))**(-gamma[1]),
-            (neutralValue[2]*(neutral[2]**exponent[2]))**(-gamma[2]),
-            1
-        ]
-
-        // let arr = []
-        // const kl = [1908, 1682, 1133]
-        // //const kl = [0.234958656539, 0.32177733406, 0.115905554186].map(x => x*2**14)
-        // //const kl=[0, 0, 0]
-        // for (let i=0; i<image.width*image.height*4; i+=4) {
-        //     arr[i] = kl[0]
-        //     arr[i + 1] = kl[1]
-        //     arr[i + 2] = kl[2]
-        //     arr[i + 3] = 65535
-        // }
-        // console.log("kl", kl)
-        // img = Uint16Array.from(arr)
-        // console.log(img)
-
+    // Rotation
+    switch (image.settings.rotation) {
+        case 0:
+            RotX = [0.5, 0.5]
+            RotY = [0, 0]
+            trans = [0.5, 0.5]
+            break
+        case 1:
+            RotX = [0, 0]
+            RotY = [-0.5, 0.5]
+            trans = [-0.5, 0.5]
+            break
+        case 2:
+            RotX = [-0.5, -0.5]
+            RotY = [0, 0]
+            trans = [-0.5, -0.5]
+            break
+        case 3:
+            RotX = [0, 0]
+            RotY = [0.5, -0.5]
+            trans = [0.5, -0.5]
+            break
     }
 
-    // const ec = 1
-    // factor = [0.000684**(-1/2), 0.000519**(-1/2), 0.00000513**(-1/2), 1]
 
-    console.log("factor:   ", factor)
-    console.log("exponent: ", exponent)
-
-    // const kl = [1908, 1682, 1133]
-    // console.log(Math.pow(factor[0]*(kl[0]/16384 - image.blacks[0]/16384), exponent[0]))
-    
-    // const r = [ 11434,-4948,-1210,-3746,12042,1903,-666,1479,5235 ].map(x => x/1000)
-    // const alt = [r[0], r[3], r[6], 0, r[1], r[4], r[7], 0, r[2], r[5], r[8], 0, 0, 0, 0, 1]
-
-    // // Get maximum
-    // let min = [10000, 10000, 10000]
-    // let max = [0, 0, 0]
-    // for (let i = 0; i<image.image.length; i+=4) {
-    //     for (let j=0; j<3; j++) {
-    //         if (image.image[i+j] < min[j])
-    //             min[j] = image.image[i+j]
-    //         if (image.image[i+j] > max[j])
-    //             max[j] = image.image[i+j]
-    //     }
-    // }
-    // console.log("Min: ", min)
-    // console.log("Max: ", max)
-
-
-    
-
-
+    // console.log("factor:   ", factor)
+    // console.log("exponent: ", exponent)
 
 
     // program
@@ -356,12 +369,19 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         // img_8bit
     );
     
+
+    const locRotX = gl.getUniformLocation(program, "rotX")
+    gl.uniform2f(locRotX, ...RotX)
+
+    const locRotY = gl.getUniformLocation(program, "rotY")
+    gl.uniform2f(locRotY, ...RotY)
+
+    const locTrans = gl.getUniformLocation(program, "trans")
+    gl.uniform2f(locTrans, ...trans)
+
+
     const locBlack = gl.getUniformLocation(program, "black")
     gl.uniform1f(locBlack, image.blacks[0]/16384)
-
-
-
-
 
     const locmat = gl.getUniformLocation(program, "matrix")
     gl.uniformMatrix4fv(locmat, false, transpose)
@@ -384,6 +404,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
 
 export const defaultSettings: Settings = {
     mode: "advanced",
+    rotation: 0,
     advanced: {
         neutral: [1886, 1657, 1135],
         exposure: 0,

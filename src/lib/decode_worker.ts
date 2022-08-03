@@ -18,12 +18,20 @@ async function read_file(file: File): Promise<Uint8Array> {
 	})
 }
 
+
+
 onmessage = async function(e) {
 	const files: [number, File][]= e.data
 	await init()
 	for (const file of files) {
 		const arr = await read_file(file[1])
 		const decoded = decode_image(arr)
+
+		// Test
+		// const encoded = decoded.encode(decoded.get_data())
+		// console.log(encoded == arr)
+		//download(arr, "test.RAF", "image")
+
 		const rawImage: RawImage = {
 			image: decoded.get_data(),
 			width: decoded.get_width(),
@@ -43,6 +51,7 @@ onmessage = async function(e) {
 		}
 		const processed: ProcessedImage = {
 			...deBayered,
+			original: arr,
 			bps: decoded.get_bps(),
 			blacks: Array.from(decoded.get_blacklevels()),
 			cam_to_xyz,
@@ -50,7 +59,7 @@ onmessage = async function(e) {
 			orientation: decoded.get_orientation(),
 			settings: defaultSettings,
 			iter:0,
-			filename: file[1].name
+			filename: file[1].name,
 		}
 
 		postMessage([file[0], processed])

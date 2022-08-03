@@ -1,10 +1,13 @@
 <script lang="ts">
+    import { createEventDispatcher } from 'svelte';
     import Basic from './Basic.svelte'
     import Advanced from './Advanced.svelte'
     import type { Settings } from '../RawImage';
     import { defaultSettings } from '../RawImage';
     import { images, index } from '../../stores'
     
+    const dispatch = createEventDispatcher();
+
     let mode: "basic" | "advanced" = "advanced"
 
     let settings: Settings = defaultSettings
@@ -44,7 +47,7 @@
     {#if mode === "basic"}
         <Basic/>
     {:else}
-        <Advanced bind:settings={settings}/>
+        <Advanced bind:settings={settings} on:save={e => dispatch("save", e.detail)} on:applyAll={e => dispatch("applyAll", e.detail)}/>
     {/if}
     
 </div>
