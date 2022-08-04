@@ -77,7 +77,7 @@
         console.log("Apply all")
         const settings = $images[$index].settings
         for (let i=0; i<$images.length; i++) {
-            $images[i].settings = settings
+            $images[i].settings = JSON.parse(JSON.stringify(settings))
         }
     }
 

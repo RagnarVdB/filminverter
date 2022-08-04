@@ -23,11 +23,11 @@
     function updateSettings(neutral, exposure, gamma, facG, facB, rotation) {
         if (settings) {
             settings.advanced = {
-            neutral: neutral,
-            exposure: exposure[0] - 5,
-            gamma: gamma[0],
-            facG: m*facG[0]-5*m+1,
-            facB: m*facB[0]-5*m+1
+                neutral: neutral,
+                exposure: exposure[0] - 5,
+                gamma: gamma[0],
+                facG: m*facG[0]-5*m+1,
+                facB: m*facB[0]-5*m+1
             }
             settings.rotation = rotation
         }
@@ -35,7 +35,6 @@
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        console.log("updating")
         if (sets && sets.advanced != {
             neutral: neutral,
             exposure: exposure[0] - 5,
@@ -43,11 +42,13 @@
             facG: m*facG[0]-5*m+1,
             facB: m*facB[0]-5*m+1
         } || sets.rotation != rotation) {
+            console.log("updating sliders")
             exposure[0] = sets.advanced.exposure + 5
             gamma[0] = sets.advanced.gamma
             facG[0] = (sets.advanced.facG-1+5*m)/m
             facB[0] = (sets.advanced.facB-1+5*m)/m
             rotation = sets.rotation
+            neutral = sets.advanced.neutral
         } 
     }
 </script>

@@ -4,6 +4,7 @@
     import { images, index as currentIndex, mainCanvas } from "../stores";
 
     import type { ProcessedImage } from "./RawImage";
+import Settings from "./Settings/Settings.svelte";
 
     type cvsobj = {
         canvas: HTMLCanvasElement, 
@@ -24,7 +25,7 @@
     </div>
     <div id="strip">
         {#each $images as image, index}
-        <div class="preview" on:click={() => {$currentIndex = index; console.log("clicked", index)}}>
+        <div class="preview" on:click={() => {$currentIndex = index; console.log("clicked", index); console.log($images.map(im => im.settings.advanced.exposure))}}>
             <ImageView image={image}/>
         </div>
         {/each}
