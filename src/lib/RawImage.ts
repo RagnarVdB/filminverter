@@ -14,8 +14,8 @@ export interface RawImage {
 
 export interface ProcessedImage {
     filename: String
+    file: File
     image: Uint16Array // RGBA 14bit
-    original: Uint8Array
     width: number
     height: number
     bps: number

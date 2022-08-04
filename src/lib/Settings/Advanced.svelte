@@ -61,7 +61,7 @@
     <Slider bind:value={exposure} min=0 max=10 step=0.05/>
     
     gamma: {Math.round(gamma[0]*100)/100}
-    <Slider bind:value={gamma} min=0 max=1 step=0.05/>
+    <Slider bind:value={gamma} min=0 max=1 step=0.01/>
     
     factor blue: {Math.round((facB[0]-5)*100)/100}
     <Slider bind:value={facB} min=0 max=10 step=0.05/>

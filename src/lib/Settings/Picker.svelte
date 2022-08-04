@@ -44,9 +44,10 @@ import { current_component } from "svelte/internal";
 </script>
 
 <div class="advanced">
-    <div id=colorSquare style="--css-color: {cssColor}" on:click="{startPicking}">
-
-    </div>
+    <div id=colorSquare style="--css-color: {cssColor}" on:click="{startPicking}"></div>
+    <input type="number" bind:value={color[0]}>
+    <input type="number" bind:value={color[1]}>
+    <input type="number" bind:value={color[2]}>
 </div>
 
 <style>

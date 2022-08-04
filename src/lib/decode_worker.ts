@@ -51,16 +51,19 @@ onmessage = async function(e) {
 		}
 		const processed: ProcessedImage = {
 			...deBayered,
-			original: arr,
+			file: file[1],
 			bps: decoded.get_bps(),
 			blacks: Array.from(decoded.get_blacklevels()),
 			cam_to_xyz,
-			wb_coeffs: Array.from(decoded.get_wb_coeffs()),
+			//wb_coeffs: Array.from(decoded.get_wb_coeffs()),
+			wb_coeffs: [551, 302, 580],
 			orientation: decoded.get_orientation(),
 			settings: defaultSettings,
 			iter:0,
 			filename: file[1].name,
 		}
+
+		console.log("WB: ", processed.wb_coeffs)
 
 		postMessage([file[0], processed])
 	}

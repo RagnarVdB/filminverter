@@ -2,6 +2,7 @@
     import { onMount } from "svelte"
     import { draw } from "./RawImage";
     import type { ProcessedImage } from "./RawImage";
+    import { images, index } from "../stores";
 
 
     export let image: ProcessedImage
@@ -90,7 +91,8 @@
                 console.log("not updating")
             }
         } else {
-            console.log("Updating nonexisting image")
+            console.log("Updating nonexisting image", image, wrapper)
+            console.log($images.length, $index, $images)
         }
     }
 

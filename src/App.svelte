@@ -8,7 +8,7 @@
 
     import Presets from './lib/Presets.svelte'
     import Settings from './lib/Settings/Settings.svelte'
-import { number_of_workers } from './lib/utils';
+    import { number_of_workers } from './lib/utils';
 
 
     let showImages = false
@@ -16,11 +16,11 @@ import { number_of_workers } from './lib/utils';
     function receivedImage(event) {
         const { index, image }: { index: number, image: ProcessedImage } = event.detail
         console.log("received: ", index) 
-        if (index > $images.length) {
-            for (let i=0; i<index; i++) {
-                $images[i] = null
-            }
-        }
+        // if (index > $images.length) {
+        //     for (let i=0; i<index; i++) {
+        //         $images[i] = null
+        //     }
+        // }
         $images[index] = image
 
         showImages = true
@@ -74,6 +74,7 @@ import { number_of_workers } from './lib/utils';
     }
 
     function applyAll(e: CustomEvent) {
+        console.log("Apply all")
         const settings = $images[$index].settings
         for (let i=0; i<$images.length; i++) {
             $images[i].settings = settings

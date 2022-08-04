@@ -2,6 +2,22 @@ import init, { decode_image, Image as WasmImage } from '../../rawloader-wasm/pkg
 import { invertRaw } from './RawImage'
 import type { RawImage, ProcessedImage, CFA, ConversionMatrix } from './RawImage'
 
+async function read_file(file: File): Promise<Uint8Array> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onload = () => {
+			const arrayBuffer = reader.result
+			if (typeof arrayBuffer == 'string') {
+				reject("file cannot be read")
+			} else {
+				const original = new Uint8Array(arrayBuffer)
+				resolve(original)
+			}
+		}
+		reader.readAsArrayBuffer(file)
+	})
+}
+
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
     return URL.createObjectURL(new Blob([arr.buffer], {type: mimeType}))
 }
@@ -10,7 +26,8 @@ onmessage = async function(e) {
 	const images: ProcessedImage[] = e.data
 	await init()
 	for (const image of images) {
-		const decoded: WasmImage = decode_image(image.original)
+		const original = await read_file(image.file)
+		const decoded: WasmImage = decode_image(original)
         const old: RawImage = {
 			image: decoded.get_data(),
 			width: decoded.get_width(),

@@ -50,6 +50,8 @@
 #strip {
     display: flex;
     flex-direction: row;
+    overflow-x: scroll;
+    overflow-y: hidden;
     width: 100%;
     height: 100px;
 }
