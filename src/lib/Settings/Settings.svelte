@@ -2,13 +2,14 @@
     import { createEventDispatcher } from 'svelte';
     import Basic from './Basic.svelte'
     import Advanced from './Advanced.svelte'
+    import Bw from './Bw.svelte';
     import type { Settings } from '../RawImage';
     import { defaultSettings } from '../RawImage';
     import { images, index } from '../../stores'
     
     const dispatch = createEventDispatcher();
 
-    let mode: "basic" | "advanced" = "advanced"
+    //let mode: "basic" | "advanced" | "bw" = "advanced"
 
     let settings: Settings = defaultSettings
     let changes: number = 0
@@ -41,13 +42,16 @@
 
 <div class="settings">
     <div class="menu">
-        <div class="menuItem" id="left" class:selected="{mode === 'basic'}" on:click="{() => {mode = 'basic'; $images[$index].settings.mode = 'basic'}}">Basic</div>
-        <div class="menuItem" id="right" class:selected="{mode === 'advanced'}" on:click="{() => {mode = 'advanced'; $images[$index].settings.mode = 'advanced'}}">Advanced</div>
+        <div class="menuItem" id="left" class:selected="{settings.mode === 'basic'}" on:click="{() => {settings.mode = 'basic'; $images[$index].settings.mode = 'basic'}}">Basic</div>
+        <div class="menuItem" id="right" class:selected="{settings.mode === 'advanced'}" on:click="{() => {settings.mode = 'advanced'; $images[$index].settings.mode = 'advanced'}}">Advanced</div>
+        <div class="menuItem" id="right" class:selected="{settings.mode === 'bw'}" on:click="{() => {settings.mode = 'bw'; $images[$index].settings.mode = 'bw'}}">BW</div>
     </div>
-    {#if mode === "basic"}
+    {#if settings.mode === "basic"}
         <Basic/>
-    {:else}
+    {:else if settings.mode === "advanced"}
         <Advanced bind:settings={settings} on:save={e => dispatch("save", e.detail)} on:applyAll={e => dispatch("applyAll", e.detail)}/>
+    {:else}
+        <Bw bind:settings={settings} on:save={e => dispatch("save", e.detail)} on:applyAll={e => dispatch("applyAll", e.detail)}/>
     {/if}
     
 </div>

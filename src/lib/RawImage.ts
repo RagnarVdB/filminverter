@@ -34,14 +34,19 @@ export interface CFA {
 }
 
 export interface Settings {
-    mode: "advanced" | "basic"
+    mode: "advanced" | "basic" | "bw"
     rotation: number
     advanced: {
         neutral: [number, number, number]
-        exposure: number,
-        gamma: number,
-        facG: number,
+        exposure: number
+        gamma: number
+        facG: number
         facB: number
+    }
+    bw: {
+        black: [number, number, number]
+        fade: number
+        gamma: number
     }
     //mask: [number, number, number]
 }
@@ -102,6 +107,10 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
     return {image: im, width: n, height: m}
 }
 
+function clamp(x: number, min: number, max: number) {
+    return Math.max(min, Math.min(x, max))
+}
+
 export function invertRaw(image: RawImage, cfa: CFA, settings: Settings, blacks: number[], wb_coeffs: number[]): Uint16Array {
     const w = image.width,
           h = image.height
@@ -113,13 +122,13 @@ export function invertRaw(image: RawImage, cfa: CFA, settings: Settings, blacks:
             const color = cfa.str[i%cfa.width + (j%cfa.height)*cfa.width]
             switch (color) {
                 case "R":
-                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[0])/16384*factor[0])**(-exponent[0])*16384) + 1024
+                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[0])/16384*factor[0])**(-exponent[0])*16384) + 1024, 1024, 16383)
                     break
                 case "G":
-                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[1])/16384*factor[1])**(-exponent[1])*16384) + 1024
+                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[1])/16384*factor[1])**(-exponent[1])*16384) + 1024, 1024, 16383)
                     break
                 case "B":
-                    out[i+j*w] = Math.round(((image.image[i+j*w]-blacks[2])/16384*factor[2])**(-exponent[2])*16384) + 1024
+                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[2])/16384*factor[2])**(-exponent[2])*16384) + 1024, 1024, 16383)
                     break
             }
         }
@@ -182,7 +191,6 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
     exponent: [number, number, number, number]
 } {
     if (settings.mode == "advanced") {
-
         const inverse = [
             0.222, 0.02456, 0.03352, 0,
             0.06363, 0.45789, 0.12199, 0,
@@ -190,7 +198,7 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
             0, 0, 0, 1]
     
         const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
-
+        console.log("wb: ", wb_coeffs)
         const wb: [number, number, number] = [
             wb_coeffs[0]/wb_coeffs[1]/2,
             1,
@@ -222,6 +230,51 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
             1
         ]
         return {exponent: exponent, factor: factor}
+    } else if (settings.mode == "bw") {
+        console.log("BW: ", settings.bw)
+
+        const inverse = [
+            0.222, 0.02456, 0.03352, 0,
+            0.06363, 0.45789, 0.12199, 0,
+            0.00850, 0.08808, 0.30311, 0,
+            0, 0, 0, 1]
+    
+        const neutralColor = applyMatrixVector([0.1, 0.1, 0.1, 1], {matrix: inverse, m:4, n:4})
+
+        const wb: [number, number, number] = [
+            wb_coeffs[0]/wb_coeffs[1]/2,
+            1,
+            wb_coeffs[2]/wb_coeffs[1]/2]
+
+        const s = settings.bw
+        const black = blacks[0]
+        const gamma = [s.gamma, s.gamma, s.gamma]
+        const neutral = s.black.map(x => (x-black)/ 2**14)
+        const fade = s.fade
+
+        
+        const neutralValue: [number, number, number] = 
+            [2**fade*neutralColor[0]/wb[0],
+             2**fade*neutralColor[1]/wb[1],
+             2**fade*neutralColor[2]/wb[2]]
+            
+        console.log(neutralValue.map(x => x*2**14), neutralColor)
+        
+        const exponent: [number, number, number, number] = [
+            1/gamma[0],
+            1/gamma[1],
+            1/gamma[2],
+            1
+        ]
+        
+        const factor: [number, number, number, number] = [
+            (neutralValue[0]*(neutral[0]**exponent[0]))**(-gamma[0]),
+            (neutralValue[1]*(neutral[1]**exponent[1]))**(-gamma[1]),
+            (neutralValue[2]*(neutral[2]**exponent[2]))**(-gamma[2]),
+            1
+        ]
+        return {exponent: exponent, factor: factor}
+        
     }
 }
 
@@ -411,5 +464,10 @@ export const defaultSettings: Settings = {
         gamma: 0.5,
         facB: 1,
         facG: 1            
-        }
+    },
+    bw: {
+        black: [1886, 1657, 1135],
+        fade: 0,
+        gamma: 0.9
+    }
 }
