@@ -21,8 +21,19 @@ import { current_component } from "svelte/internal";
         const y = Math.round(mouseY * h / $canvas.height)
 
         console.log(x, y)
-        let pickedColor: [number, number, number] = [image.image[(y*w+x)*4], image.image[(y*w+x)*4 + 1], image.image[(y*w+x)*4 + 2]]
+        // Average of 9 pixels
+        let pickedColor: [number, number, number] = [0, 0, 0]
+        for (let i of [x-1, x, x+1]) {
+            for (let j of [y-1, y, y+1]) {
+                pickedColor[0] += image.image[(y*w+x)*4] 
+                pickedColor[1] += image.image[(y*w+x)*4 + 1] 
+                pickedColor[2] += image.image[(y*w+x)*4 + 2] 
+            }
+        }
         color = pickedColor
+        color[0] /= 9
+        color[1] /= 9
+        color[2] /= 9
         console.log()
         console.log("picked: ", pickedColor)
         $canvas.removeEventListener("click", detectColor)

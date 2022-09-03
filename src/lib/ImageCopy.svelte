@@ -12,12 +12,6 @@
             canvas.width = wrapper.clientWidth
             canvas.height = wrapper.clientHeight
 
-            // console.log("waiting")
-            // await new Promise((resolve, reject) => {
-            //     setTimeout(resolve, 5000)
-            // })
-            // console.log("proceeding")
-
             const destinationImage = new Image;
             destinationImage.onload = () => {
                 // ctx.drawImage(destinationImage, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);

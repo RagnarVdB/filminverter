@@ -4,7 +4,13 @@ import type { Image as WasmImage } from "../../rawloader-wasm/pkg/rawloader_wasm
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
 import fragment_shader from "./glsl/fragment_shader.glsl"
-import { missing_component } from "svelte/internal"
+import { transition_in } from "svelte/internal"
+
+const colorOrder = {
+    "R": 0,
+    "G": 1,
+    "B": 2
+}
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -111,32 +117,105 @@ function clamp(x: number, min: number, max: number) {
     return Math.max(min, Math.min(x, max))
 }
 
-export function invertRaw(image: RawImage, cfa: CFA, settings: Settings, blacks: number[], wb_coeffs: number[]): Uint16Array {
+function getCFAValue(cfa: CFA, x: number, y: number): "R" | "G" | "B"  {
+    let color: "R" | "G" | "B"
+    const c = cfa.str[x%cfa.width + (y%cfa.height)*cfa.width]
+    if (c == "R" || c == "G" || c == "B") {
+        color = c
+    } else {
+        console.log(cfa, x, y)
+        console.log(c)
+        throw "Invalid CFA"
+    }
+    return color
+}
+
+function getColorValue(image: RawImage, cfa: CFA, x: number, y: number): {main: "R" | "G" | "B", color: [number, number, number]} {
+    const w = image.width
+    let color: [number, number, number] = [0, 0, 0]
+    let pixelCounts: [number, number, number] = [0, 0, 0]
+    const main = getCFAValue(cfa, x, y)
+    color[colorOrder[main]] = image.image[x+y*w]
+    pixelCounts[colorOrder[main]] = 1
+    for (let i=Math.max(x-1, 0); i < Math.min(x+1, image.width)+1; i++) {
+        for (let j=Math.max(y-1, 0); j < Math.min(y+1, image.height)+1; j++) {
+            const c = getCFAValue(cfa, i, j)
+            if (c !== main) {
+                color[colorOrder[c]] += image.image[i+j*w]
+                pixelCounts[colorOrder[c]] ++
+            }
+        }
+    }
+    color[0] /= pixelCounts[0]
+    color[1] /= pixelCounts[1]
+    color[2] /= pixelCounts[2]
+    return {
+        main,
+        color
+    }
+}
+
+function processColorValue(
+    color: [number, number, number],
+    main: "R" | "G" | "B", blacks: number[],
+    factor: [number, number, number, number],
+    exponent: [number, number, number, number],
+    matrix: ConversionMatrix,
+    log: boolean): number {
+
+    const j = colorOrder[main]
+    let cb = [0, 0, 0]
+
+    cb[0] = (color[0] - 1024 - 9)/16384
+    cb[1] = (color[1] - 1024 - 26)/16384
+    cb[2] = (color[2] - 1024 - 17)/16384
+    if (log)
+        console.log(main, color)
+
+
+    // Change colorspace
+    const m = matrix.matrix
+    let out = m[j*3] * cb[0] +
+        m[j*3+1] * cb[1] +
+        m[j*3+2] * cb[2]
+    if (log)
+        console.log(out)
+
+    const inv = (out*factor[j])**(-exponent[j])
+
+    if (log)
+        console.log(main, "inverted 01: ", inv)
+
+    return clamp(Math.round((inv*16383)+1024), 1024, 16383)
+    // if (main=="R")
+    //     return 2**14-1
+    // else
+    //     return 0
+}
+
+export function invertRaw(image: RawImage, cfa: CFA, settings: Settings, blacks: number[], wb_coeffs: number[], cam_to_xyz: ConversionMatrix): Uint16Array {
     const w = image.width,
           h = image.height
     const {factor, exponent} = calculateConversionValues(settings, blacks, wb_coeffs)
-
     let out = new Uint16Array(w*h)
+
+    const tr = {
+        matrix: [1, 0, 1, 1, 0, 1, 1, 1, 1],
+        n: 3,
+        m: 3
+    }
+
+
     for (let i=0; i<w; i++) {
         for (let j=0; j<h; j++) {
-            const color = cfa.str[i%cfa.width + (j%cfa.height)*cfa.width]
-            switch (color) {
-                case "R":
-                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[0])/16384*factor[0])**(-exponent[0])*16384) + 1024, 1024, 16383)
-                    break
-                case "G":
-                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[1])/16384*factor[1])**(-exponent[1])*16384) + 1024, 1024, 16383)
-                    break
-                case "B":
-                    out[i+j*w] = clamp(Math.round(((image.image[i+j*w]-blacks[2])/16384*factor[2])**(-exponent[2])*16384) + 1024, 1024, 16383)
-                    break
-            }
+            const { main, color } = getColorValue(image, cfa, i, j)
+            out[i+j*w] = processColorValue(color, main, blacks, factor, exponent, tr, false)
         }
     }
     return out
 }
 
-const xyz_to_rgb: ConversionMatrix = {
+const XYZ_to_sRGB: ConversionMatrix = {
     matrix: [3.2404542, -1.5371385, -0.4985314,
         -0.9692660, 1.8760108, 0.0415560,
         0.0556434, -0.2040259, 1.0572252],
@@ -144,6 +223,40 @@ const xyz_to_rgb: ConversionMatrix = {
     m: 3
 }
 
+const P3_to_XYZ: ConversionMatrix = {
+    // matrix: [0.486571, 0.265668,  0.198217,
+    //         0.228975, 0.691739,  0.079287,
+    //         0.000000, 0.045113,  1.043944],
+    matrix: [0.51512, 0.29198, 0.15710, 
+            0.24120, 0.69225, 0.06657,
+            -0.00105, 0.04189, 0.78407],
+    n: 3,
+    m: 3
+}
+
+const cam_to_P3: ConversionMatrix = {
+    matrix: [1.82774, -0.12403, 0.01736,
+            -0.20948, 1.0, -0.31897,
+            0.0318, -0.24788, 1.58678],
+    n: 3,
+    m: 3
+}
+
+const P3_to_sRGB = multiplyMatrices(XYZ_to_sRGB, P3_to_XYZ)
+
+function transpose(matrix: ConversionMatrix): ConversionMatrix {
+    const transposed = []
+    for (let i=0; i<matrix.m; i++) {
+        for (let j=0; j<matrix.n; j++) {
+            transposed[i*matrix.n + j] = matrix.matrix[j*matrix.m + i]
+        }
+    }
+    return {
+        matrix: transposed,
+        n: matrix.m,
+        m: matrix.n
+    }
+}
 
 function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix): ConversionMatrix {
     if (matrix1.m != matrix2.n) {
@@ -168,6 +281,31 @@ function multiplyMatrices(matrix1: ConversionMatrix, matrix2: ConversionMatrix):
     
 }
 
+function extendMatrixAlpha(matrix: ConversionMatrix): ConversionMatrix {
+    if (matrix.n != 3 || matrix.m != 3)
+        throw "Invalid size"
+    let out: number[] = []
+    for (let i=0; i<3; i++) {
+        for (let j=0; j<3; j++) {
+            out[i*4+j] =  matrix.matrix[i*3+j]
+        }
+    }
+    out[3] = 0
+    out[7] = 0
+    out[11] = 0
+    out[12] = 0
+    out[13] = 0
+    out[14] = 0
+    out[15] = 1
+
+    return {
+        matrix: out,
+        n: 4,
+        m: 4
+    }
+    
+}
+
 function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
     const result: number[] = []
     const { n, m } = matrix
@@ -185,37 +323,29 @@ export function applyConversionMatrix(image: number[] | Uint16Array, matrix: Con
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
-
 function calculateConversionValues(settings: Settings, blacks: number[], wb_coeffs: number[]): {
     factor: [number, number, number, number]
     exponent: [number, number, number, number]
 } {
     if (settings.mode == "advanced") {
-        const inverse = [
-            0.222, 0.02456, 0.03352, 0,
-            0.06363, 0.45789, 0.12199, 0,
-            0.00850, 0.08808, 0.30311, 0,
-            0, 0, 0, 1]
-    
-        const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
-        console.log("wb: ", wb_coeffs)
-        const wb: [number, number, number] = [
-            wb_coeffs[0]/wb_coeffs[1]/2,
-            1,
-            wb_coeffs[2]/wb_coeffs[1]/2]
-
+        // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
+        const neutralColor = [0.3, 0.3, 0.3]
+        // console.log("wb: ", wb_coeffs)
         const s = settings.advanced
         const black = blacks[0]
         const gamma = [s.gamma, s.gamma*s.facG, s.gamma*s.facB]
         const neutral = s.neutral.map(x => (x-black)/ 2**14)
         const exposure = s.exposure
+             
+        const neutralValue: number[] = [
+            (2**exposure*neutralColor[0])**(-gamma[0]),
+             (2**exposure*neutralColor[1])**(-gamma[1]),
+             (2**exposure*neutralColor[2])**(-gamma[2]),
+             1
+        ]
 
-        
-        const neutralValue: [number, number, number] = 
-            [2**exposure*neutralColor[0]/wb[0],
-             2**exposure*neutralColor[1]/wb[1],
-             2**exposure*neutralColor[2]/wb[2]]
-        
+        const neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
+
         const exponent: [number, number, number, number] = [
             1/gamma[0],
             1/gamma[1],
@@ -224,11 +354,19 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
         ]
         
         const factor: [number, number, number, number] = [
-            (neutralValue[0]*(neutral[0]**exponent[0]))**(-gamma[0]),
-            (neutralValue[1]*(neutral[1]**exponent[1]))**(-gamma[1]),
-            (neutralValue[2]*(neutral[2]**exponent[2]))**(-gamma[2]),
+            neutralValue[0]/neutralInputP3[0],
+            neutralValue[1]/neutralInputP3[1],
+            neutralValue[2]/neutralInputP3[2],
             1
         ]
+
+        console.log("factor: ", factor)
+        console.log("exponent: ", exponent)
+
+        const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
+        console.log("Neutral: ", cs.map(main => processColorValue(s.neutral, main, blacks, factor, exponent, cam_to_P3, true)))
+
+
         return {exponent: exponent, factor: factor}
     } else if (settings.mode == "bw") {
         console.log("BW: ", settings.bw)
@@ -280,30 +418,16 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
 
 export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean, cc: number) {
     if (!gl) console.log("No gl")
+
     const w = image.width
     const h = image.height
     const img = image.image
 
-    // Calculate Matrix
-    const matr = multiplyMatrices(xyz_to_rgb, image.cam_to_xyz)
-    let matr3d: number[] = []
-    for (let i=0; i<3; i++) {
-        for (let j=0; j<4; j++) {
-            matr3d[i*4 + j] = matr.matrix[i*4 + j] * 2**14
-        }
-    }
-    matr3d[12] = 0
-    matr3d[13] = 0
-    matr3d[14] = 0
-    matr3d[15] = 1
-    const obj: ConversionMatrix = {matrix: matr3d, n: 4, m: 4}
-    // Transpose
-    const transpose = []
-    for (let i=0; i<4; i++) {
-        for (let j=0; j<4; j++) {
-            transpose[i*4 + j] = matr3d[j*4 + i]
-        }
-    }
+    const matr1 = transpose(extendMatrixAlpha(cam_to_P3))
+    const matr2 = transpose(extendMatrixAlpha(P3_to_sRGB))
+
+    console.log(matr1)
+    console.log(matr2)
 
     const wb: [number, number, number] = [
         image.wb_coeffs[0]/image.wb_coeffs[1]/2,
@@ -425,20 +549,22 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
 
     const locRotX = gl.getUniformLocation(program, "rotX")
     gl.uniform2f(locRotX, ...RotX)
-
+    
     const locRotY = gl.getUniformLocation(program, "rotY")
     gl.uniform2f(locRotY, ...RotY)
-
+    
     const locTrans = gl.getUniformLocation(program, "trans")
     gl.uniform2f(locTrans, ...trans)
 
-
     const locBlack = gl.getUniformLocation(program, "black")
     gl.uniform1f(locBlack, image.blacks[0]/16384)
-
-    const locmat = gl.getUniformLocation(program, "matrix")
-    gl.uniformMatrix4fv(locmat, false, transpose)
     
+    const locmat1 = gl.getUniformLocation(program, "matrix1")
+    gl.uniformMatrix4fv(locmat1, false, matr1.matrix)
+    
+    const locmat2 = gl.getUniformLocation(program, "matrix2")
+    gl.uniformMatrix4fv(locmat2, false, matr2.matrix)
+
     const locinvert = gl.getUniformLocation(program, "inv")
     gl.uniform1i(locinvert, invert ? 1 : 0)
 
@@ -450,8 +576,11 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
 
     const locwb = gl.getUniformLocation(program, "wb")
     gl.uniform4f(locwb, ...wb, 1)
-    //console.log(image.wb_coeffs[0]/image.wb_coeffs[1], 2*image.wb_coeffs[1]/image.wb_coeffs[1], image.wb_coeffs[2]/image.wb_coeffs[1], 1)
+
+
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
+
+    //console.log((color, main) => processColorValue(color, main, [1024, 1024, 1024], factor, exponent, ipadmat, true))
 }
 
 
@@ -459,11 +588,11 @@ export const defaultSettings: Settings = {
     mode: "advanced",
     rotation: 0,
     advanced: {
-        neutral: [1886, 1657, 1135],
-        exposure: 0,
-        gamma: 0.5,
-        facB: 1,
-        facG: 1            
+        neutral: [4024, 3094, 1427],
+        exposure: -1.95,
+        gamma: 0.45,
+        facB: -0.35/20+1,
+        facG: 0.25/20+1
     },
     bw: {
         black: [1886, 1657, 1135],

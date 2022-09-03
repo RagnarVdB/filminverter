@@ -3,7 +3,8 @@ precision highp float; // ?
 uniform highp usampler2D tex; // ?
 
 uniform float black;
-uniform mat4 matrix;
+uniform mat4 matrix1;
+uniform mat4 matrix2;
 
 uniform bool inv;
 uniform vec4  fac;
@@ -12,7 +13,7 @@ uniform vec4 wb;
 
 
 vec4 invert(vec4 color, vec4 fac, vec4 exponent, float black) {
-  return pow((color - vec4(black, black, black, 0))*fac, -exponent);
+  return pow(color*fac, -exponent);
 }
 
 vec4 applyMatrix(vec4 color, mat4 matrix) {
@@ -45,15 +46,15 @@ void main() {
     uvec4 unsignedIntValues = texture(tex, pixelCoordinate);
     vec4 floatValues0To65535 = vec4(unsignedIntValues);
     vec4 color = floatValues0To65535 / vec4(16384.0, 16384.0, 16384.0, 65535.0);
-    if (inv) {
-      color = invert(color, fac, exponent, black);
-    } else {
-      color = subtractBlack(color, black);
-    }
-    color = whitebalance(color, wb);
-    color = applyMatrix(color, matrix);
+    color = subtractBlack(color, black);
+    color = applyMatrix(color, matrix1);
+    // if (inv) {
+    //   color = invert(color, fac, exponent, black);
+    // }
+    //color = whitebalance(color, wb);
+    color = applyMatrix(color, matrix2);
     color = correctGamma(color);
     color = clamp(color, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
-    color = toneCurve(color);
+    //color = toneCurve(color);
     outColor = color;
 }
