@@ -37,6 +37,7 @@ export interface CFA {
     str: string
     width: number
     height: number
+    offset: [number, number]
 }
 
 export interface Settings {
@@ -69,8 +70,8 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
     const nG = cfa.str.match(/G/g).length
     const nB = cfa.str.match(/B/g).length
 
-    const n = Math.floor(image.width / cfa.width)
-    const m = Math.floor(image.height / cfa.height)
+    const n = Math.floor((image.width - cfa.offset[0]) / cfa.width)
+    const m = Math.floor((image.height - cfa.offset[1]) / cfa.height)
 
     const buffer = new ArrayBuffer(n*m*8)
     const im = new Uint16Array(buffer)
@@ -81,7 +82,7 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
             let blue = 0
             for (let k=0; k<cfa.width; k++) {
                 for (let l=0; l<cfa.height; l++) {
-                    const index = (j*cfa.height + l)*image.width + i*cfa.height + k
+                    const index = (j*cfa.height + l +cfa.offset[1])*image.width + i*cfa.height + k + cfa.offset[0]
                     const value = image.image[index]
                     if (value == undefined) {
                         console.error(i, j, l, k, index, value, index < image.image.length)

@@ -30,18 +30,30 @@ onmessage = async function(e) {
 		// Test
 		// const encoded = decoded.encode(decoded.get_data())
 		// console.log(encoded == arr)
-		//download(arr, "test.RAF", "image")
+		// download(arr, "test.RAF", "image")
 
 		const rawImage: RawImage = {
 			image: decoded.get_data(),
 			width: decoded.get_width(),
 			height: decoded.get_height()
 		}
-
+		let offset: [number, number] = [0, 0]
+		console.log("model", decoded.get_model())
+		switch (decoded.get_model()) {
+			case "X-T2":
+				console.log("Camera is X-T2")
+				offset = [0, 0]
+				break
+			case "X-E4":
+				offset = [5, 0]
+				break
+		}
+		console.log("offset", offset)
 		const cfa: CFA = {
 			str: decoded.get_cfastr(),
 			width: decoded.get_cfawidth(),
-			height: decoded.get_cfaheight()
+			height: decoded.get_cfaheight(),
+			offset: offset
 		}
 		const deBayered = deBayer(rawImage, cfa)
 		console.log("cfa", cfa)
