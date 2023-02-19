@@ -41,13 +41,7 @@ onmessage = async function (e) {
             width: decoded.get_width(),
             height: decoded.get_height(),
         }
-
-        const cfa: CFA = {
-            str: decoded.get_cfastr(),
-            width: decoded.get_cfawidth(),
-            height: decoded.get_cfaheight(),
-        }
-
+        const cfa = image.cfa
         const newArr = invertRaw(
             old,
             cfa,
