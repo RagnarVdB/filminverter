@@ -39,18 +39,7 @@
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        if (
-            (sets &&
-                sets.advanced !=
-                    {
-                        neutral: neutral,
-                        exposure: exposure[0] - 5,
-                        gamma: gamma[0],
-                        facG: m * facG[0] - 5 * m + 1,
-                        facB: m * facB[0] - 5 * m + 1,
-                    }) ||
-            sets.rotation != rotation
-        ) {
+        if (sets || sets.rotation != rotation) {
             console.log("updating sliders")
             exposure[0] = sets.advanced.exposure + 5
             gamma[0] = sets.advanced.gamma
