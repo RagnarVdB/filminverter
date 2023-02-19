@@ -37,6 +37,7 @@ export interface ProcessedImage {
     width: number
     height: number
     bps: number
+    cfa: CFA
     cam_to_xyz: ConversionMatrix
     wb_coeffs: number[]
     blacks: number[]
