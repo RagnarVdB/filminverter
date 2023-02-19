@@ -12,6 +12,10 @@ const colorOrder = {
     "B": 2
 }
 
+export const TRICHNAMES = ["Red", "Green", "Blue", "BRed", "BGreen", "BBlue"]
+export type TrichImages = [ProcessedImage, ProcessedImage, ProcessedImage, ProcessedImage, ProcessedImage, ProcessedImage]
+const EXPDIFF = 2
+
 export interface RawImage {
     image: Uint16Array // RAW
     width: number
@@ -19,16 +23,17 @@ export interface RawImage {
 }
 
 export interface ProcessedImage {
-    filename: String
+    filename: string
     file: File
     image: Uint16Array // RGBA 14bit
+    type: "normal" | "trichrome"
     width: number
     height: number
     bps: number
     cam_to_xyz: ConversionMatrix
     wb_coeffs: number[]
     blacks: number[]
-    orientation: String
+    orientation: string
     settings: Settings
     iter: number
 }
@@ -154,6 +159,30 @@ function getColorValue(image: RawImage, cfa: CFA, x: number, y: number): {main: 
         main,
         color
     }
+}
+
+export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
+    console.log("Converting trichrome")
+    const N = trichImages[0].image.length / 4
+    const black = trichImages[0].blacks[0]
+    const out = new Uint16Array(N*4)
+    for (let i=0; i < N; i++) {
+        const r = trichImages[0].image[i*4] + trichImages[0].image[i*4+1] + trichImages[0].image[i*4+2] - 3*black
+        const g = trichImages[1].image[i*4] + trichImages[1].image[i*4+1] + trichImages[1].image[i*4+2] - 3*black
+        const b = trichImages[2].image[i*4] + trichImages[2].image[i*4+1] + trichImages[2].image[i*4+2] - 3*black
+
+        const br = trichImages[3].image[i*4] + trichImages[3].image[i*4+1] + trichImages[3].image[i*4+2] - 3*black
+        const bg = trichImages[4].image[i*4] + trichImages[4].image[i*4+1] + trichImages[4].image[i*4+2] - 3*black
+        const bb = trichImages[5].image[i*4] + trichImages[5].image[i*4+1] + trichImages[5].image[i*4+2] - 3*black
+
+        const max = 2**14
+        out[i*4]   = clamp(r/(br * 2**EXPDIFF) * max, 0, max)
+        out[i*4+1] = clamp(g/(bg * 2**EXPDIFF) * max, 0, max)
+        out[i*4+2] = clamp(b/(bb * 2**EXPDIFF) * max, 0, max)
+        out[i*4+3] = 65535
+    }
+    console.log("Converted trichrome")
+    return {...trichImages[0], image: out, wb_coeffs: [1, 1, 1, 1], type: "trichrome"}
 }
 
 function processColorValue(
@@ -417,32 +446,10 @@ function calculateConversionValues(settings: Settings, blacks: number[], wb_coef
     }
 }
 
-export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean, cc: number) {
-    if (!gl) console.log("No gl")
 
-    const w = image.width
-    const h = image.height
-    const img = image.image
-
-    const matr1 = transpose(extendMatrixAlpha(cam_to_P3))
-    const matr2 = transpose(extendMatrixAlpha(P3_to_sRGB))
-
-    console.log(matr1)
-    console.log(matr2)
-
-    const wb: [number, number, number] = [
-        image.wb_coeffs[0]/image.wb_coeffs[1]/2,
-        1,
-        image.wb_coeffs[2]/image.wb_coeffs[1]/2]
-
-    const {factor, exponent} = calculateConversionValues(image.settings, image.blacks, image.wb_coeffs)
-
-    let RotX: [number, number]
-    let RotY: [number, number]
-    let trans: [number, number]
-
-    // Rotation
-    switch (image.settings.rotation) {
+function getRotation(rotationValue: number): [[number, number], [number, number], [number, number]] {
+    let RotX, RotY, trans: [number, number]
+    switch (rotationValue) {
         case 0:
             RotX = [0.5, 0.5]
             RotY = [0, 0]
@@ -463,26 +470,29 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
             RotY = [0.5, -0.5]
             trans = [0.5, -0.5]
             break
+        default:
+            throw new Error("Invalid rotation value" + rotationValue)
     }
+    return [RotX, RotY, trans]
+}
 
+interface WebGLArgument<T extends unknown[]> {
+    name: string
+    f: (location: WebGLUniformLocation, ...data: T) => void
+    data: T
+}
 
-    // console.log("factor:   ", factor)
-    // console.log("exponent: ", exponent)
-
-
+function webglDraw(gl: WebGL2RenderingContext, img: Uint16Array, w: number, h: number, parameters: WebGLArgument<unknown[]>[]) {
     // program
     const program: any = gl.createProgram()
     var ext = gl.getExtension('EXT_color_buffer_float')
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, 256, 256)
 
-
     // texture
     const tex = gl.createTexture(); // create empty texture
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-    
-    
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)    
     
     // buffer
     const buffer = gl.createBuffer()
@@ -517,7 +527,6 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
     
     gl.attachShader(program,program.vs)
     gl.attachShader(program,program.fs)
-    
     gl.deleteShader(program.vs)
     gl.deleteShader(program.fs)
     
@@ -546,42 +555,57 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: 
         // Uint16Array.from(out)
         // img_8bit
     );
-    
 
-    const locRotX = gl.getUniformLocation(program, "rotX")
-    gl.uniform2f(locRotX, ...RotX)
-    
-    const locRotY = gl.getUniformLocation(program, "rotY")
-    gl.uniform2f(locRotY, ...RotY)
-    
-    const locTrans = gl.getUniformLocation(program, "trans")
-    gl.uniform2f(locTrans, ...trans)
-
-    const locBlack = gl.getUniformLocation(program, "black")
-    gl.uniform1f(locBlack, image.blacks[0]/16384)
-    
-    const locmat1 = gl.getUniformLocation(program, "matrix1")
-    gl.uniformMatrix4fv(locmat1, false, matr1.matrix)
-    
-    const locmat2 = gl.getUniformLocation(program, "matrix2")
-    gl.uniformMatrix4fv(locmat2, false, matr2.matrix)
-
-    const locinvert = gl.getUniformLocation(program, "inv")
-    gl.uniform1i(locinvert, invert ? 1 : 0)
-
-    const locfac = gl.getUniformLocation(program, "fac")
-    gl.uniform4f(locfac, ...factor)
-
-    const locexp = gl.getUniformLocation(program, "exponent")
-    gl.uniform4f(locexp, ...exponent)
-
-    const locwb = gl.getUniformLocation(program, "wb")
-    gl.uniform4f(locwb, ...wb, 1)
-
+    for (const parameter of parameters) {
+        const { name, f, data } = parameter
+        const loc = gl.getUniformLocation(program, name)
+        console.log(f)
+        f.apply(gl, [loc, ...data])
+    }
 
     gl.drawArrays(gl.TRIANGLES, 0, 6); // execute program
+}
 
-    //console.log((color, main) => processColorValue(color, main, [1024, 1024, 1024], factor, exponent, ipadmat, true))
+
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage, invert: boolean, cc: number) {
+    if (!gl) console.log("No gl")
+
+    const w = image.width
+    const h = image.height
+    const img = image.image
+
+    const matr1 = transpose(extendMatrixAlpha(cam_to_P3))
+    const matr2 = transpose(extendMatrixAlpha(P3_to_sRGB))
+
+    console.log(matr1)
+    console.log(matr2)
+
+    const wb: [number, number, number] = [
+        image.wb_coeffs[0]/image.wb_coeffs[1]/2,
+        1,
+        image.wb_coeffs[2]/image.wb_coeffs[1]/2
+    ]
+
+    const {factor, exponent} = calculateConversionValues(image.settings, image.blacks, image.wb_coeffs)
+    const [RotX, RotY, trans] = getRotation(image.settings.rotation)
+
+    // console.log("factor:   ", factor)
+    // console.log("exponent: ", exponent)
+    
+    const parameters: WebGLArgument<unknown[]>[] = [
+        {name: "rotX", f: gl.uniform2f, data: RotX},
+        {name: "rotY", f: gl.uniform2f, data: RotY},
+        {name: "trans", f: gl.uniform2f, data: trans},
+        {name: "black", f: gl.uniform1f, data: [image.blacks[0]/16384]},
+        {name: "matrix1", f: gl.uniformMatrix4fv, data: [false, matr1.matrix]},
+        {name: "matrix2", f: gl.uniformMatrix4fv, data: [false, matr2.matrix]},
+        {name: "inv", f: gl.uniform1i, data: [invert ? 1 : 0]},
+        {name: "fac", f: gl.uniform4f, data: factor},
+        {name: "exponent", f: gl.uniform4f, data: exponent},
+        {name: "wb", f: gl.uniform4f, data: [...wb, 1]},
+    ]
+
+    webglDraw(gl, img, w, h, parameters)
 }
 
 
