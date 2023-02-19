@@ -59,6 +59,7 @@ onmessage = async function(e: MessageEvent) {
 		}
 		const processed: ProcessedImage = {
 			...deBayered,
+			type: "normal",
 			file: file[1],
 			bps: decoded.get_bps(),
 			blacks: Array.from(decoded.get_blacklevels()),

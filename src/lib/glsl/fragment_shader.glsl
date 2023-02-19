@@ -48,13 +48,13 @@ void main() {
     vec4 color = floatValues0To65535 / vec4(16384.0, 16384.0, 16384.0, 65535.0);
     color = subtractBlack(color, black);
     color = applyMatrix(color, matrix1);
-    // if (inv) {
-    //   color = invert(color, fac, exponent, black);
-    // }
+    if (inv) {
+      color = invert(color, fac, exponent, black);
+    }
     //color = whitebalance(color, wb);
     color = applyMatrix(color, matrix2);
     color = correctGamma(color);
     color = clamp(color, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
-    //color = toneCurve(color);
+    color = toneCurve(color);
     outColor = color;
 }
