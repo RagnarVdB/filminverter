@@ -7,13 +7,12 @@ uniform mat4 matrix1;
 uniform mat4 matrix2;
 
 uniform bool inv;
-uniform vec4  fac;
+uniform vec4 fac;
 uniform vec4 exponent;
 uniform vec4 wb;
 
-
 vec4 invert(vec4 color, vec4 fac, vec4 exponent, float black) {
-  return pow(color*fac, -exponent);
+  return pow(color * fac, -exponent);
 }
 
 vec4 applyMatrix(vec4 color, mat4 matrix) {
@@ -26,7 +25,7 @@ vec4 subtractBlack(vec4 color, float black) {
 
 vec4 correctGamma(vec4 color) {
   float gamma = 0.41666666;
-    return (pow(color, vec4(gamma, gamma, gamma, 1))*1.055) - 0.055;
+  return (pow(color, vec4(gamma, gamma, gamma, 1)) * 1.055) - 0.055;
 }
 
 vec4 whitebalance(vec4 color, vec4 wb) {
@@ -37,24 +36,24 @@ vec4 toneCurve(vec4 color) {
   vec4 a = vec4(-1.63, -1.63, -1.63, -1.63);
   vec4 b = vec4(1.85, 1.85, 1.85, 1.85);
   vec4 c = vec4(0.78, 0.78, 0.78, 0.78);
-  return a*pow(color, vec4(3, 3, 3, 3)) + b*pow(color, vec4(2, 2, 2, 2)) + c*color;
+  return a * pow(color, vec4(3, 3, 3, 3)) + b * pow(color, vec4(2, 2, 2, 2)) + c * color;
 }
 
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 void main() {
-    uvec4 unsignedIntValues = texture(tex, pixelCoordinate);
-    vec4 floatValues0To65535 = vec4(unsignedIntValues);
-    vec4 color = floatValues0To65535 / vec4(16384.0, 16384.0, 16384.0, 65535.0);
-    color = subtractBlack(color, black);
-    color = applyMatrix(color, matrix1);
-    if (inv) {
-      color = invert(color, fac, exponent, black);
-    }
+  uvec4 unsignedIntValues = texture(tex, pixelCoordinate);
+  vec4 floatValues0To65535 = vec4(unsignedIntValues);
+  vec4 color = floatValues0To65535 / vec4(16384.0, 16384.0, 16384.0, 65535.0);
+  color = subtractBlack(color, black);
+  color = applyMatrix(color, matrix1);
+  if(inv) {
+    color = invert(color, fac, exponent, black);
+  }
     //color = whitebalance(color, wb);
-    color = applyMatrix(color, matrix2);
-    color = correctGamma(color);
-    color = clamp(color, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
-    color = toneCurve(color);
-    outColor = color;
+  color = applyMatrix(color, matrix2);
+  color = correctGamma(color);
+  color = clamp(color, vec4(0.0, 0.0, 0.0, 0.0), vec4(1.0, 1.0, 1.0, 1.0));
+  color = toneCurve(color);
+  outColor = color;
 }

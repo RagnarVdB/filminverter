@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { createEventDispatcher } from 'svelte';
-    import Basic from './Basic.svelte'
-    import Advanced from './Advanced.svelte'
-    import Bw from './Bw.svelte';
-    import type { Settings } from '../RawImage';
-    import { defaultSettings } from '../RawImage';
-    import { images, index } from '../../stores'
-    
-    const dispatch = createEventDispatcher();
+    import { createEventDispatcher } from "svelte"
+    import Basic from "./Basic.svelte"
+    import Advanced from "./Advanced.svelte"
+    import Bw from "./Bw.svelte"
+    import type { Settings } from "../RawImage"
+    import { defaultSettings } from "../RawImage"
+    import { images, index } from "../../stores"
+
+    const dispatch = createEventDispatcher()
 
     //let mode: "basic" | "advanced" | "bw" = "advanced"
 
@@ -27,73 +27,111 @@
             }
         }, delay)
     }
-    
+
     function updateIndex(i: number) {
         console.log("index changed to", i)
-        if ($images[i])
-            settings = $images[i].settings
+        if ($images[i]) settings = $images[i].settings
     }
 
-    $: {updateSettings(settings)}
-    $: {updateIndex($index)}
-
+    $: {
+        updateSettings(settings)
+    }
+    $: {
+        updateIndex($index)
+    }
 </script>
-
 
 <div class="settings">
     <div class="menu">
-        <div class="menuItem" id="left" class:selected="{settings.mode === 'basic'}" on:click="{() => {settings.mode = 'basic'; $images[$index].settings.mode = 'basic'}}">Basic</div>
-        <div class="menuItem" id="right" class:selected="{settings.mode === 'advanced'}" on:click="{() => {settings.mode = 'advanced'; $images[$index].settings.mode = 'advanced'}}">Advanced</div>
-        <div class="menuItem" id="right" class:selected="{settings.mode === 'bw'}" on:click="{() => {settings.mode = 'bw'; $images[$index].settings.mode = 'bw'}}">BW</div>
+        <div
+            class="menuItem"
+            id="left"
+            class:selected={settings.mode === "basic"}
+            on:click={() => {
+                settings.mode = "basic"
+                $images[$index].settings.mode = "basic"
+            }}
+        >
+            Basic
+        </div>
+        <div
+            class="menuItem"
+            id="right"
+            class:selected={settings.mode === "advanced"}
+            on:click={() => {
+                settings.mode = "advanced"
+                $images[$index].settings.mode = "advanced"
+            }}
+        >
+            Advanced
+        </div>
+        <div
+            class="menuItem"
+            id="right"
+            class:selected={settings.mode === "bw"}
+            on:click={() => {
+                settings.mode = "bw"
+                $images[$index].settings.mode = "bw"
+            }}
+        >
+            BW
+        </div>
     </div>
     {#if settings.mode === "basic"}
-        <Basic/>
+        <Basic />
     {:else if settings.mode === "advanced"}
-        <Advanced bind:settings={settings} on:save={e => dispatch("save", e.detail)} on:applyAll={e => dispatch("applyAll", e.detail)}/>
+        <Advanced
+            bind:settings
+            on:save={(e) => dispatch("save", e.detail)}
+            on:applyAll={(e) => dispatch("applyAll", e.detail)}
+        />
     {:else}
-        <Bw bind:settings={settings} on:save={e => dispatch("save", e.detail)} on:applyAll={e => dispatch("applyAll", e.detail)}/>
+        <Bw
+            bind:settings
+            on:save={(e) => dispatch("save", e.detail)}
+            on:applyAll={(e) => dispatch("applyAll", e.detail)}
+        />
     {/if}
-    
 </div>
 
 <style>
-.settings {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.25);
-    border-radius: 15px;
-}
+    .settings {
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+        box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.25);
+        border-radius: 15px;
+    }
 
-.menu {
-    display: flex;
-    flex-direction: row;
-}
+    .menu {
+        display: flex;
+        flex-direction: row;
+    }
 
-.menuItem {
-    width: 50%;
-    height: 50px;
-    text-align: center;
-    vertical-align: center;
-    line-height: 50px;
-    border-bottom: 2px solid #EAEAEA;
-    background-color: #EAEAEA;
-    cursor: pointer;
-    font-family: 'Roboto Mono' sans-serif;
-    font-style: normal;
-    font-weight: 400;
-    font-size: 16px;
-}
+    .menuItem {
+        width: 50%;
+        height: 50px;
+        text-align: center;
+        vertical-align: center;
+        line-height: 50px;
+        border-bottom: 2px solid #eaeaea;
+        background-color: #eaeaea;
+        cursor: pointer;
+        font-family: "Roboto Mono" sans-serif;
+        font-style: normal;
+        font-weight: 400;
+        font-size: 16px;
+    }
 
-#left {
-    border-radius: 15px 0px 0px 0px;
-}
+    #left {
+        border-radius: 15px 0px 0px 0px;
+    }
 
-#right {
-    border-radius: 0px 15px 0px 0px;
-}
+    #right {
+        border-radius: 0px 15px 0px 0px;
+    }
 
-.selected {
-    background-color: white;
-}
+    .selected {
+        background-color: white;
+    }
 </style>
