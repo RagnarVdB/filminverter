@@ -12,7 +12,6 @@
         height: number
     }) {
         if (image && image.url && canvas) {
-            console.log("drawing main", image)
             canvas.width = wrapper.clientWidth
             canvas.height = wrapper.clientHeight
 
@@ -28,13 +27,7 @@
                 )
             }
             destinationImage.src = image.url
-            console.log(
-                canvas,
-                image.width,
-                image.height,
-                canvas.width,
-                canvas.height
-            )
+
         } else {
             console.log("cannot show yet", image, canvas)
         }

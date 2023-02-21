@@ -7,6 +7,7 @@ uniform mat4 matrix1;
 uniform mat4 matrix2;
 
 uniform bool inv;
+uniform bool trichrome;
 uniform vec4 fac;
 uniform vec4 exponent;
 uniform vec4 wb;
@@ -45,8 +46,12 @@ void main() {
   uvec4 unsignedIntValues = texture(tex, pixelCoordinate);
   vec4 floatValues0To65535 = vec4(unsignedIntValues);
   vec4 color = floatValues0To65535 / vec4(16384.0, 16384.0, 16384.0, 65535.0);
-  color = subtractBlack(color, black);
-  color = applyMatrix(color, matrix1);
+  if(trichrome) {
+    color = exp(applyMatrix(log(color), matrix1));
+  } else {
+    color = subtractBlack(color, black);
+    color = applyMatrix(color, matrix1);
+  }
   if(inv) {
     color = invert(color, fac, exponent, black);
   }

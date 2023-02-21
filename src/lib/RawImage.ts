@@ -1,10 +1,16 @@
-import { chunks, chunksRgba, zip, changeBitDepth } from "./utils"
-import type { Image as WasmImage } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
+import { chunksRgba, zip } from "./utils"
+import {
+    XYZ_to_sRGB,
+    P3_to_XYZ,
+    cam_to_P3,
+    cam_to_paper,
+    paper_to_srgb,
+} from "./matrices"
+
 //@ts-ignore
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
 import fragment_shader from "./glsl/fragment_shader.glsl"
-import { transition_in } from "svelte/internal"
 
 const colorOrder = {
     R: 0,
@@ -13,6 +19,7 @@ const colorOrder = {
 }
 
 export const TRICHNAMES = ["Red", "Green", "Blue", "BRed", "BGreen", "BBlue"]
+
 export type TrichImages = [
     ProcessedImage,
     ProcessedImage,
@@ -149,8 +156,6 @@ function getCFAValue(cfa: CFA, x: number, y: number): "R" | "G" | "B" {
     if (c == "R" || c == "G" || c == "B") {
         color = c
     } else {
-        console.log(cfa, x, y)
-        console.log(c)
         throw "Invalid CFA"
     }
     return color
@@ -195,7 +200,6 @@ function getColorValue(
 }
 
 export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
-    console.log("Converting trichrome")
     const N = trichImages[0].image.length / 4
     const black = trichImages[0].blacks[0]
     const out = new Uint16Array(N * 4)
@@ -238,7 +242,6 @@ export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
         out[i * 4 + 2] = clamp((b / (bb * 2 ** EXPDIFF)) * max, 0, max)
         out[i * 4 + 3] = 65535
     }
-    console.log("Converted trichrome")
     return {
         ...trichImages[0],
         image: out,
@@ -314,36 +317,6 @@ export function invertRaw(
         }
     }
     return out
-}
-
-const XYZ_to_sRGB: ConversionMatrix = {
-    matrix: [
-        3.2404542, -1.5371385, -0.4985314, -0.969266, 1.8760108, 0.041556,
-        0.0556434, -0.2040259, 1.0572252,
-    ],
-    n: 3,
-    m: 3,
-}
-
-const P3_to_XYZ: ConversionMatrix = {
-    // matrix: [0.486571, 0.265668,  0.198217,
-    //         0.228975, 0.691739,  0.079287,
-    //         0.000000, 0.045113,  1.043944],
-    matrix: [
-        0.51512, 0.29198, 0.1571, 0.2412, 0.69225, 0.06657, -0.00105, 0.04189,
-        0.78407,
-    ],
-    n: 3,
-    m: 3,
-}
-
-const cam_to_P3: ConversionMatrix = {
-    matrix: [
-        1.82774, -0.12403, 0.01736, -0.20948, 1.0, -0.31897, 0.0318, -0.24788,
-        1.58678,
-    ],
-    n: 3,
-    m: 3,
 }
 
 const P3_to_sRGB = multiplyMatrices(XYZ_to_sRGB, P3_to_XYZ)
@@ -445,7 +418,6 @@ function calculateConversionValues(
     if (settings.mode == "advanced") {
         // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
         const neutralColor = [0.3, 0.3, 0.3]
-        // console.log("wb: ", wb_coeffs)
         const s = settings.advanced
         const black = blacks[0]
         const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
@@ -475,9 +447,6 @@ function calculateConversionValues(
             1,
         ]
 
-        console.log("factor: ", factor)
-        console.log("exponent: ", exponent)
-
         const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
         console.log(
             "Neutral: ",
@@ -496,8 +465,6 @@ function calculateConversionValues(
 
         return { exponent: exponent, factor: factor }
     } else if (settings.mode == "bw") {
-        console.log("BW: ", settings.bw)
-
         const inverse = [
             0.222, 0.02456, 0.03352, 0, 0.06363, 0.45789, 0.12199, 0, 0.0085,
             0.08808, 0.30311, 0, 0, 0, 0, 1,
@@ -528,6 +495,7 @@ function calculateConversionValues(
         ]
 
         console.log(
+            "neutral",
             neutralValue.map((x) => x * 2 ** 14),
             neutralColor
         )
@@ -552,7 +520,7 @@ function calculateConversionValues(
 function getRotation(
     rotationValue: number
 ): [[number, number], [number, number], [number, number]] {
-    let RotX, RotY, trans: [number, number]
+    let RotX: [number, number], RotY: [number, number], trans: [number, number]
     switch (rotationValue) {
         case 0:
             RotX = [0.5, 0.5]
@@ -664,7 +632,6 @@ function webglDraw(
     for (const parameter of parameters) {
         const { name, f, data } = parameter
         const loc = gl.getUniformLocation(program, name)
-        console.log(f)
         f.apply(gl, [loc, ...data])
     }
 
@@ -683,11 +650,16 @@ export function draw(
     const h = image.height
     const img = image.image
 
-    const matr1 = transpose(extendMatrixAlpha(cam_to_P3))
-    const matr2 = transpose(extendMatrixAlpha(P3_to_sRGB))
-
-    console.log(matr1)
-    console.log(matr2)
+    const [matr1, matr2] =
+        image.type == "normal"
+            ? [
+                  transpose(extendMatrixAlpha(cam_to_P3)),
+                  transpose(extendMatrixAlpha(P3_to_sRGB)),
+              ]
+            : [
+                  transpose(extendMatrixAlpha(cam_to_paper)),
+                  transpose(extendMatrixAlpha(paper_to_srgb)),
+              ]
 
     const wb: [number, number, number] = [
         image.wb_coeffs[0] / image.wb_coeffs[1] / 2,
@@ -718,6 +690,11 @@ export function draw(
             data: [false, matr2.matrix],
         },
         { name: "inv", f: gl.uniform1i, data: [invert ? 1 : 0] },
+        {
+            name: "trichrome",
+            f: gl.uniform1i,
+            data: [image.type == "trichrome" ? 1 : 0],
+        },
         { name: "fac", f: gl.uniform4f, data: factor },
         { name: "exponent", f: gl.uniform4f, data: exponent },
         { name: "wb", f: gl.uniform4f, data: [...wb, 1] },

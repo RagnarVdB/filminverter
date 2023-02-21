@@ -22,7 +22,6 @@
     function setSize(image: ProcessedImage) {
         if (image && image.settings.rotation != rotation) {
             if (image.settings.rotation == 0 || image.settings.rotation == 2) {
-                console.log("normal")
                 const imRatio = image.width / image.height
                 const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
 
@@ -40,7 +39,6 @@
                     canvas.width = wrapper.clientWidth
                     canvas.height = wrapper.clientWidth / imRatio
                 } else {
-                    console.log("test")
                     canvas.height = wrapper.clientHeight
                     canvas.width = wrapper.clientHeight * imRatio
                 }

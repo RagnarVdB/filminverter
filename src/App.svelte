@@ -18,12 +18,6 @@
     function receivedImage(event) {
         const { index, image }: { index: number; image: ProcessedImage } =
             event.detail
-        console.log("received: ", index)
-        // if (index > $images.length) {
-        //     for (let i=0; i<index; i++) {
-        //         $images[i] = null
-        //     }
-        // }
         $images[index] = image
 
         showImages = true
@@ -55,7 +49,6 @@
             worker.postMessage([image])
             worker.onmessage = (message) => {
                 const [filename, url]: [string, string] = message.data
-                console.log("received", filename)
                 download(url, filename)
             }
         } else {
@@ -85,7 +78,6 @@
 
                 worker.onmessage = (message) => {
                     const [filename, url]: [string, string] = message.data
-                    console.log("received", filename)
                     download(url, filename)
                 }
             }
@@ -93,7 +85,6 @@
     }
 
     function applyAll(e: CustomEvent) {
-        console.log("Apply all")
         const settings = $images[$index].settings
         for (let i = 0; i < $images.length; i++) {
             $images[i].settings = JSON.parse(JSON.stringify(settings))
