@@ -84,7 +84,7 @@ export interface ConversionMatrix {
     m: number // van
 }
 
-export function deBayer(image: RawImage, cfa: CFA): RawImage {
+export function deBayer(image: RawImage, cfa: CFA, black: [number, number, number]): RawImage {
     // Tel voorkomen in cfa
     const nR = cfa.str.match(/R/g).length
     const nG = cfa.str.match(/G/g).length
@@ -137,9 +137,9 @@ export function deBayer(image: RawImage, cfa: CFA): RawImage {
                 }
             }
 
-            im[(n * j + i) * 4] = red / nR
-            im[(n * j + i) * 4 + 1] = green / nG
-            im[(n * j + i) * 4 + 2] = blue / nB
+            im[(n * j + i) * 4] = red / nR - black[0]
+            im[(n * j + i) * 4 + 1] = green / nG - black[1]
+            im[(n * j + i) * 4 + 2] = blue / nB - black[2]
             im[(n * j + i) * 4 + 3] = 65535
         }
     }
@@ -201,40 +201,33 @@ function getColorValue(
 
 export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
     const N = trichImages[0].image.length / 4
-    const black = trichImages[0].blacks[0]
     const out = new Uint16Array(N * 4)
     for (let i = 0; i < N; i++) {
         const r =
             trichImages[0].image[i * 4] +
             trichImages[0].image[i * 4 + 1] +
-            trichImages[0].image[i * 4 + 2] -
-            3 * black
+            trichImages[0].image[i * 4 + 2]
         const g =
             trichImages[1].image[i * 4] +
             trichImages[1].image[i * 4 + 1] +
-            trichImages[1].image[i * 4 + 2] -
-            3 * black
+            trichImages[1].image[i * 4 + 2]
         const b =
             trichImages[2].image[i * 4] +
             trichImages[2].image[i * 4 + 1] +
-            trichImages[2].image[i * 4 + 2] -
-            3 * black
+            trichImages[2].image[i * 4 + 2]
 
         const br =
             trichImages[3].image[i * 4] +
             trichImages[3].image[i * 4 + 1] +
-            trichImages[3].image[i * 4 + 2] -
-            3 * black
+            trichImages[3].image[i * 4 + 2]
         const bg =
             trichImages[4].image[i * 4] +
             trichImages[4].image[i * 4 + 1] +
-            trichImages[4].image[i * 4 + 2] -
-            3 * black
+            trichImages[4].image[i * 4 + 2]
         const bb =
             trichImages[5].image[i * 4] +
             trichImages[5].image[i * 4 + 1] +
-            trichImages[5].image[i * 4 + 2] -
-            3 * black
+            trichImages[5].image[i * 4 + 2]
 
         const max = 2 ** 14
         out[i * 4] = clamp((r / (br * 2 ** EXPDIFF)) * max, 0, max)
@@ -253,7 +246,6 @@ export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
 function processColorValue(
     color: [number, number, number],
     main: "R" | "G" | "B",
-    blacks: number[],
     factor: [number, number, number, number],
     exponent: [number, number, number, number],
     matrix: ConversionMatrix,
@@ -291,7 +283,6 @@ export function invertRaw(
         h = image.height
     const { factor, exponent } = calculateConversionValues(
         settings,
-        blacks,
         wb_coeffs
     )
     let out = new Uint16Array(w * h)
@@ -308,7 +299,6 @@ export function invertRaw(
             out[i + j * w] = processColorValue(
                 color,
                 main,
-                blacks,
                 factor,
                 exponent,
                 tr,
@@ -409,7 +399,6 @@ export function applyConversionMatrix(
 
 function calculateConversionValues(
     settings: Settings,
-    blacks: number[],
     wb_coeffs: number[]
 ): {
     factor: [number, number, number, number]
@@ -419,9 +408,8 @@ function calculateConversionValues(
         // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
         const neutralColor = [0.3, 0.3, 0.3]
         const s = settings.advanced
-        const black = blacks[0]
         const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
-        const neutral = s.neutral.map((x) => (x - black) / 2 ** 14)
+        const neutral = s.neutral.map((x) => x / 2 ** 14)
         const exposure = s.exposure
 
         const neutralValue: number[] = [
@@ -454,7 +442,6 @@ function calculateConversionValues(
                 processColorValue(
                     s.neutral,
                     main,
-                    blacks,
                     factor,
                     exponent,
                     cam_to_P3,
@@ -483,9 +470,8 @@ function calculateConversionValues(
         ]
 
         const s = settings.bw
-        const black = blacks[0]
         const gamma = [s.gamma, s.gamma, s.gamma]
-        const neutral = s.black.map((x) => (x - black) / 2 ** 14)
+        const neutral = s.black.map((x) => x / 2 ** 14)
         const fade = s.fade
 
         const neutralValue: [number, number, number] = [
@@ -669,7 +655,6 @@ export function draw(
 
     const { factor, exponent } = calculateConversionValues(
         image.settings,
-        image.blacks,
         image.wb_coeffs
     )
     const [RotX, RotY, trans] = getRotation(image.settings.rotation)
@@ -678,7 +663,6 @@ export function draw(
         { name: "rotX", f: gl.uniform2f, data: RotX },
         { name: "rotY", f: gl.uniform2f, data: RotY },
         { name: "trans", f: gl.uniform2f, data: trans },
-        { name: "black", f: gl.uniform1f, data: [image.blacks[0] / 16384] },
         {
             name: "matrix1",
             f: gl.uniformMatrix4fv,
@@ -707,7 +691,7 @@ export const defaultSettings: Settings = {
     mode: "advanced",
     rotation: 0,
     advanced: {
-        neutral: [4024, 3094, 1427],
+        neutral: [3024, 2094, 427],
         exposure: -1.95,
         gamma: 0.45,
         facB: -0.35 / 20 + 1,

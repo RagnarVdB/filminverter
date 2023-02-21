@@ -2,7 +2,6 @@
 precision highp float; // ?
 uniform highp usampler2D tex; // ?
 
-uniform float black;
 uniform mat4 matrix1;
 uniform mat4 matrix2;
 
@@ -12,16 +11,12 @@ uniform vec4 fac;
 uniform vec4 exponent;
 uniform vec4 wb;
 
-vec4 invert(vec4 color, vec4 fac, vec4 exponent, float black) {
+vec4 invert(vec4 color, vec4 fac, vec4 exponent) {
   return pow(color * fac, -exponent);
 }
 
 vec4 applyMatrix(vec4 color, mat4 matrix) {
   return matrix * color;
-}
-
-vec4 subtractBlack(vec4 color, float black) {
-  return color - vec4(black, black, black, 0);
 }
 
 vec4 correctGamma(vec4 color) {
@@ -49,11 +44,10 @@ void main() {
   if(trichrome) {
     color = exp(applyMatrix(log(color), matrix1));
   } else {
-    color = subtractBlack(color, black);
     color = applyMatrix(color, matrix1);
   }
   if(inv) {
-    color = invert(color, fac, exponent, black);
+    color = invert(color, fac, exponent);
   }
     //color = whitebalance(color, wb);
   color = applyMatrix(color, matrix2);
