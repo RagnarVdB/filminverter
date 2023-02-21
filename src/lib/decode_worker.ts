@@ -27,7 +27,6 @@ async function read_file(file: File): Promise<Uint8Array> {
 }
 function getCFA(decoded: WasmImage): CFA {
 	let offset: [number, number] = [0, 0]
-    console.log("model", decoded.get_model())
     switch (decoded.get_model()) {
         case "X-T2":
             offset = [0, 0]
@@ -36,7 +35,6 @@ function getCFA(decoded: WasmImage): CFA {
             offset = [0, 5]
             break
     }
-    console.log("offset", offset)
     const cfa: CFA = {
         str: decoded.get_cfastr(),
         width: decoded.get_cfawidth(),
@@ -84,9 +82,6 @@ onmessage = async function (e: MessageEvent) {
             iter: 0,
             filename: file[1].name,
         }
-
-        console.log("WB: ", processed.wb_coeffs)
-
         postMessage([file[0], processed])
     }
 }

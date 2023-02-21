@@ -36,7 +36,6 @@
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
         if (sets || sets.rotation != rotation) {
-            console.log("updating sliders")
             fade[0] = sets.bw.fade
             gamma[0] = sets.bw.gamma
             rotation = sets.rotation

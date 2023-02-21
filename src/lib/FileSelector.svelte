@@ -13,7 +13,6 @@
         const nWorkers = number_of_workers(files.length)
         const filesPerWorker = Math.floor(files.length / nWorkers)
         const remainder = files.length % nWorkers
-        // console.log(nWorkers, filesPerWorker)
         for (let i = 0; i < nWorkers; i++) {
             const worker = new Worker(
                 new URL("./decode_worker.ts", import.meta.url),
@@ -29,7 +28,6 @@
                           files[nWorkers * filesPerWorker + i],
                       ]
                     : files.slice(i * filesPerWorker, (i + 1) * filesPerWorker)
-            // console.log(workerFiles.map(x => x[0]))
             worker.postMessage(workerFiles)
             worker.onmessage = (message) => {
                 callback(message.data)

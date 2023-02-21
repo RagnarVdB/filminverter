@@ -29,7 +29,6 @@
     }
 
     function updateIndex(i: number) {
-        console.log("index changed to", i)
         if ($images[i]) settings = $images[i].settings
     }
 

@@ -6,7 +6,6 @@
     export let color: [number, number, number] = [0, 0, 0]
     $: cssColor = ((x) => `rgb(${x[0]}, ${x[1]}, ${x[2]})`)(to8bit(color))
     $: image = $images[$index]
-    //console.log("Main Width: ", $canvas.width)
 
     function detectColor(e: MouseEvent) {
         const rect = $canvas.getBoundingClientRect()
@@ -20,7 +19,6 @@
         const x = Math.round((mouseX * w) / $canvas.width)
         const y = Math.round((mouseY * h) / $canvas.height)
 
-        console.log(x, y)
         // Average of 9 pixels
         let pickedColor: [number, number, number] = [0, 0, 0]
         for (let i of [x - 1, x, x + 1]) {
@@ -34,8 +32,6 @@
         color[0] /= 9
         color[1] /= 9
         color[2] /= 9
-        console.log()
-        console.log("picked: ", pickedColor)
         $canvas.removeEventListener("click", detectColor)
     }
 

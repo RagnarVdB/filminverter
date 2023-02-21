@@ -28,10 +28,6 @@
                 class="preview"
                 on:click={() => {
                     $currentIndex = index
-                    console.log("clicked", index)
-                    console.log(
-                        $images.map((im) => im.settings.advanced.exposure)
-                    )
                 }}
             >
                 <ImageView {image} />
