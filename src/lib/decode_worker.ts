@@ -49,8 +49,9 @@ function getDeBayered(decoded: WasmImage, cfa: CFA) {
         width: decoded.get_width(),
         height: decoded.get_height(),
     }
+    const black = decoded.get_blacklevels()
     
-    return deBayer(rawImage, cfa)
+    return deBayer(rawImage, cfa, [black[0], black[1], black[2]])
 }
 
 onmessage = async function (e: MessageEvent) {
