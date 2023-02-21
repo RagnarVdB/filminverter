@@ -1,4 +1,4 @@
-import type { ConversionMatrix } from './RawImage'
+import type { ConversionMatrix } from "./RawImage"
 
 export const XYZ_to_sRGB: ConversionMatrix = {
     matrix: [
@@ -38,9 +38,17 @@ export const cam_to_paper: ConversionMatrix = {
 
 export const paper_to_srgb: ConversionMatrix = {
     matrix: [
-        1.75770771, -0.57264877, -0.13551353,
-        0.63231951, 0.51279871, -0.10448185,
-        0.23176891, -0.09070517, 0.88107295,
+        1.33419518, -0.29620981, -0.03814209, 0.11188025, 0.89727952,
+        -0.00906062, 0.0570433, 0.02292647, 0.92010467,
+    ],
+    n: 3,
+    m: 3,
+}
+
+export const srgb_to_paper: ConversionMatrix = {
+    matrix: [
+        0.72804006, 0.2395091, 0.03253877, -0.0912109, 1.0841932, 0.0068954,
+        -0.04286323, -0.04186383, 1.08464376,
     ],
     n: 3,
     m: 3,

@@ -43,13 +43,13 @@
         if (image)
             return [
                 Math.round(
-                    (((color[0] - 1024) * image.wb_coeffs[0]) /
+                    ((color[0] * image.wb_coeffs[0]) /
                         (100 * image.wb_coeffs[1])) *
                         2
                 ),
-                Math.round((color[1] - 1024) / 100),
+                Math.round(color[1] / 100),
                 Math.round(
-                    (((color[2] - 1024) * image.wb_coeffs[2]) /
+                    ((color[2] * image.wb_coeffs[2]) /
                         (100 * image.wb_coeffs[1])) *
                         2
                 ),

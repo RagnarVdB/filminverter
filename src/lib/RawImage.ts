@@ -5,6 +5,7 @@ import {
     cam_to_P3,
     cam_to_paper,
     paper_to_srgb,
+    srgb_to_paper,
 } from "./matrices"
 
 //@ts-ignore
@@ -66,6 +67,8 @@ export interface Settings {
     advanced: {
         neutral: [number, number, number]
         exposure: number
+        blue: number
+        green: number
         gamma: number
         facG: number
         facB: number
@@ -84,7 +87,11 @@ export interface ConversionMatrix {
     m: number // van
 }
 
-export function deBayer(image: RawImage, cfa: CFA, black: [number, number, number]): RawImage {
+export function deBayer(
+    image: RawImage,
+    cfa: CFA,
+    black: [number, number, number]
+): RawImage {
     // Tel voorkomen in cfa
     const nR = cfa.str.match(/R/g).length
     const nG = cfa.str.match(/G/g).length
@@ -281,10 +288,7 @@ export function invertRaw(
 ): Uint16Array {
     const w = image.width,
         h = image.height
-    const { factor, exponent } = calculateConversionValues(
-        settings,
-        wb_coeffs
-    )
+    const { factor, exponent } = calculateConversionValues(settings, wb_coeffs, "normal")
     let out = new Uint16Array(w * h)
 
     const tr = {
@@ -399,27 +403,35 @@ export function applyConversionMatrix(
 
 function calculateConversionValues(
     settings: Settings,
-    wb_coeffs: number[]
+    wb_coeffs: number[],
+    type: "normal" | "trichrome"
 ): {
     factor: [number, number, number, number]
     exponent: [number, number, number, number]
 } {
     if (settings.mode == "advanced") {
         // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
-        const neutralColor = [0.3, 0.3, 0.3]
+        let neutralColor = [0.3, 0.3, 0.3]
+        if (type == "trichrome") {
+            neutralColor = applyMatrixVector(neutralColor, srgb_to_paper)
+        }
         const s = settings.advanced
+        const exposure = [s.exposure, s.exposure * s.green, s.exposure * s.blue]
         const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
         const neutral = s.neutral.map((x) => x / 2 ** 14)
-        const exposure = s.exposure
 
         const neutralValue: number[] = [
-            (2 ** exposure * neutralColor[0]) ** -gamma[0],
-            (2 ** exposure * neutralColor[1]) ** -gamma[1],
-            (2 ** exposure * neutralColor[2]) ** -gamma[2],
+            (2 ** exposure[0] * neutralColor[0]) ** -gamma[0],
+            (2 ** exposure[1] * neutralColor[1]) ** -gamma[1],
+            (2 ** exposure[2] * neutralColor[2]) ** -gamma[2],
             1,
         ]
-
-        const neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
+        let neutralInputP3: number[]
+        if (type == "trichrome") {
+            neutralInputP3 = applyMatrixVector(neutral.map(Math.log), cam_to_paper).map(Math.exp)
+        } else {
+            neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
+        }
 
         const exponent: [number, number, number, number] = [
             1 / gamma[0],
@@ -655,7 +667,8 @@ export function draw(
 
     const { factor, exponent } = calculateConversionValues(
         image.settings,
-        image.wb_coeffs
+        image.wb_coeffs,
+        image.type
     )
     const [RotX, RotY, trans] = getRotation(image.settings.rotation)
 
@@ -693,6 +706,8 @@ export const defaultSettings: Settings = {
     advanced: {
         neutral: [3024, 2094, 427],
         exposure: -1.95,
+        blue: 1,
+        green: 1,
         gamma: 0.45,
         facB: -0.35 / 20 + 1,
         facG: 0.25 / 20 + 1,
