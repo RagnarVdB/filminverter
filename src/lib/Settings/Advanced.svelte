@@ -17,8 +17,8 @@
 
     export let settings: Settings
 
-    const m = 1 / 20
-    const m2 = 1 / 5
+    const m = 1 / 5
+    const m2 = 1/3
 
     $: {
         updateSliders(settings)

@@ -288,7 +288,11 @@ export function invertRaw(
 ): Uint16Array {
     const w = image.width,
         h = image.height
-    const { factor, exponent } = calculateConversionValues(settings, wb_coeffs, "normal")
+    const { factor, exponent } = calculateConversionValues(
+        settings,
+        wb_coeffs,
+        "normal"
+    )
     let out = new Uint16Array(w * h)
 
     const tr = {
@@ -428,7 +432,10 @@ function calculateConversionValues(
         ]
         let neutralInputP3: number[]
         if (type == "trichrome") {
-            neutralInputP3 = applyMatrixVector(neutral.map(Math.log), cam_to_paper).map(Math.exp)
+            neutralInputP3 = applyMatrixVector(
+                neutral.map(Math.log),
+                cam_to_paper
+            ).map(Math.exp)
         } else {
             neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
         }
@@ -447,20 +454,20 @@ function calculateConversionValues(
             1,
         ]
 
-        const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
-        console.log(
-            "Neutral: ",
-            cs.map((main) =>
-                processColorValue(
-                    s.neutral,
-                    main,
-                    factor,
-                    exponent,
-                    cam_to_P3,
-                    true
-                )
-            )
-        )
+        // const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
+        // console.log(
+        //     "Neutral: ",
+        //     cs.map((main) =>
+        //         processColorValue(
+        //             s.neutral,
+        //             main,
+        //             factor,
+        //             exponent,
+        //             cam_to_P3,
+        //             false
+        //         )
+        //     )
+        // )
 
         return { exponent: exponent, factor: factor }
     } else if (settings.mode == "bw") {
@@ -492,11 +499,11 @@ function calculateConversionValues(
             (2 ** fade * neutralColor[2]) / wb[2],
         ]
 
-        console.log(
-            "neutral",
-            neutralValue.map((x) => x * 2 ** 14),
-            neutralColor
-        )
+        // console.log(
+        //     "neutral",
+        //     neutralValue.map((x) => x * 2 ** 14),
+        //     neutralColor
+        // )
 
         const exponent: [number, number, number, number] = [
             1 / gamma[0],
@@ -517,33 +524,33 @@ function calculateConversionValues(
 
 function getRotation(
     rotationValue: number
-): [[number, number], [number, number], [number, number]] {
-    let RotX: [number, number], RotY: [number, number], trans: [number, number]
+): [[number, number, number, number], [number, number]] {
+    let Rot: [number, number, number, number], trans: [number, number]
     switch (rotationValue) {
         case 0:
-            RotX = [0.5, 0.5]
-            RotY = [0, 0]
-            trans = [0.5, 0.5]
+            Rot = [1, 0,
+                   0, 1]
+            trans = [1, 1]
             break
         case 1:
-            RotX = [0, 0]
-            RotY = [-0.5, 0.5]
-            trans = [-0.5, 0.5]
+            Rot = [0, -1,
+                   1, 0]
+            trans = [-1, 1]
             break
         case 2:
-            RotX = [-0.5, -0.5]
-            RotY = [0, 0]
-            trans = [-0.5, -0.5]
+            Rot = [-1, 0,
+                   0, -1]
+            trans = [-1, -1]
             break
         case 3:
-            RotX = [0, 0]
-            RotY = [0.5, -0.5]
-            trans = [0.5, -0.5]
+            Rot = [0, 1,
+                    -1, 0]
+            trans = [1, -1]
             break
         default:
             throw new Error("Invalid rotation value" + rotationValue)
     }
-    return [RotX, RotY, trans]
+    return [Rot, trans]
 }
 
 interface WebGLArgument<T extends unknown[]> {
@@ -670,11 +677,9 @@ export function draw(
         image.wb_coeffs,
         image.type
     )
-    const [RotX, RotY, trans] = getRotation(image.settings.rotation)
-
+    const [Rot, trans] = getRotation(image.settings.rotation)
     const parameters: WebGLArgument<any[]>[] = [
-        { name: "rotX", f: gl.uniform2f, data: RotX },
-        { name: "rotY", f: gl.uniform2f, data: RotY },
+        { name: "rot", f: gl.uniformMatrix2fv, data: [false, Rot] },
         { name: "trans", f: gl.uniform2f, data: trans },
         {
             name: "matrix1",

@@ -26,7 +26,7 @@ async function read_file(file: File): Promise<Uint8Array> {
     })
 }
 function getCFA(decoded: WasmImage): CFA {
-	let offset: [number, number] = [0, 0]
+    let offset: [number, number] = [0, 0]
     switch (decoded.get_model()) {
         case "X-T2":
             offset = [0, 0]
@@ -41,7 +41,7 @@ function getCFA(decoded: WasmImage): CFA {
         height: decoded.get_cfaheight(),
         offset: offset,
     }
-	return cfa
+    return cfa
 }
 function getDeBayered(decoded: WasmImage, cfa: CFA) {
     const rawImage: RawImage = {
@@ -50,7 +50,7 @@ function getDeBayered(decoded: WasmImage, cfa: CFA) {
         height: decoded.get_height(),
     }
     const black = decoded.get_blacklevels()
-    
+
     return deBayer(rawImage, cfa, [black[0], black[1], black[2]])
 }
 
@@ -60,7 +60,7 @@ onmessage = async function (e: MessageEvent) {
     for (const file of files) {
         const arr = await read_file(file[1])
         const decoded = decode_image(arr)
-		const cfa = getCFA(decoded)
+        const cfa = getCFA(decoded)
         const deBayered = getDeBayered(decoded, cfa)
 
         const cam_to_xyz: ConversionMatrix = {
@@ -68,13 +68,17 @@ onmessage = async function (e: MessageEvent) {
             n: 3,
             m: 4,
         }
+        let blacks = Array.from(decoded.get_blacklevels())
+        if (decoded.get_model() == "X-E4") {
+            blacks = [999, 999, 999, 999]
+        }
         const processed: ProcessedImage = {
             ...deBayered,
             type: "normal",
             file: file[1],
             bps: decoded.get_bps(),
-			cfa,
-            blacks: Array.from(decoded.get_blacklevels()),
+            cfa,
+            blacks: blacks,
             cam_to_xyz,
             wb_coeffs: Array.from(decoded.get_wb_coeffs()),
             //wb_coeffs: [551, 302, 580],
