@@ -15,7 +15,7 @@
     let facB: [number, number] = [5, 0]
     let facG: [number, number] = [5, 0]
     let rotation: number = 0
-    let zoom: [number, number, number] = [1, 0, 0]
+    let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     export let settings: Settings
 
@@ -48,7 +48,7 @@
         facB: [number, number],
         facG: [number, number],
         rotation: number,
-        zoom: [number, number, number]
+        zoom: [number, number, number, number]
     ) {
         if (settings) {
             settings.advanced = {
