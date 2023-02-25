@@ -64,6 +64,7 @@ export interface CFA {
 export interface Settings {
     mode: "advanced" | "basic" | "bw"
     rotation: number
+    zoom: [number, number, number]
     advanced: {
         neutral: [number, number, number]
         exposure: number
@@ -677,8 +678,13 @@ export function draw(
         image.type
     )
     const [Rot, trans] = getRotation(image.settings.rotation)
+    const zoom = image.settings.zoom
+    console.log('zoom', zoom)
+    trans[0] += zoom[1]
+    trans[1] += zoom[2]
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, Rot] },
+        { name: "scale", f: gl.uniform2f, data: [1/(2*zoom[0]), 1/(2*zoom[0])]},
         { name: "trans", f: gl.uniform2f, data: trans },
         {
             name: "matrix1",
@@ -707,6 +713,7 @@ export function draw(
 export const defaultSettings: Settings = {
     mode: "advanced",
     rotation: 0,
+    zoom: [1, 0, 0],
     advanced: {
         neutral: [3024, 2094, 427],
         exposure: -1.95,

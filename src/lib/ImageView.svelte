@@ -7,6 +7,7 @@
     export let image: ProcessedImage
     let iter: number = -1
     let rotation = -1
+    let zoom = -1
     let canvasRedraw: boolean = true
     let filename: String = ""
     export let canvas: HTMLCanvasElement = undefined
@@ -45,7 +46,6 @@
                 canvas.width = wrapper.clientHeight * imRatio
             }
         }
-        rotation = image.settings.rotation
     }
 
     function rotateHandle(image) {
@@ -54,11 +54,18 @@
                 canvasRedraw = !canvasRedraw
                 setTimeout(() => {
                     setSize(image)
+                    rotation = image.settings.rotation
                     gl = canvas.getContext("webgl2")
                     drawImage(image)
                     iter = 0
                 }, 50)
             }
+            
+            // } else if (image && image.settings.zoom[0] != zoom) {
+            //     zoom = image.settings.zoom
+            //     drawImage(image)
+            //     iter = image.iter
+            // }
         }
     }
 
