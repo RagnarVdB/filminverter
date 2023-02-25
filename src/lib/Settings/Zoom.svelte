@@ -6,7 +6,7 @@
     let first: [number, number] = [0, 0]
     let second: [number, number] = [0, 0]
 
-    export let zoom: [number, number, number] = [1, 0, 0]
+    export let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     function getZoomPoint(e: MouseEvent): [number, number] {
         const rect = $canvas.getBoundingClientRect()
@@ -35,12 +35,9 @@
         const width = x2 - x1
         const height = y2 - y1
 
-        const z = Math.min(w / width, h / height)
-        const x = x1 - (w / z - width) / 2
-        const y = y1 - (h / z - height) / 2
-        const ax = 2*x1/w - 1
-        const ay = 1 - 2*y1/h
-        zoom = [z, 2*x1*z/w, 2*z * (1 - y2/h)]
+        const zx = w / width
+        const zy = h / height
+        zoom = [zx, zy, 2*x1*zx/w, 2*zy * (1 - y2/h)]
         
     }
 
@@ -69,7 +66,7 @@
 
     function reset() {
         state = "none"
-        zoom = [1, 0, 0]
+        zoom = [1, 1, 0, 0]
     }
 
 </script>

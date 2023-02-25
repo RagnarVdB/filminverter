@@ -24,7 +24,7 @@
 
     function setSize(image: ProcessedImage) {
         if (image.settings.rotation == 0 || image.settings.rotation == 2) {
-            const imRatio = image.width / image.height
+            const imRatio = (image.width/image.settings.zoom[0]) / (image.height/image.settings.zoom[1])
             const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
             console.log(imRatio, wrapperRatio)
             if (imRatio > wrapperRatio) {
@@ -50,11 +50,12 @@
 
     function rotateHandle(image) {
         if (image && wrapper) {
-            if (image && image.settings.rotation != rotation) {
+            if (image && (image.settings.rotation != rotation || image.settings.zoom[0] != zoom)) {
                 canvasRedraw = !canvasRedraw
                 setTimeout(() => {
                     setSize(image)
                     rotation = image.settings.rotation
+                    zoom = image.settings.zoom[0]
                     gl = canvas.getContext("webgl2")
                     drawImage(image)
                     iter = 0
