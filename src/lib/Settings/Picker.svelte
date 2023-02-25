@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { current_component } from "svelte/internal"
-
     import { images, index, mainCanvas as canvas } from "../../stores"
 
     export let color: [number, number, number] = [0, 0, 0]

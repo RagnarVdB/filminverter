@@ -2,6 +2,7 @@
     import { createEventDispatcher } from "svelte"
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
+    import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
 
     const dispatch = createEventDispatcher()
@@ -14,6 +15,7 @@
     let facB: [number, number] = [5, 0]
     let facG: [number, number] = [5, 0]
     let rotation: number = 0
+    let zoom: [number, number, number] = [1, 0, 0]
 
     export let settings: Settings
 
@@ -32,19 +34,21 @@
             gamma,
             facB,
             facG,
-            rotation
+            rotation,
+            zoom
         )
     }
 
     function updateSettings(
-        neutral,
-        exposure,
-        blue,
-        green,
-        gamma,
-        facB,
-        facG,
-        rotation
+        neutral: [number, number, number],
+        exposure: [number, number],
+        blue: [number, number],
+        green: [number, number],
+        gamma: [number, number],
+        facB: [number, number],
+        facG: [number, number],
+        rotation: number,
+        zoom: [number, number, number]
     ) {
         if (settings) {
             settings.advanced = {
@@ -57,12 +61,13 @@
                 facG: m * facG[0] - 5 * m + 1,
             }
             settings.rotation = rotation
+            settings.zoom = zoom
         }
     }
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        if (sets || sets.rotation != rotation) {
+        if (sets || sets.rotation != rotation || sets.zoom != zoom) {
             exposure[0] = sets.advanced.exposure + 5
             blue[0] = (sets.advanced.blue - 1 + 5 * m2) / m2
             green[0] = (sets.advanced.green - 1 + 5 * m2) / m2
@@ -71,6 +76,7 @@
             facB[0] = (sets.advanced.facB - 1 + 5 * m) / m
             rotation = sets.rotation
             neutral = sets.advanced.neutral
+            zoom = sets.zoom
         }
     }
 </script>
@@ -105,6 +111,7 @@
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
+    <Zoom bind:zoom={zoom}></Zoom>
 </div>
 
 <style>
