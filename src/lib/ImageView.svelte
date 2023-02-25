@@ -7,48 +7,59 @@
     export let image: ProcessedImage
     let iter: number = -1
     let rotation = -1
+    let canvasRedraw: boolean = true
     let filename: String = ""
     export let canvas: HTMLCanvasElement = undefined
     let gl: WebGL2RenderingContext
     let wrapper: HTMLDivElement
 
     async function drawImage(image: ProcessedImage) {
+        console.log("drawImage")
         if (image && image.image && canvas) {
-            draw(gl, image, true, 60)
+            console.log("draw")
+            draw(gl, image, true)
         }
     }
 
     function setSize(image: ProcessedImage) {
-        if (image && image.settings.rotation != rotation) {
-            if (image.settings.rotation == 0 || image.settings.rotation == 2) {
-                const imRatio = image.width / image.height
-                const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
-                console.log(imRatio, wrapperRatio)
-                if (imRatio > wrapperRatio) {
-                    canvas.width = wrapper.clientWidth
-                    canvas.height = wrapper.clientWidth / imRatio
-                } else {
-                    canvas.height = wrapper.clientHeight
-                    canvas.width = wrapper.clientHeight * imRatio
-                }
+        if (image.settings.rotation == 0 || image.settings.rotation == 2) {
+            const imRatio = image.width / image.height
+            const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
+            console.log(imRatio, wrapperRatio)
+            if (imRatio > wrapperRatio) {
+                canvas.width = wrapper.clientWidth
+                canvas.height = wrapper.clientWidth / imRatio
             } else {
-                const imRatio = image.height / image.width
-                const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
-                console.log(imRatio, wrapperRatio)
-                if (imRatio > wrapperRatio) {
-                    canvas.width = wrapper.clientWidth
-                    canvas.height = wrapper.clientWidth / imRatio
-                } else {
-                    canvas.height = wrapper.clientHeight
-                    canvas.width = wrapper.clientHeight * imRatio
-                }
+                canvas.height = wrapper.clientHeight
+                canvas.width = wrapper.clientHeight * imRatio
             }
-            rotation = image.settings.rotation
+        } else {
+            const imRatio = image.height / image.width
+            const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
+            console.log(imRatio, wrapperRatio)
+            if (imRatio > wrapperRatio) {
+                canvas.width = wrapper.clientWidth
+                canvas.height = wrapper.clientWidth / imRatio
+            } else {
+                canvas.height = wrapper.clientHeight
+                canvas.width = wrapper.clientHeight * imRatio
+            }
         }
+        rotation = image.settings.rotation
     }
 
     function rotateHandle(image) {
-        if (image && wrapper) setSize(image)
+        if (image && wrapper) {
+            if (image && image.settings.rotation != rotation) {
+                canvasRedraw = !canvasRedraw
+                setTimeout(() => {
+                    setSize(image)
+                    gl = canvas.getContext("webgl2")
+                    drawImage(image)
+                    iter = 0
+                }, 50)
+            }
+        }
     }
 
     $: rotateHandle(image)
@@ -83,7 +94,9 @@
 </script>
 
 <div class="view" bind:this={wrapper}>
-    <canvas id="imagecanvas" bind:this={canvas} />
+    {#key canvasRedraw}
+        <canvas id="imagecanvas" bind:this={canvas} />
+    {/key}
 </div>
 
 <style>
