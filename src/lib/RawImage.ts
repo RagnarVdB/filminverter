@@ -647,7 +647,6 @@ export function draw(
     gl: WebGL2RenderingContext,
     image: ProcessedImage,
     invert: boolean,
-    cc: number
 ) {
     if (!gl) console.log("No gl")
 
