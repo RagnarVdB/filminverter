@@ -10,7 +10,6 @@
     let filename: String = ""
     export let canvas: HTMLCanvasElement = undefined
     let gl: WebGL2RenderingContext
-    let program: WebGLProgram
     let wrapper: HTMLDivElement
 
     async function drawImage(image: ProcessedImage) {
@@ -24,7 +23,7 @@
             if (image.settings.rotation == 0 || image.settings.rotation == 2) {
                 const imRatio = image.width / image.height
                 const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
-
+                console.log(imRatio, wrapperRatio)
                 if (imRatio > wrapperRatio) {
                     canvas.width = wrapper.clientWidth
                     canvas.height = wrapper.clientWidth / imRatio
@@ -35,6 +34,7 @@
             } else {
                 const imRatio = image.height / image.width
                 const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
+                console.log(imRatio, wrapperRatio)
                 if (imRatio > wrapperRatio) {
                     canvas.width = wrapper.clientWidth
                     canvas.height = wrapper.clientWidth / imRatio
@@ -47,7 +47,7 @@
         }
     }
 
-    function rotateHandle(rot) {
+    function rotateHandle(image) {
         if (image && wrapper) setSize(image)
     }
 
@@ -57,12 +57,6 @@
         if (image && image.image) {
             setSize(image)
             gl = canvas.getContext("webgl2")
-            // setUpShaders(gl)
-            //     .then(pg=> {
-            //         program = pg
-            //         drawImage(image);
-            //         iter = 0
-            //     })
             drawImage(image)
             iter = 0
         }
@@ -73,12 +67,6 @@
                 filename = image.filename
                 setSize(image)
                 gl = canvas.getContext("webgl2")
-                // setUpShaders(gl)
-                //     .then(pg=> {
-                //         program = pg
-                //         drawImage(image);
-                //         iter = image.iter
-                //     })
                 drawImage(image)
                 iter = image.iter
             } else if (image.iter != iter) {
