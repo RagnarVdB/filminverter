@@ -1,5 +1,6 @@
 <script lang="ts">
     import { images, index, mainCanvas as canvas } from "../../stores"
+    import { applyRotationAndZoom } from "../RawImage"
 
     export let color: [number, number, number] = [0, 0, 0]
     $: cssColor = ((x) => `rgb(${x[0]}, ${x[1]}, ${x[2]})`)(to8bit(color))
@@ -13,9 +14,21 @@
 
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
+        console.log("mouse", mouseX, mouseY)
+        const x_canvas = mouseX / $canvas.width
+        const y_canvas = mouseY / $canvas.height
 
-        const x = Math.round((mouseX * w) / $canvas.width)
-        const y = Math.round((mouseY * h) / $canvas.height)
+        const [x_im, y_im] = applyRotationAndZoom(
+            x_canvas,
+            y_canvas,
+            image.settings.rotationMatrix,
+            image.settings.zoom
+        )
+
+        const x = Math.round(x_im * w)
+        const y = Math.round(y_im * h)
+
+        console.log(x_canvas, y_canvas, x_im, y_im, x, y)
 
         // Average of 9 pixels
         let pickedColor: [number, number, number] = [0, 0, 0]

@@ -566,6 +566,21 @@ export function applyRotation(
     return [(a[0] + 1) / 2, (a[1] + 1) / 2]
 }
 
+export function applyRotationAndZoom(
+    x: number,
+    y: number,
+    rot: ConversionMatrix,
+    zoom: [number, number, number, number]
+): [number, number] {
+    // [0, 1] -> [0, 1]
+    console.log("apply", rot, zoom)
+    const a = applyMatrixVector([2 * x - 1, 1 - 2 * y], rot)
+    return [
+        (zoom[0] / 2) * (a[0] + 1) + zoom[2],
+        1 - ((zoom[1] / 2) * (a[1] + 1) + zoom[3]),
+    ]
+}
+
 interface WebGLArgument<T extends unknown[]> {
     name: string
     f: (location: WebGLUniformLocation, ...data: T) => void
