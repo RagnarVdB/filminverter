@@ -1,5 +1,6 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
+    // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
@@ -67,7 +68,7 @@
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        if (sets || sets.rotation != rotation || sets.zoom != zoom) {
+        if (sets.rotation != rotation || sets.zoom != zoom) {
             exposure[0] = sets.advanced.exposure + 5
             blue[0] = (sets.advanced.blue - 1 + 5 * m2) / m2
             green[0] = (sets.advanced.green - 1 + 5 * m2) / m2
