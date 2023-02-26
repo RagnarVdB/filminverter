@@ -94,9 +94,15 @@ export function deBayer(
     black: [number, number, number]
 ): RawImage {
     // Tel voorkomen in cfa
-    const nR = cfa.str.match(/R/g).length
-    const nG = cfa.str.match(/G/g).length
-    const nB = cfa.str.match(/B/g).length
+    const R = cfa.str.match(/R/g)
+    const G = cfa.str.match(/G/g)
+    const B = cfa.str.match(/B/g)
+    if (R == null || G == null || B == null) {
+        throw new Error("Invalid CFA")
+    }
+    const nR = R.length
+    const nG = G.length
+    const nB = B.length
 
     const n = Math.floor((image.width - cfa.offset[0]) / cfa.width)
     const m = Math.floor((image.height - cfa.offset[1]) / cfa.height)
@@ -520,6 +526,8 @@ function calculateConversionValues(
             1,
         ]
         return { exponent: exponent, factor: factor }
+    } else {
+        throw new Error("Not implemented")
     }
 }
 
@@ -598,7 +606,7 @@ function webglDraw(
     gl.compileShader(program.fs)
     checkCompileError(program.fs)
 
-    function checkCompileError(s) {
+    function checkCompileError(s: WebGLShader) {
         if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
             console.error(gl.getShaderInfoLog(s))
         }
@@ -638,6 +646,9 @@ function webglDraw(
     for (const parameter of parameters) {
         const { name, f, data } = parameter
         const loc = gl.getUniformLocation(program, name)
+        if (loc == null) {
+            throw new Error("Could not find uniform " + name)
+        }
         f.apply(gl, [loc, ...data])
     }
 
@@ -704,7 +715,7 @@ export function draw(
         },
         { name: "fac", f: gl.uniform4f, data: factor },
         { name: "exponent", f: gl.uniform4f, data: exponent },
-        { name: "wb", f: gl.uniform4f, data: [...wb, 1] },
+        // { name: "wb", f: gl.uniform4f, data: [...wb, 1] },
     ]
 
     webglDraw(gl, img, w, h, parameters)

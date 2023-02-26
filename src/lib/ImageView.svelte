@@ -10,7 +10,7 @@
     let zoom = -1
     let canvasRedraw: boolean = true
     let filename: String = ""
-    export let canvas: HTMLCanvasElement = undefined
+    export let canvas: HTMLCanvasElement
     let gl: WebGL2RenderingContext
     let wrapper: HTMLDivElement
 
@@ -48,7 +48,7 @@
         }
     }
 
-    function rotateHandle(image) {
+    function rotateHandle(image: ProcessedImage) {
         if (image && wrapper) {
             if (image && (image.settings.rotation != rotation || image.settings.zoom[0] != zoom)) {
                 canvasRedraw = !canvasRedraw
@@ -56,7 +56,11 @@
                     setSize(image)
                     rotation = image.settings.rotation
                     zoom = image.settings.zoom[0]
-                    gl = canvas.getContext("webgl2")
+                    const ct = canvas.getContext("webgl2")
+                    if (!ct) {
+                        throw new Error("WebGL2 not supported")
+                    }
+                    gl = ct
                     drawImage(image)
                     iter = 0
                 }, 50)
@@ -75,7 +79,11 @@
     onMount(() => {
         if (image && image.image) {
             setSize(image)
-            gl = canvas.getContext("webgl2")
+            const ct = canvas.getContext("webgl2")
+            if (!ct) {
+                throw new Error("WebGL2 not supported")
+            }
+            gl = ct
             drawImage(image)
             iter = 0
         }
@@ -85,9 +93,13 @@
             if (image.filename != filename) {
                 filename = image.filename
                 setSize(image)
-                gl = canvas.getContext("webgl2")
-                drawImage(image)
-                iter = image.iter
+                const ct = canvas.getContext("webgl2")
+                if (!ct) {
+                    throw new Error("WebGL2 not supported")
+                }
+                gl = ct
+                    drawImage(image)
+                    iter = image.iter
             } else if (image.iter != iter) {
                 drawImage(image)
                 iter = image.iter
