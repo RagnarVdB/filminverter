@@ -49,16 +49,9 @@
                         throw new Error("WebGL2 not supported")
                     }
                     gl = ct
-                    drawImage(image)
                     iter = 0
                 }, 50)
             }
-            
-            // } else if (image && image.settings.zoom[0] != zoom) {
-            //     zoom = image.settings.zoom
-            //     drawImage(image)
-            //     iter = image.iter
-            // }
         }
     }
 

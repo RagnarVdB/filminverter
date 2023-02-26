@@ -64,6 +64,7 @@ export interface CFA {
 export interface Settings {
     mode: "advanced" | "basic" | "bw"
     rotation: number
+    rotationMatrix: ConversionMatrix
     zoom: [number, number, number, number]
     advanced: {
         neutral: [number, number, number]
@@ -391,7 +392,10 @@ function extendMatrixAlpha(matrix: ConversionMatrix): ConversionMatrix {
     }
 }
 
-function applyMatrixVector(vec: number[], matrix: ConversionMatrix): number[] {
+export function applyMatrixVector(
+    vec: number[],
+    matrix: ConversionMatrix
+): number[] {
     const result: number[] = []
     const { n, m } = matrix
     for (let i = 0; i < n; i++) {
@@ -531,32 +535,35 @@ function calculateConversionValues(
     }
 }
 
-function getRotation(
-    rotationValue: number
-): [number, number, number, number] {
+export function getRotationMatrix(rotationValue: number): ConversionMatrix {
     // Determine rotation matrix
     let Rot: [number, number, number, number], trans: [number, number]
     switch (rotationValue) {
         case 0:
-            Rot = [1, 0,
-                   0, 1]
+            Rot = [1, 0, 0, 1]
             break
         case 1:
-            Rot = [0, -1,
-                   1, 0]
+            Rot = [0, -1, 1, 0]
             break
         case 2:
-            Rot = [-1, 0,
-                   0, -1]
+            Rot = [-1, 0, 0, -1]
             break
         case 3:
-            Rot = [0, 1,
-                    -1, 0]
+            Rot = [0, 1, -1, 0]
             break
         default:
             throw new Error("Invalid rotation value" + rotationValue)
     }
-    return Rot
+    return { matrix: Rot, m: 2, n: 2 }
+}
+
+export function applyRotation(
+    x: number,
+    y: number,
+    rot: ConversionMatrix
+): [number, number] {
+    const a = applyMatrixVector([2 * x - 1, 2 * y - 1], rot)
+    return [(a[0] + 1) / 2, (a[1] + 1) / 2]
 }
 
 interface WebGLArgument<T extends unknown[]> {
@@ -655,7 +662,7 @@ function webglDraw(
 export function draw(
     gl: WebGL2RenderingContext,
     image: ProcessedImage,
-    invert: boolean,
+    invert: boolean
 ) {
     if (!gl) console.log("No gl")
 
@@ -685,12 +692,12 @@ export function draw(
         image.wb_coeffs,
         image.type
     )
-    const Rot = getRotation(image.settings.rotation)
+    const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
-    console.log('zoom', zoom)
+    console.log("zoom", zoom)
     const parameters: WebGLArgument<any[]>[] = [
-        { name: "rot", f: gl.uniformMatrix2fv, data: [false, Rot] },
-        { name: "scale", f: gl.uniform2f, data: [zoom[0]/2, zoom[1]/2]},
+        { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
+        { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
         {
             name: "matrix1",
@@ -719,6 +726,7 @@ export function draw(
 export const defaultSettings: Settings = {
     mode: "advanced",
     rotation: 0,
+    rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
     advanced: {
         neutral: [3024, 2094, 427],

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { images, index, mainCanvas as canvas } from "../../stores"
+    import { applyMatrixVector, applyRotation, ConversionMatrix } from "../RawImage"
     $: image = $images[$index]
 
     let state: "none" | "first" | "second" = "none"
@@ -20,17 +21,20 @@
     }
 
     function setZoomSetting() {
-        console.log("points: ", first, second)
-        const x1 = Math.min(first[0], second[0])
-        const y1 = Math.min(first[1], second[1])
-        const x2 = Math.max(first[0], second[0])
-        const y2 = Math.max(first[1], second[1])
+        const rot = image.settings.rotationMatrix
+        const p1 = applyRotation(first[0], first[1], rot)
+        const p2 = applyRotation(second[0], second[1], rot)
+
+        const x1 = Math.min(p1[0], p2[0])
+        const y1 = Math.min(p1[1], p2[1])
+        const x2 = Math.max(p1[0], p2[0])
+        const y2 = Math.max(p1[1], p2[1])
 
         const width = x2 - x1
         const height = y2 - y1
 
         zoom = [width, height, x1, 1 - y2]
-        
+        // zoom = [width, height, 1-x1, y2]
     }
 
     function handleClick(e: MouseEvent) {
@@ -60,10 +64,9 @@
         state = "none"
         zoom = [1, 1, 0, 0]
     }
-
 </script>
 
-<div class=zoom>
+<div class="zoom">
     <button on:click={buttonClick}>Zoom</button>
     <button on:click={reset}>Reset zoom</button>
     {#if state == "first"}
