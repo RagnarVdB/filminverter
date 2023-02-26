@@ -5,6 +5,7 @@
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
+    import { getRotationMatrix } from "../RawImage" 
 
     const dispatch = createEventDispatcher()
 
@@ -62,6 +63,7 @@
                 facG: m * facG[0] - 5 * m + 1,
             }
             settings.rotation = rotation
+            settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
         }
     }
