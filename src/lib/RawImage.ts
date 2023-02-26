@@ -533,33 +533,30 @@ function calculateConversionValues(
 
 function getRotation(
     rotationValue: number
-): [[number, number, number, number], [number, number]] {
+): [number, number, number, number] {
+    // Determine rotation matrix
     let Rot: [number, number, number, number], trans: [number, number]
     switch (rotationValue) {
         case 0:
             Rot = [1, 0,
                    0, 1]
-            trans = [1, 1]
             break
         case 1:
             Rot = [0, -1,
                    1, 0]
-            trans = [-1, 1]
             break
         case 2:
             Rot = [-1, 0,
                    0, -1]
-            trans = [-1, -1]
             break
         case 3:
             Rot = [0, 1,
                     -1, 0]
-            trans = [1, -1]
             break
         default:
             throw new Error("Invalid rotation value" + rotationValue)
     }
-    return [Rot, trans]
+    return Rot
 }
 
 interface WebGLArgument<T extends unknown[]> {
@@ -688,15 +685,13 @@ export function draw(
         image.wb_coeffs,
         image.type
     )
-    const [Rot, trans] = getRotation(image.settings.rotation)
+    const Rot = getRotation(image.settings.rotation)
     const zoom = image.settings.zoom
     console.log('zoom', zoom)
-    trans[0] += zoom[2]
-    trans[1] += zoom[3]
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, Rot] },
         { name: "scale", f: gl.uniform2f, data: [1/(2*zoom[0]), 1/(2*zoom[1])]},
-        { name: "trans", f: gl.uniform2f, data: trans },
+        { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
         {
             name: "matrix1",
             f: gl.uniformMatrix4fv,

@@ -37,7 +37,7 @@
 
         const zx = w / width
         const zy = h / height
-        zoom = [zx, zy, 2*x1*zx/w, 2*zy * (1 - y2/h)]
+        zoom = [zx, zy, x1/w, 1 - y2/h]
         
     }
 
