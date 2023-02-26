@@ -690,7 +690,7 @@ export function draw(
     console.log('zoom', zoom)
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, Rot] },
-        { name: "scale", f: gl.uniform2f, data: [1/(2*zoom[0]), 1/(2*zoom[1])]},
+        { name: "scale", f: gl.uniform2f, data: [zoom[0]/2, zoom[1]/2]},
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
         {
             name: "matrix1",

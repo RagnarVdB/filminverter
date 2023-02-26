@@ -15,36 +15,24 @@
     let wrapper: HTMLDivElement
 
     async function drawImage(image: ProcessedImage) {
-        console.log("drawImage")
         if (image && image.image && canvas) {
-            console.log("draw")
             draw(gl, image, true)
         }
     }
 
     function setSize(image: ProcessedImage) {
-        if (image.settings.rotation == 0 || image.settings.rotation == 2) {
-            const imRatio = (image.width/image.settings.zoom[0]) / (image.height/image.settings.zoom[1])
-            const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
-            console.log(imRatio, wrapperRatio)
-            if (imRatio > wrapperRatio) {
-                canvas.width = wrapper.clientWidth
-                canvas.height = wrapper.clientWidth / imRatio
-            } else {
-                canvas.height = wrapper.clientHeight
-                canvas.width = wrapper.clientHeight * imRatio
-            }
+        let imRatio = (image.width*image.settings.zoom[0]) / (image.height*image.settings.zoom[1])
+        if (image.settings.rotation == 1 || image.settings.rotation == 3) {
+            imRatio = 1 / imRatio
+        }
+        const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
+        console.log(imRatio, wrapperRatio)
+        if (imRatio > wrapperRatio) {
+            canvas.width = wrapper.clientWidth
+            canvas.height = wrapper.clientWidth / imRatio
         } else {
-            const imRatio = image.height / image.width
-            const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
-            console.log(imRatio, wrapperRatio)
-            if (imRatio > wrapperRatio) {
-                canvas.width = wrapper.clientWidth
-                canvas.height = wrapper.clientWidth / imRatio
-            } else {
-                canvas.height = wrapper.clientHeight
-                canvas.width = wrapper.clientHeight * imRatio
-            }
+            canvas.height = wrapper.clientHeight
+            canvas.width = wrapper.clientHeight * imRatio
         }
     }
 

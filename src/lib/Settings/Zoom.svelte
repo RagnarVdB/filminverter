@@ -11,22 +11,16 @@
     function getZoomPoint(e: MouseEvent): [number, number] {
         const rect = $canvas.getBoundingClientRect()
 
-        const w = image.width
-        const h = image.height
-
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
 
-        const x = Math.round((mouseX * w) / $canvas.width)
-        const y = Math.round((mouseY * h) / $canvas.height)
+        const x = mouseX / $canvas.width
+        const y = mouseY / $canvas.height
         return [x, y]
     }
 
     function setZoomSetting() {
         console.log("points: ", first, second)
-        const w = image.width
-        const h = image.height
-
         const x1 = Math.min(first[0], second[0])
         const y1 = Math.min(first[1], second[1])
         const x2 = Math.max(first[0], second[0])
@@ -35,9 +29,7 @@
         const width = x2 - x1
         const height = y2 - y1
 
-        const zx = w / width
-        const zy = h / height
-        zoom = [zx, zy, x1/w, 1 - y2/h]
+        zoom = [width, height, x1, 1 - y2]
         
     }
 
