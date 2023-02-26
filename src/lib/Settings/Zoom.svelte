@@ -1,6 +1,10 @@
 <script lang="ts">
     import { images, index, mainCanvas as canvas } from "../../stores"
-    import { applyMatrixVector, applyRotation, ConversionMatrix } from "../RawImage"
+    import {
+        applyMatrixVector,
+        applyRotation,
+        ConversionMatrix,
+    } from "../RawImage"
     $: image = $images[$index]
 
     let state: "none" | "first" | "second" = "none"
