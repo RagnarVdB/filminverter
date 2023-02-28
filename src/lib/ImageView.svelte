@@ -99,16 +99,18 @@
         <canvas id="imagecanvas" bind:this={canvas} />
     {/key}
 </div>
-
 <style>
     .view {
         width: 100%;
         height: 100%;
         padding: none;
+        display: flex;
+        justify-content: center;
     }
 
     #imagecanvas {
-        margin: none;
+        margin: auto;
         padding: none;
+        flex-grow: 0;
     }
 </style>
