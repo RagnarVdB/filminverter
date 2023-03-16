@@ -15,7 +15,7 @@ async function read_file(file: File): Promise<Uint8Array> {
         const reader = new FileReader()
         reader.onload = () => {
             const arrayBuffer = reader.result
-            if (typeof arrayBuffer == "string") {
+            if (typeof arrayBuffer == "string" || arrayBuffer == null) {
                 reject("file cannot be read")
             } else {
                 const original = new Uint8Array(arrayBuffer)

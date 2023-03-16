@@ -161,6 +161,65 @@ export function deBayer(
     return { image: im, width: n, height: m }
 }
 
+export function deMosaicFuji(
+    image: RawImage,
+    offset: [number, number],
+    black: [number, number, number]
+): RawImage {
+    const cfa1 = "GBGRGRGBG"
+    const cfa2 = "GRGBGBGRG"
+
+    const nR = 2
+    const nG = 5
+    const nB = 2
+
+    const n = Math.floor((image.width - offset[0]) / 3)
+    const m = Math.floor((image.height - offset[1]) / 3)
+
+    const buffer = new ArrayBuffer(n * m * 8)
+    const im = new Uint16Array(buffer)
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < m; j++) {
+            let red = 0
+            let green = 0
+            let blue = 0
+
+            const cfa = (i + j) % 2 == 0 ? cfa1 : cfa2
+
+            for (let k = 0; k < 3; k++) {
+                for (let l = 0; l < 3; l++) {
+                    const index =
+                        (j * 3 + l + offset[1]) * image.width +
+                        i * 3 +
+                        k +
+                        offset[0]
+                    const value = image.image[index]
+                    switch (cfa[l * 3 + k]) {
+                        case "R":
+                            red += value
+                            break
+                        case "G":
+                            green += value
+                            break
+                        case "B":
+                            blue += value
+                            break
+                        default:
+                            console.error(l, k, cfa[l * 3 + k])
+                            throw new Error("No matching color found")
+                    }
+                }
+            }
+
+            im[(n * j + i) * 4] = red / nR - black[0]
+            im[(n * j + i) * 4 + 1] = green / nG - black[1]
+            im[(n * j + i) * 4 + 2] = blue / nB - black[2]
+            im[(n * j + i) * 4 + 3] = 65535
+        }
+    }
+    return { image: im, width: n, height: m }
+}
+
 function clamp(x: number, min: number, max: number) {
     return Math.max(min, Math.min(x, max))
 }

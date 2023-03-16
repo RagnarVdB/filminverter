@@ -2,7 +2,7 @@ import init, {
     decode_image,
     Image as WasmImage,
 } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { deBayer, defaultSettings } from "./RawImage"
+import { deBayer, deMosaicFuji, defaultSettings } from "./RawImage"
 import type {
     RawImage,
     ProcessedImage,
@@ -15,7 +15,7 @@ async function read_file(file: File): Promise<Uint8Array> {
         const reader = new FileReader()
         reader.onload = () => {
             const arrayBuffer = reader.result
-            if (typeof arrayBuffer == "string") {
+            if (typeof arrayBuffer == "string" || arrayBuffer == null) {
                 reject("file cannot be read")
             } else {
                 const original = new Uint8Array(arrayBuffer)
@@ -32,7 +32,7 @@ function getCFA(decoded: WasmImage): CFA {
             offset = [0, 0]
             break
         case "X-E4":
-            offset = [0, 5]
+            offset = [2, 0]
             break
     }
     const cfa: CFA = {
@@ -43,15 +43,23 @@ function getCFA(decoded: WasmImage): CFA {
     }
     return cfa
 }
-function getDeBayered(decoded: WasmImage, cfa: CFA) {
+function getDeMosaiced(decoded: WasmImage, cfa: CFA) {
     const rawImage: RawImage = {
         image: decoded.get_data(),
         width: decoded.get_width(),
         height: decoded.get_height(),
     }
     const black = decoded.get_blacklevels()
-
-    return deBayer(rawImage, cfa, [black[0], black[1], black[2]])
+    if (decoded.get_make() == "FUJIFILM") {
+        console.log("FUJI")
+        return deMosaicFuji(rawImage, cfa.offset, [
+            black[0],
+            black[1],
+            black[2],
+        ])
+    } else {
+        return deBayer(rawImage, cfa, [black[0], black[1], black[2]])
+    }
 }
 
 onmessage = async function (e: MessageEvent) {
@@ -61,7 +69,7 @@ onmessage = async function (e: MessageEvent) {
         const arr = await read_file(file[1])
         const decoded = decode_image(arr)
         const cfa = getCFA(decoded)
-        const deBayered = getDeBayered(decoded, cfa)
+        const deBayered = getDeMosaiced(decoded, cfa)
 
         const cam_to_xyz: ConversionMatrix = {
             matrix: Array.from(decoded.get_cam_to_xyz()),
@@ -69,8 +77,9 @@ onmessage = async function (e: MessageEvent) {
             m: 4,
         }
         let blacks = Array.from(decoded.get_blacklevels())
+        console.log(decoded.get_make())
         if (decoded.get_model() == "X-E4") {
-            blacks = [999, 999, 999, 999]
+            blacks = [1016, 1016, 1016, 1016]
         }
         const processed: ProcessedImage = {
             ...deBayered,
