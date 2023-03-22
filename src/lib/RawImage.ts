@@ -320,8 +320,8 @@ export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
 function processColorValue(
     color: [number, number, number],
     main: "R" | "G" | "B",
-    factor: [number, number, number, number],
-    exponent: [number, number, number, number],
+    factor: [number, number, number],
+    exponent: [number, number, number],
     matrix: ConversionMatrix,
     log: boolean
 ): number {
@@ -480,8 +480,8 @@ function calculateConversionValues(
     wb_coeffs: number[],
     type: "normal" | "trichrome"
 ): {
-    factor: [number, number, number, number]
-    exponent: [number, number, number, number]
+    factor: [number, number, number]
+    exponent: [number, number, number]
 } {
     if (settings.mode == "advanced") {
         // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
@@ -510,18 +510,16 @@ function calculateConversionValues(
             neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
         }
 
-        const exponent: [number, number, number, number] = [
+        const exponent: [number, number, number] = [
             1 / gamma[0],
             1 / gamma[1],
             1 / gamma[2],
-            1,
         ]
 
-        const factor: [number, number, number, number] = [
+        const factor: [number, number, number] = [
             neutralValue[0] / neutralInputP3[0],
             neutralValue[1] / neutralInputP3[1],
             neutralValue[2] / neutralInputP3[2],
-            1,
         ]
 
         // const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
@@ -575,18 +573,16 @@ function calculateConversionValues(
         //     neutralColor
         // )
 
-        const exponent: [number, number, number, number] = [
+        const exponent: [number, number, number] = [
             1 / gamma[0],
             1 / gamma[1],
             1 / gamma[2],
-            1,
         ]
 
-        const factor: [number, number, number, number] = [
+        const factor: [number, number, number] = [
             (neutralValue[0] * neutral[0] ** exponent[0]) ** -gamma[0],
             (neutralValue[1] * neutral[1] ** exponent[1]) ** -gamma[1],
             (neutralValue[2] * neutral[2] ** exponent[2]) ** -gamma[2],
-            1,
         ]
         return { exponent: exponent, factor: factor }
     } else {
@@ -655,7 +651,7 @@ function webglDraw(
 ) {
     // program
     const program: any = gl.createProgram()
-    var ext = gl.getExtension("EXT_color_buffer_float")
+    const ext = gl.getExtension("EXT_color_buffer_float")
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, 256, 256)
 
     // texture
@@ -663,7 +659,6 @@ function webglDraw(
     gl.bindTexture(gl.TEXTURE_2D, tex)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-
     // buffer
     const buffer = gl.createBuffer()
     const bufferData = new Float32Array([
@@ -716,9 +711,7 @@ function webglDraw(
         gl.RGBA_INTEGER, //format -> gm.RGBA_INTEGER
         gl.UNSIGNED_SHORT,
         // gl.UNSIGNED_BYTE, // type -> gl.UNSIGNED_SHORT
-        img // texture data
-        // Uint16Array.from(out)
-        // img_8bit
+        img // texture dat
     )
 
     for (const parameter of parameters) {
@@ -746,14 +739,8 @@ export function draw(
 
     const [matr1, matr2] =
         image.type == "normal"
-            ? [
-                  transpose(extendMatrixAlpha(cam_to_P3)),
-                  transpose(extendMatrixAlpha(P3_to_sRGB)),
-              ]
-            : [
-                  transpose(extendMatrixAlpha(cam_to_paper)),
-                  transpose(extendMatrixAlpha(paper_to_srgb)),
-              ]
+            ? [transpose(cam_to_P3), transpose(P3_to_sRGB)]
+            : [transpose(cam_to_paper), transpose(paper_to_srgb)]
 
     const wb: [number, number, number] = [
         image.wb_coeffs[0] / image.wb_coeffs[1] / 2,
@@ -775,22 +762,21 @@ export function draw(
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
         {
             name: "matrix1",
-            f: gl.uniformMatrix4fv,
+            f: gl.uniformMatrix3fv,
             data: [false, matr1.matrix],
         },
         {
             name: "matrix2",
-            f: gl.uniformMatrix4fv,
+            f: gl.uniformMatrix3fv,
             data: [false, matr2.matrix],
         },
-        { name: "inv", f: gl.uniform1i, data: [invert ? 1 : 0] },
         {
             name: "trichrome",
             f: gl.uniform1i,
             data: [image.type == "trichrome" ? 1 : 0],
         },
-        { name: "fac", f: gl.uniform4f, data: factor },
-        { name: "exponent", f: gl.uniform4f, data: exponent },
+        { name: "fac", f: gl.uniform3f, data: factor },
+        { name: "exponent", f: gl.uniform3f, data: exponent },
         // { name: "wb", f: gl.uniform4f, data: [...wb, 1] },
     ]
 
