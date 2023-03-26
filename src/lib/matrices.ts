@@ -1,5 +1,5 @@
 import type { ConversionMatrix } from "./RawImage"
-
+import { multiplyMatrices } from "./RawImage"
 export const XYZ_to_sRGB: ConversionMatrix = {
     matrix: [
         3.2404542, -1.5371385, -0.4985314, -0.969266, 1.8760108, 0.041556,
@@ -49,6 +49,35 @@ export const srgb_to_paper: ConversionMatrix = {
     matrix: [
         0.72804006, 0.2395091, 0.03253877, -0.0912109, 1.0841932, 0.0068954,
         -0.04286323, -0.04186383, 1.08464376,
+    ],
+    n: 3,
+    m: 3,
+}
+
+export const P3_to_sRGB = multiplyMatrices(XYZ_to_sRGB, P3_to_XYZ)
+
+export const cam_to_APD: ConversionMatrix = {
+    matrix: [
+        1.49177603, -0.04791066, 0.12848632, -0.06064921, 1.0386549,
+        -0.08930718, 0.02489184, -0.07676105, 1.0802084,
+    ],
+    n: 3,
+    m: 3,
+}
+
+export const exp_to_sRGB: ConversionMatrix = {
+    matrix: [
+        1.62114951, -0.61300878, -0.40519641, -0.04018526, 1.00288235,
+        0.02327451, 0.14536897, 0.02083871, 1.03923671,
+    ],
+    n: 3,
+    m: 3,
+}
+
+export const cdd_to_cid: ConversionMatrix = {
+    matrix: [
+        0.75573, 0.05901, 0.16134, 0.22197, 0.96928, 0.07406, 0.0223, -0.02829,
+        0.7646,
     ],
     n: 3,
     m: 3,

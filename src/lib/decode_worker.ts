@@ -2,7 +2,8 @@ import init, {
     decode_image,
     Image as WasmImage,
 } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { deBayer, deMosaicFuji, defaultSettings } from "./RawImage"
+import { defaultSettings } from "./RawImage"
+import { deBayer, deMosaicFuji } from "./deMosaic"
 import type {
     RawImage,
     ProcessedImage,
@@ -90,7 +91,6 @@ onmessage = async function (e: MessageEvent) {
             blacks: blacks,
             cam_to_xyz,
             wb_coeffs: Array.from(decoded.get_wb_coeffs()),
-            //wb_coeffs: [551, 302, 580],
             orientation: decoded.get_orientation(),
             settings: defaultSettings,
             iter: 0,

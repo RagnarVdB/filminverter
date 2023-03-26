@@ -1,11 +1,13 @@
-import { chunksRgba, zip } from "./utils"
+import { chunksRgba, zip, clamp } from "./utils"
 import {
-    XYZ_to_sRGB,
-    P3_to_XYZ,
+    P3_to_sRGB,
     cam_to_P3,
     cam_to_paper,
     paper_to_srgb,
     srgb_to_paper,
+    cam_to_APD,
+    cdd_to_cid,
+    exp_to_sRGB,
 } from "./matrices"
 
 //@ts-ignore
@@ -29,7 +31,7 @@ export type TrichImages = [
     ProcessedImage,
     ProcessedImage
 ]
-const EXPDIFF = 2
+const EXPDIFF = 3
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -89,139 +91,70 @@ export interface ConversionMatrix {
     m: number // van
 }
 
-export function deBayer(
-    image: RawImage,
-    cfa: CFA,
-    black: [number, number, number]
-): RawImage {
-    // Tel voorkomen in cfa
-    const R = cfa.str.match(/R/g)
-    const G = cfa.str.match(/G/g)
-    const B = cfa.str.match(/B/g)
-    if (R == null || G == null || B == null) {
-        throw new Error("Invalid CFA")
+export function multiplyMatrices(
+    matrix1: ConversionMatrix,
+    matrix2: ConversionMatrix
+): ConversionMatrix {
+    if (matrix1.m != matrix2.n) {
+        throw new Error("Invalid shapes")
     }
-    const nR = R.length
-    const nG = G.length
-    const nB = B.length
-
-    const n = Math.floor((image.width - cfa.offset[0]) / cfa.width)
-    const m = Math.floor((image.height - cfa.offset[1]) / cfa.height)
-
-    const buffer = new ArrayBuffer(n * m * 8)
-    const im = new Uint16Array(buffer)
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < m; j++) {
-            let red = 0
-            let green = 0
-            let blue = 0
-            for (let k = 0; k < cfa.width; k++) {
-                for (let l = 0; l < cfa.height; l++) {
-                    const index =
-                        (j * cfa.height + l + cfa.offset[1]) * image.width +
-                        i * cfa.height +
-                        k +
-                        cfa.offset[0]
-                    const value = image.image[index]
-                    if (value == undefined) {
-                        console.error(
-                            i,
-                            j,
-                            l,
-                            k,
-                            index,
-                            value,
-                            index < image.image.length
-                        )
-                        throw new Error("No value")
-                    }
-                    switch (cfa.str[l * cfa.width + k]) {
-                        case "R":
-                            red += value
-                            break
-                        case "G":
-                            green += value
-                            break
-                        case "B":
-                            blue += value
-                            break
-                        default:
-                            console.error(l, k, cfa.str[l * cfa.width + k])
-                            throw new Error("No matching color found")
-                    }
-                }
+    let result: number[] = []
+    for (let i = 0; i < matrix1.n; i++) {
+        const row = matrix1.matrix.slice(i * matrix1.m, (i + 1) * matrix1.m)
+        for (let j = 0; j < matrix2.m; j++) {
+            let col: number[] = []
+            for (let k = 0; k < matrix2.n; k++) {
+                col[k] = matrix2.matrix[j + k * matrix2.m]
             }
-
-            im[(n * j + i) * 4] = red / nR - black[0]
-            im[(n * j + i) * 4 + 1] = green / nG - black[1]
-            im[(n * j + i) * 4 + 2] = blue / nB - black[2]
-            im[(n * j + i) * 4 + 3] = 65535
+            result[i * matrix2.m + j] = zip(row, col).reduce(
+                (acc, [x, y]) => acc + x * y,
+                0
+            )
         }
     }
-    return { image: im, width: n, height: m }
+    return {
+        matrix: result,
+        n: matrix1.n,
+        m: matrix2.m,
+    }
 }
 
-export function deMosaicFuji(
-    image: RawImage,
-    offset: [number, number],
-    black: [number, number, number]
-): RawImage {
-    const cfa1 = "GBGRGRGBG"
-    const cfa2 = "GRGBGBGRG"
-
-    const nR = 2
-    const nG = 5
-    const nB = 2
-
-    const n = Math.floor((image.width - offset[0]) / 3)
-    const m = Math.floor((image.height - offset[1]) / 3)
-
-    const buffer = new ArrayBuffer(n * m * 8)
-    const im = new Uint16Array(buffer)
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < m; j++) {
-            let red = 0
-            let green = 0
-            let blue = 0
-
-            const cfa = (i + j) % 2 == 0 ? cfa1 : cfa2
-
-            for (let k = 0; k < 3; k++) {
-                for (let l = 0; l < 3; l++) {
-                    const index =
-                        (j * 3 + l + offset[1]) * image.width +
-                        i * 3 +
-                        k +
-                        offset[0]
-                    const value = image.image[index]
-                    switch (cfa[l * 3 + k]) {
-                        case "R":
-                            red += value
-                            break
-                        case "G":
-                            green += value
-                            break
-                        case "B":
-                            blue += value
-                            break
-                        default:
-                            console.error(l, k, cfa[l * 3 + k])
-                            throw new Error("No matching color found")
-                    }
-                }
-            }
-
-            im[(n * j + i) * 4] = red / nR - black[0]
-            im[(n * j + i) * 4 + 1] = green / nG - black[1]
-            im[(n * j + i) * 4 + 2] = blue / nB - black[2]
-            im[(n * j + i) * 4 + 3] = 65535
+function transpose(matrix: ConversionMatrix): ConversionMatrix {
+    const transposed = []
+    for (let i = 0; i < matrix.m; i++) {
+        for (let j = 0; j < matrix.n; j++) {
+            transposed[i * matrix.n + j] = matrix.matrix[j * matrix.m + i]
         }
     }
-    return { image: im, width: n, height: m }
+    return {
+        matrix: transposed,
+        n: matrix.m,
+        m: matrix.n,
+    }
 }
 
-function clamp(x: number, min: number, max: number) {
-    return Math.max(min, Math.min(x, max))
+export function applyMatrixVector(
+    vec: number[],
+    matrix: ConversionMatrix
+): number[] {
+    const result: number[] = []
+    const { n, m } = matrix
+    for (let i = 0; i < n; i++) {
+        result.push(
+            zip(
+                Array.from(matrix.matrix).slice(i * m, (i + 1) * m),
+                vec
+            ).reduce((acc, val) => acc + val[0] * val[1], 0)
+        )
+    }
+    return result
+}
+
+export function applyConversionMatrix(
+    image: number[] | Uint16Array,
+    matrix: ConversionMatrix
+): number[] {
+    return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
 function getCFAValue(cfa: CFA, x: number, y: number): "R" | "G" | "B" {
@@ -348,18 +281,11 @@ function processColorValue(
 export function invertRaw(
     image: RawImage,
     cfa: CFA,
-    settings: Settings,
-    blacks: number[],
-    wb_coeffs: number[],
-    cam_to_xyz: ConversionMatrix
+    settings: Settings
 ): Uint16Array {
     const w = image.width,
         h = image.height
-    const { factor, exponent } = calculateConversionValues(
-        settings,
-        wb_coeffs,
-        "normal"
-    )
+    const { factor, exponent } = calculateConversionValues(settings, "normal")
     let out = new Uint16Array(w * h)
 
     const tr = {
@@ -384,210 +310,39 @@ export function invertRaw(
     return out
 }
 
-const P3_to_sRGB = multiplyMatrices(XYZ_to_sRGB, P3_to_XYZ)
-
-function transpose(matrix: ConversionMatrix): ConversionMatrix {
-    const transposed = []
-    for (let i = 0; i < matrix.m; i++) {
-        for (let j = 0; j < matrix.n; j++) {
-            transposed[i * matrix.n + j] = matrix.matrix[j * matrix.m + i]
-        }
-    }
-    return {
-        matrix: transposed,
-        n: matrix.m,
-        m: matrix.n,
-    }
-}
-
-function multiplyMatrices(
-    matrix1: ConversionMatrix,
-    matrix2: ConversionMatrix
-): ConversionMatrix {
-    if (matrix1.m != matrix2.n) {
-        throw new Error("Invalid shapes")
-    }
-    let result: number[] = []
-    for (let i = 0; i < matrix1.n; i++) {
-        const row = matrix1.matrix.slice(i * matrix1.m, (i + 1) * matrix1.m)
-        for (let j = 0; j < matrix2.m; j++) {
-            let col: number[] = []
-            for (let k = 0; k < matrix2.n; k++) {
-                col[k] = matrix2.matrix[j + k * matrix2.m]
-            }
-            result[i * matrix2.m + j] = zip(row, col).reduce(
-                (acc, [x, y]) => acc + x * y,
-                0
-            )
-        }
-    }
-    return {
-        matrix: result,
-        n: matrix1.n,
-        m: matrix2.m,
-    }
-}
-
-function extendMatrixAlpha(matrix: ConversionMatrix): ConversionMatrix {
-    if (matrix.n != 3 || matrix.m != 3) throw "Invalid size"
-    let out: number[] = []
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            out[i * 4 + j] = matrix.matrix[i * 3 + j]
-        }
-    }
-    out[3] = 0
-    out[7] = 0
-    out[11] = 0
-    out[12] = 0
-    out[13] = 0
-    out[14] = 0
-    out[15] = 1
-
-    return {
-        matrix: out,
-        n: 4,
-        m: 4,
-    }
-}
-
-export function applyMatrixVector(
-    vec: number[],
-    matrix: ConversionMatrix
-): number[] {
-    const result: number[] = []
-    const { n, m } = matrix
-    for (let i = 0; i < n; i++) {
-        result.push(
-            zip(
-                Array.from(matrix.matrix).slice(i * m, (i + 1) * m),
-                vec
-            ).reduce((acc, val) => acc + val[0] * val[1], 0)
-        )
-    }
-    return result
-}
-
-export function applyConversionMatrix(
-    image: number[] | Uint16Array,
-    matrix: ConversionMatrix
-): number[] {
-    return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
-}
-
 function calculateConversionValues(
     settings: Settings,
-    wb_coeffs: number[],
     type: "normal" | "trichrome"
 ): {
     factor: [number, number, number]
     exponent: [number, number, number]
+    dmin: [number, number, number]
 } {
-    if (settings.mode == "advanced") {
-        // const neutralColor = applyMatrixVector([0.3, 0.3, 0.3, 1], {matrix: inverse, m:4, n:4})
-        let neutralColor = [0.3, 0.3, 0.3]
-        if (type == "trichrome") {
-            neutralColor = applyMatrixVector(neutralColor, srgb_to_paper)
-        }
-        const s = settings.advanced
-        const exposure = [s.exposure, s.exposure * s.green, s.exposure * s.blue]
-        const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
-        const neutral = s.neutral.map((x) => x / 2 ** 14)
+    const s = settings.advanced
+    const dmin: [number, number, number] = [
+        s.neutral[0] / 2 ** 14,
+        s.neutral[1] / 2 ** 14,
+        s.neutral[2] / 2 ** 14,
+    ]
+    const a = 2.0174547676239669
+    const exposure = [
+        a - s.exposure,
+        a - s.exposure * s.green,
+        a - s.exposure * s.blue,
+    ]
+    const factor: [number, number, number] = [
+        10 ** -exposure[0],
+        10 ** -exposure[1],
+        10 ** -exposure[2],
+    ]
+    const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
+    const exponent: [number, number, number] = [
+        -1 / gamma[0],
+        -1 / gamma[1],
+        -1 / gamma[2],
+    ]
 
-        const neutralValue: number[] = [
-            (2 ** exposure[0] * neutralColor[0]) ** -gamma[0],
-            (2 ** exposure[1] * neutralColor[1]) ** -gamma[1],
-            (2 ** exposure[2] * neutralColor[2]) ** -gamma[2],
-            1,
-        ]
-        let neutralInputP3: number[]
-        if (type == "trichrome") {
-            neutralInputP3 = applyMatrixVector(
-                neutral.map(Math.log),
-                cam_to_paper
-            ).map(Math.exp)
-        } else {
-            neutralInputP3 = applyMatrixVector(neutral, cam_to_P3)
-        }
-
-        const exponent: [number, number, number] = [
-            1 / gamma[0],
-            1 / gamma[1],
-            1 / gamma[2],
-        ]
-
-        const factor: [number, number, number] = [
-            neutralValue[0] / neutralInputP3[0],
-            neutralValue[1] / neutralInputP3[1],
-            neutralValue[2] / neutralInputP3[2],
-        ]
-
-        // const cs: ("R" | "G" | "B")[] = ["R", "G", "B"]
-        // console.log(
-        //     "Neutral: ",
-        //     cs.map((main) =>
-        //         processColorValue(
-        //             s.neutral,
-        //             main,
-        //             factor,
-        //             exponent,
-        //             cam_to_P3,
-        //             false
-        //         )
-        //     )
-        // )
-
-        return { exponent: exponent, factor: factor }
-    } else if (settings.mode == "bw") {
-        const inverse = [
-            0.222, 0.02456, 0.03352, 0, 0.06363, 0.45789, 0.12199, 0, 0.0085,
-            0.08808, 0.30311, 0, 0, 0, 0, 1,
-        ]
-
-        const neutralColor = applyMatrixVector([0.1, 0.1, 0.1, 1], {
-            matrix: inverse,
-            m: 4,
-            n: 4,
-        })
-
-        const wb: [number, number, number] = [
-            wb_coeffs[0] / wb_coeffs[1] / 2,
-            1,
-            wb_coeffs[2] / wb_coeffs[1] / 2,
-        ]
-
-        const s = settings.bw
-        const gamma = [s.gamma, s.gamma, s.gamma]
-        const neutral = s.black.map((x) => x / 2 ** 14)
-        const fade = s.fade
-
-        const neutralValue: [number, number, number] = [
-            (2 ** fade * neutralColor[0]) / wb[0],
-            (2 ** fade * neutralColor[1]) / wb[1],
-            (2 ** fade * neutralColor[2]) / wb[2],
-        ]
-
-        // console.log(
-        //     "neutral",
-        //     neutralValue.map((x) => x * 2 ** 14),
-        //     neutralColor
-        // )
-
-        const exponent: [number, number, number] = [
-            1 / gamma[0],
-            1 / gamma[1],
-            1 / gamma[2],
-        ]
-
-        const factor: [number, number, number] = [
-            (neutralValue[0] * neutral[0] ** exponent[0]) ** -gamma[0],
-            (neutralValue[1] * neutral[1] ** exponent[1]) ** -gamma[1],
-            (neutralValue[2] * neutral[2] ** exponent[2]) ** -gamma[2],
-        ]
-        return { exponent: exponent, factor: factor }
-    } else {
-        throw new Error("Not implemented")
-    }
+    return { exponent: exponent, factor: factor, dmin: dmin }
 }
 
 export function getRotationMatrix(rotationValue: number): ConversionMatrix {
@@ -726,36 +481,26 @@ function webglDraw(
     gl.drawArrays(gl.TRIANGLES, 0, 6) // execute program
 }
 
-export function draw(
-    gl: WebGL2RenderingContext,
-    image: ProcessedImage,
-    invert: boolean
-) {
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     if (!gl) console.log("No gl")
 
     const w = image.width
     const h = image.height
     const img = image.image
 
-    const [matr1, matr2] =
-        image.type == "normal"
-            ? [transpose(cam_to_P3), transpose(P3_to_sRGB)]
-            : [transpose(cam_to_paper), transpose(paper_to_srgb)]
-
-    const wb: [number, number, number] = [
-        image.wb_coeffs[0] / image.wb_coeffs[1] / 2,
-        1,
-        image.wb_coeffs[2] / image.wb_coeffs[1] / 2,
+    const [matr1, matr2, matr3] = [
+        transpose(cam_to_APD),
+        transpose(cdd_to_cid),
+        transpose(exp_to_sRGB),
     ]
 
-    const { factor, exponent } = calculateConversionValues(
+    const { factor, exponent, dmin } = calculateConversionValues(
         image.settings,
-        image.wb_coeffs,
         image.type
     )
+    console.log(factor, exponent, dmin)
     const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
-    console.log("zoom", zoom)
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
@@ -771,13 +516,18 @@ export function draw(
             data: [false, matr2.matrix],
         },
         {
-            name: "trichrome",
-            f: gl.uniform1i,
-            data: [image.type == "trichrome" ? 1 : 0],
+            name: "matrix3",
+            f: gl.uniformMatrix3fv,
+            data: [false, matr3.matrix],
         },
+        // {
+        //     name: "trichrome",
+        //     f: gl.uniform1i,
+        //     data: [image.type == "trichrome" ? 1 : 0],
+        // },
         { name: "fac", f: gl.uniform3f, data: factor },
         { name: "exponent", f: gl.uniform3f, data: exponent },
-        // { name: "wb", f: gl.uniform4f, data: [...wb, 1] },
+        { name: "dmin", f: gl.uniform3f, data: dmin },
     ]
 
     webglDraw(gl, img, w, h, parameters)
@@ -789,13 +539,13 @@ export const defaultSettings: Settings = {
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
     advanced: {
-        neutral: [3024, 2094, 427],
-        exposure: -1.95,
+        neutral: [7662, 2939, 1711],
+        exposure: 0,
         blue: 1,
         green: 1,
-        gamma: 0.45,
-        facB: -0.35 / 20 + 1,
-        facG: 0.25 / 20 + 1,
+        gamma: 55 / 100,
+        facB: 1 / 0.95,
+        facG: 1 / 0.92,
     },
     bw: {
         black: [1886, 1657, 1135],

@@ -42,14 +42,7 @@ onmessage = async function (e) {
             height: decoded.get_height(),
         }
         const cfa = image.cfa
-        const newArr = invertRaw(
-            old,
-            cfa,
-            image.settings,
-            image.blacks,
-            image.wb_coeffs,
-            image.cam_to_xyz
-        )
+        const newArr = invertRaw(old, cfa, image.settings)
         const newImage = decoded.encode(newArr)
         const URL = typedArrayToURL(newImage, "RAF: image/x-fuji-raf")
         postMessage([image.filename, URL])
