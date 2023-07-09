@@ -82,6 +82,7 @@ export function deMosaicFuji(
     offset: [number, number],
     black: [number, number, number]
 ): RawImage {
+    console.log(black)
     const cfa1 = "GBGRGRGBG"
     const cfa2 = "GRGBGBGRG"
 
@@ -126,7 +127,6 @@ export function deMosaicFuji(
                     }
                 }
             }
-
             im[(n * j + i) * 4] = red / nR - black[0]
             im[(n * j + i) * 4 + 1] = green / nG - black[1]
             im[(n * j + i) * 4 + 2] = blue / nB - black[2]

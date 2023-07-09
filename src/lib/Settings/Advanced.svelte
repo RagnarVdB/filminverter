@@ -5,11 +5,13 @@
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
-    import { getRotationMatrix } from "../RawImage" 
+    import { getRotationMatrix } from "../RawImage"
 
     const dispatch = createEventDispatcher()
 
-    let neutral: [number, number, number] = [1886, 1657, 1135]
+    let toe = true
+    let dmin: [number, number, number] = [7662, 2939, 1711]
+    let neutral: [number, number, number] = [3300, 730, 320]
     let exposure: [number, number] = [5, 0]
     let blue: [number, number] = [5, 0]
     let green: [number, number] = [5, 0]
@@ -22,13 +24,15 @@
     export let settings: Settings
 
     const m = 1 / 5
-    const m2 = 1/3
+    const m2 = 1 / 3
 
     $: {
         updateSliders(settings)
     }
     $: {
         updateSettings(
+            toe,
+            dmin,
             neutral,
             exposure,
             blue,
@@ -42,6 +46,8 @@
     }
 
     function updateSettings(
+        toe: boolean,
+        dmin: [number, number, number],
         neutral: [number, number, number],
         exposure: [number, number],
         blue: [number, number],
@@ -54,6 +60,8 @@
     ) {
         if (settings) {
             settings.advanced = {
+                toe: toe,
+                dmin: dmin,
                 neutral: neutral,
                 exposure: exposure[0] - 5,
                 blue: m2 * blue[0] - 5 * m2 + 1,
@@ -71,6 +79,7 @@
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
         if (sets.rotation != rotation || sets.zoom != zoom) {
+            toe = sets.advanced.toe
             exposure[0] = sets.advanced.exposure + 5
             blue[0] = (sets.advanced.blue - 1 + 5 * m2) / m2
             green[0] = (sets.advanced.green - 1 + 5 * m2) / m2
@@ -78,6 +87,7 @@
             facG[0] = (sets.advanced.facG - 1 + 5 * m) / m
             facB[0] = (sets.advanced.facB - 1 + 5 * m) / m
             rotation = sets.rotation
+            dmin = sets.advanced.dmin
             neutral = sets.advanced.neutral
             zoom = sets.zoom
         }
@@ -85,9 +95,15 @@
 </script>
 
 <div class="advanced">
-    Neutral:
+    film border:
+    <Picker bind:color={dmin} />
+
+    neutral:
     <Picker bind:color={neutral} />
 
+    invert toe:
+    <input type="checkbox" bind:checked={toe} />
+    <br />
     exposure: {Math.round((exposure[0] - 5) * 100) / 100}
     <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
@@ -114,7 +130,7 @@
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
-    <Zoom bind:zoom={zoom}></Zoom>
+    <Zoom bind:zoom />
 </div>
 
 <style>

@@ -26,6 +26,7 @@ async function read_file(file: File): Promise<Uint8Array> {
         reader.readAsArrayBuffer(file)
     })
 }
+
 function getCFA(decoded: WasmImage): CFA {
     let offset: [number, number] = [0, 0]
     switch (decoded.get_model()) {
@@ -44,13 +45,17 @@ function getCFA(decoded: WasmImage): CFA {
     }
     return cfa
 }
-function getDeMosaiced(decoded: WasmImage, cfa: CFA) {
+
+function getDeMosaiced(
+    decoded: WasmImage,
+    cfa: CFA,
+    black: [number, number, number] | number[]
+): RawImage {
     const rawImage: RawImage = {
         image: decoded.get_data(),
         width: decoded.get_width(),
         height: decoded.get_height(),
     }
-    const black = decoded.get_blacklevels()
     if (decoded.get_make() == "FUJIFILM") {
         console.log("FUJI")
         return deMosaicFuji(rawImage, cfa.offset, [
@@ -70,18 +75,18 @@ onmessage = async function (e: MessageEvent) {
         const arr = await read_file(file[1])
         const decoded = decode_image(arr)
         const cfa = getCFA(decoded)
-        const deBayered = getDeMosaiced(decoded, cfa)
+        let blacks = Array.from(decoded.get_blacklevels())
+        if (decoded.get_model() == "X-E4") {
+            blacks = [1016, 1016, 1016, 1016]
+        }
+        const deBayered = getDeMosaiced(decoded, cfa, blacks)
 
         const cam_to_xyz: ConversionMatrix = {
             matrix: Array.from(decoded.get_cam_to_xyz()),
             n: 3,
             m: 4,
         }
-        let blacks = Array.from(decoded.get_blacklevels())
         console.log(decoded.get_make())
-        if (decoded.get_model() == "X-E4") {
-            blacks = [1016, 1016, 1016, 1016]
-        }
         const processed: ProcessedImage = {
             ...deBayered,
             type: "normal",

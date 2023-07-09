@@ -1,14 +1,15 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
+    // @ts-ignore
     import Dropzone from "svelte-file-dropzone"
     import { number_of_workers } from "./utils"
-    import { TRICHNAMES, convertTrichrome } from "./RawImage"
-    import type { ProcessedImage, TrichImages } from "./RawImage"
+    import { TRICHNAMES, convertTrichrome, trichNotNull } from "./RawImage"
+    import type { ProcessedImage, Trich } from "./RawImage"
     const dispatch = createEventDispatcher()
 
     function decoder(
         files: [Number, File][],
-        callback: (data: [number, ProcessedImage]) => void
+        callback: (n: number, im: ProcessedImage) => void
     ) {
         const nWorkers = number_of_workers(files.length)
         const filesPerWorker = Math.floor(files.length / nWorkers)
@@ -30,13 +31,13 @@
                     : files.slice(i * filesPerWorker, (i + 1) * filesPerWorker)
             worker.postMessage(workerFiles)
             worker.onmessage = (message) => {
-                callback(message.data)
+                const [n, im] = message.data
+                callback(n, im)
             }
         }
     }
     function openFiles(files: [Number, File][]) {
-        decoder(files, (data) => {
-            const [index, image] = data
+        decoder(files, (index, image) => {
             dispatch("image", {
                 index,
                 image,
@@ -45,11 +46,19 @@
     }
 
     function openTrichrome(files: [Number, File][]) {
-        const trichImages: TrichImages = [null, null, null, null, null, null]
-        decoder(files, ([_, image]) => {
+        const trichImages: Trich<ProcessedImage | null> = [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+        ]
+        decoder(files, (_, image) => {
             const i = TRICHNAMES.indexOf(image.filename.split(".")[0])
             trichImages[i] = image
-            if (trichImages.every((x) => x != null)) {
+            let y = trichImages[0]
+            if (trichNotNull(trichImages)) {
                 dispatch("image", {
                     index: 0,
                     image: convertTrichrome(trichImages),
@@ -58,7 +67,7 @@
         })
     }
 
-    function handleFilesSelect(e) {
+    function handleFilesSelect(e: CustomEvent) {
         const {
             acceptedFiles,
             fileRejections,

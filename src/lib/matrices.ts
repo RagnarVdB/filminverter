@@ -74,6 +74,15 @@ export const exp_to_sRGB: ConversionMatrix = {
     m: 3,
 }
 
+export const sRGB_to_EXP: ConversionMatrix = {
+    matrix: [
+        0.6054679, 0.36535516, 0.22788837, 0.0262387, 1.01342328, -0.01246598,
+        -0.0852193, -0.07142717, 0.93061751,
+    ],
+    n: 3,
+    m: 3,
+}
+
 export const cdd_to_cid: ConversionMatrix = {
     matrix: [
         0.75573, 0.05901, 0.16134, 0.22197, 0.96928, 0.07406, 0.0223, -0.02829,

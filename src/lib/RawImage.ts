@@ -1,19 +1,11 @@
 import { chunksRgba, zip, clamp } from "./utils"
-import {
-    P3_to_sRGB,
-    cam_to_P3,
-    cam_to_paper,
-    paper_to_srgb,
-    srgb_to_paper,
-    cam_to_APD,
-    cdd_to_cid,
-    exp_to_sRGB,
-} from "./matrices"
+import { cam_to_APD, cdd_to_cid, exp_to_sRGB, sRGB_to_EXP } from "./matrices"
 
 //@ts-ignore
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
 import fragment_shader from "./glsl/fragment_shader.glsl"
+import { append_empty_stylesheet } from "svelte/internal"
 
 const colorOrder = {
     R: 0,
@@ -23,14 +15,12 @@ const colorOrder = {
 
 export const TRICHNAMES = ["Red", "Green", "Blue", "BRed", "BGreen", "BBlue"]
 
-export type TrichImages = [
-    ProcessedImage,
-    ProcessedImage,
-    ProcessedImage,
-    ProcessedImage,
-    ProcessedImage,
-    ProcessedImage
-]
+export type Trich<T> = [T, T, T, T, T, T]
+
+export function trichNotNull<T>(ims: Trich<T | null>): ims is Trich<T> {
+    return ims.every((x) => x != null)
+}
+
 const EXPDIFF = 3
 
 export interface RawImage {
@@ -69,6 +59,8 @@ export interface Settings {
     rotationMatrix: ConversionMatrix
     zoom: [number, number, number, number]
     advanced: {
+        toe: boolean
+        dmin: [number, number, number]
         neutral: [number, number, number]
         exposure: number
         blue: number
@@ -206,7 +198,9 @@ function getColorValue(
     }
 }
 
-export function convertTrichrome(trichImages: TrichImages): ProcessedImage {
+export function convertTrichrome(
+    trichImages: Trich<ProcessedImage>
+): ProcessedImage {
     const N = trichImages[0].image.length / 4
     const out = new Uint16Array(N * 4)
     for (let i = 0; i < N; i++) {
@@ -310,6 +304,10 @@ export function invertRaw(
     return out
 }
 
+function to_color(x: number[]): [number, number, number] {
+    return [x[0], x[1], x[2]]
+}
+
 function calculateConversionValues(
     settings: Settings,
     type: "normal" | "trichrome"
@@ -319,30 +317,76 @@ function calculateConversionValues(
     dmin: [number, number, number]
 } {
     const s = settings.advanced
-    const dmin: [number, number, number] = [
+
+    const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
+    const exponent: [number, number, number] = [
+        1 / (gamma[0] * 1.818181),
+        1 / (gamma[1] * 1.818181),
+        1 / (gamma[2] * 1.818181),
+    ]
+
+    const dminCam: [number, number, number] = [
+        s.dmin[0] / 2 ** 14,
+        s.dmin[1] / 2 ** 14,
+        s.dmin[2] / 2 ** 14,
+    ]
+    const dminAPD = to_color(applyMatrixVector(dminCam, cam_to_APD))
+
+    const neutralTargetsRGB = [
+        0.5 * 2 ** s.exposure,
+        0.5 * 2 ** s.exposure * s.green,
+        0.5 * 2 ** s.exposure * s.blue,
+    ]
+    console.log("neutralTargetsRGB", neutralTargetsRGB)
+    const neutralTargetLogE = [
+        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[0]),
+        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[1]),
+        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[2]),
+    ]
+    const selectedNeutralCam: [number, number, number] = [
         s.neutral[0] / 2 ** 14,
         s.neutral[1] / 2 ** 14,
         s.neutral[2] / 2 ** 14,
     ]
-    const a = 2.0174547676239669
-    const exposure = [
-        a - s.exposure,
-        a - s.exposure * s.green,
-        a - s.exposure * s.blue,
+    const selectedNeutralAPD = applyMatrixVector(selectedNeutralCam, cam_to_APD)
+    const selectedNeutralDensD = [
+        -Math.log10(selectedNeutralAPD[0] / dminAPD[0]),
+        -Math.log10(selectedNeutralAPD[1] / dminAPD[1]),
+        -Math.log10(selectedNeutralAPD[2] / dminAPD[2]),
     ]
-    const factor: [number, number, number] = [
-        10 ** -exposure[0],
-        10 ** -exposure[1],
-        10 ** -exposure[2],
-    ]
-    const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
-    const exponent: [number, number, number] = [
-        -1 / gamma[0],
-        -1 / gamma[1],
-        -1 / gamma[2],
-    ]
+    const selectedNeutralDensI = applyMatrixVector(
+        selectedNeutralDensD,
+        cdd_to_cid
+    )
 
-    return { exponent: exponent, factor: factor, dmin: dmin }
+    console.log("selectedNeutralCam", selectedNeutralCam)
+    console.log("dminCam", dminCam)
+    console.log("selectedNeutralDensD", selectedNeutralDensD)
+    console.log("selectedNeutralDensI", selectedNeutralDensI)
+
+    const selectedNeutralLogE = [
+        exponent[0] * (1.818181 * selectedNeutralDensI[0] - 2.0174547676239),
+        exponent[1] * (1.818181 * selectedNeutralDensI[1] - 2.0174547676239),
+        exponent[2] * (1.818181 * selectedNeutralDensI[2] - 2.0174547676239),
+    ]
+    // const a = 2.0174547676239669
+    // const exposure = [
+    //     a - s.exposure,
+    //     a - s.exposure * s.green,
+    //     a - s.exposure * s.blue,
+    // ]
+    // const factor: [number, number, number] = [
+    //     10 ** -exposure[0],
+    //     10 ** -exposure[1],
+    //     10 ** -exposure[2],
+    // ]
+    const factor: [number, number, number] = [
+        neutralTargetLogE[0] - selectedNeutralLogE[0],
+        neutralTargetLogE[1] - selectedNeutralLogE[1],
+        neutralTargetLogE[2] - selectedNeutralLogE[2],
+    ]
+    console.log({ exponent: exponent, factor: factor, dmin: dminAPD })
+    return { exponent: exponent, factor: factor, dmin: dminAPD }
 }
 
 export function getRotationMatrix(rotationValue: number): ConversionMatrix {
@@ -502,6 +546,11 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
     const parameters: WebGLArgument<any[]>[] = [
+        {
+            name: "toe",
+            f: gl.uniform1i,
+            data: [image.settings.advanced.toe === true ? 1 : 0],
+        },
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
@@ -539,7 +588,9 @@ export const defaultSettings: Settings = {
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
     advanced: {
-        neutral: [7662, 2939, 1711],
+        toe: false,
+        dmin: [7662, 2939, 1711],
+        neutral: [3300, 730, 320],
         exposure: 0,
         blue: 1,
         green: 1,
