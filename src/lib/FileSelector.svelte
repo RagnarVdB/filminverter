@@ -3,13 +3,19 @@
     // @ts-ignore
     import Dropzone from "svelte-file-dropzone"
     import { number_of_workers } from "./utils"
-    import { TRICHNAMES, convertTrichrome, trichNotNull } from "./RawImage"
-    import type { ProcessedImage, Trich } from "./RawImage"
+    import {
+        TRICHNAMES,
+        convertTrichrome,
+        trichNotNull,
+        TrichNameMap,
+        isTrichName,
+    } from "./RawImage"
+    import type { ProcessedSingle, Trich, TrichName } from "./RawImage"
     const dispatch = createEventDispatcher()
 
     function decoder(
         files: [Number, File][],
-        callback: (n: number, im: ProcessedImage) => void
+        callback: (n: number, im: ProcessedSingle) => void
     ) {
         const nWorkers = number_of_workers(files.length)
         const filesPerWorker = Math.floor(files.length / nWorkers)
@@ -46,18 +52,21 @@
     }
 
     function openTrichrome(files: [Number, File][]) {
-        const trichImages: Trich<ProcessedImage | null> = [
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        ]
+        const trichImages: Trich<ProcessedSingle | null> = {
+            R: null,
+            G: null,
+            B: null,
+            BR: null,
+            BG: null,
+            BB: null,
+        }
         decoder(files, (_, image) => {
-            const i = TRICHNAMES.indexOf(image.filename.split(".")[0])
-            trichImages[i] = image
-            let y = trichImages[0]
+            const name = image.filename.split(".")[0]
+            if (!isTrichName(name)) {
+                throw new Error(`${name} not in trichrome`)
+            }
+            const c = TrichNameMap[name]
+            trichImages[c] = image
             if (trichNotNull(trichImages)) {
                 dispatch("image", {
                     index: 0,
@@ -79,7 +88,10 @@
         const files = Array.from(acceptedFiles.entries())
         const filenames = files.map((file) => file[1].name.split(".")[0])
 
-        if (TRICHNAMES.every((x) => filenames.includes(x))) {
+        if (
+            TRICHNAMES.every((x) => filenames.includes(x)) &&
+            filenames.length == 6
+        ) {
             console.log("Trichrome")
             openTrichrome(files)
         } else {

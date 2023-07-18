@@ -59,3 +59,25 @@ export function changeBitDepth(
 
     return n
 }
+
+async function moveKey<T>(pair: [string, Promise<T>]): Promise<[string, T]> {
+    const [key, promise] = pair
+    return [key, await promise]
+}
+
+export async function allPromises<TO extends { [key: string]: any }>(o: {
+    [TK in keyof TO]: Promise<TO[TK]>
+}): Promise<TO> {
+    const promiseList = Object.entries(o).map(moveKey)
+    const results = await Promise.all(promiseList)
+    return Object.fromEntries(results) as TO
+}
+
+export function omap<T, U, O extends { [key: string]: T }>(
+    f: (x: T) => U,
+    o: O
+): { [Key in keyof O]: U } {
+    return Object.fromEntries(
+        Object.entries(o).map(([key, value]) => [key, f(value)])
+    ) as { [Key in keyof O]: U }
+}

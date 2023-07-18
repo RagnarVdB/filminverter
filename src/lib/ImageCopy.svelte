@@ -2,7 +2,7 @@
     import { onMount } from "svelte"
     export let url: { url: string; width: number; height: number }
     let canvas: HTMLCanvasElement
-    let ctx
+    let ctx: CanvasRenderingContext2D | null
 
     let wrapper: HTMLDivElement
 
@@ -18,16 +18,17 @@
             const destinationImage = new Image()
             destinationImage.onload = () => {
                 // ctx.drawImage(destinationImage, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
-                ctx.drawImage(
-                    destinationImage,
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height
-                )
+                if (ctx != null) {
+                    ctx.drawImage(
+                        destinationImage,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height
+                    )
+                }
             }
             destinationImage.src = image.url
-
         } else {
             console.log("cannot show yet", image, canvas)
         }

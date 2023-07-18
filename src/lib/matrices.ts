@@ -91,3 +91,12 @@ export const cdd_to_cid: ConversionMatrix = {
     n: 3,
     m: 3,
 }
+
+export const cam_to_APD2: ConversionMatrix = {
+    matrix: [
+        0.95356326, -0.14186406, 0.02663051, -0.22810524, 1.05284343, 0.1227711,
+        0.17591593, -0.1971507, 0.91540103,
+    ],
+    n: 3,
+    m: 3
+}

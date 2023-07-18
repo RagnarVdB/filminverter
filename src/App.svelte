@@ -1,21 +1,15 @@
 <script lang="ts">
     import FileSelector from "./lib/FileSelector.svelte"
     import ImageArea from "./lib/ImageArea.svelte"
-    import type {
-        ProcessedImage,
-        Settings as SettingType,
-    } from "./lib/RawImage"
-    import logo from "./assets/svelte.png"
-
+    import type { ProcessedImage } from "./lib/RawImage"
     import { images, index } from "./stores"
-
     import Presets from "./lib/Presets.svelte"
     import Settings from "./lib/Settings/Settings.svelte"
     import { number_of_workers } from "./lib/utils"
 
     let showImages = false
 
-    function receivedImage(event) {
+    function receivedImage(event: CustomEvent) {
         const { index, image }: { index: number; image: ProcessedImage } =
             event.detail
         $images[index] = image
@@ -41,6 +35,7 @@
 
     function save(e: CustomEvent<{ all: boolean }>) {
         if (!e.detail.all) {
+            // Only one file
             const worker = new Worker(
                 new URL("./lib/encode_worker.ts", import.meta.url),
                 { type: "module" }

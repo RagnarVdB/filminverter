@@ -1,11 +1,18 @@
-import { chunksRgba, zip, clamp } from "./utils"
-import { cam_to_APD, cdd_to_cid, exp_to_sRGB, sRGB_to_EXP } from "./matrices"
+import { chunksRgba, zip, clamp, omap } from "./utils"
+import {
+    cam_to_APD,
+    cam_to_APD2,
+    cdd_to_cid,
+    exp_to_sRGB,
+    sRGB_to_EXP,
+} from "./matrices"
 
 //@ts-ignore
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
 import fragment_shader from "./glsl/fragment_shader.glsl"
-import { append_empty_stylesheet } from "svelte/internal"
+
+const BLACK = 1016
 
 const colorOrder = {
     R: 0,
@@ -13,12 +20,60 @@ const colorOrder = {
     B: 2,
 }
 
-export const TRICHNAMES = ["Red", "Green", "Blue", "BRed", "BGreen", "BBlue"]
+const bgMap: { [Key in Primary]: BgPrimary } = {
+    R: "BR",
+    G: "BG",
+    B: "BB",
+}
 
-export type Trich<T> = [T, T, T, T, T, T]
+type Primary = "R" | "G" | "B"
+type BgPrimary = "BR" | "BG" | "BB"
 
-export function trichNotNull<T>(ims: Trich<T | null>): ims is Trich<T> {
-    return ims.every((x) => x != null)
+export const TRICHNAMES = [
+    "Red",
+    "Green",
+    "Blue",
+    "BRed",
+    "BGreen",
+    "BBlue",
+] as const
+export type TrichName = (typeof TRICHNAMES)[number]
+
+export function isTrichName(name: string): name is TrichName {
+    return TRICHNAMES.includes(name as TrichName)
+}
+
+export const TrichNameMap: { [Key in TrichName]: Primary | BgPrimary } = {
+    Red: "R",
+    Green: "G",
+    Blue: "B",
+    BRed: "BR",
+    BGreen: "BG",
+    BBlue: "BB",
+}
+
+export interface Trich<T> {
+    R: T
+    G: T
+    B: T
+    BR: T
+    BG: T
+    BB: T
+}
+
+export function trichNotNull<T>(xs: Trich<T | null>): xs is Trich<T> {
+    return Object.values(xs).every((x) => x != null)
+}
+
+export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
+    return {
+        R: f(x.R),
+        G: f(x.G),
+        B: f(x.B),
+        BR: f(x.BR),
+        BG: f(x.BG),
+        BB: f(x.BB),
+    }
 }
 
 const EXPDIFF = 3
@@ -29,11 +84,9 @@ export interface RawImage {
     height: number
 }
 
-export interface ProcessedImage {
-    filename: string
-    file: File
+export interface _ProcessedInfo {
+    // Abstract
     image: Uint16Array // RGBA 14bit
-    type: "normal" | "trichrome"
     width: number
     height: number
     bps: number
@@ -45,6 +98,19 @@ export interface ProcessedImage {
     settings: Settings
     iter: number
 }
+export interface ProcessedSingle extends _ProcessedInfo {
+    filename: string
+    file: File
+    type: "normal"
+}
+
+export interface ProcessedTrichrome extends _ProcessedInfo {
+    filenames: Trich<string>
+    files: Trich<File>
+    type: "trichrome"
+}
+
+export type ProcessedImage = ProcessedSingle | ProcessedTrichrome
 
 export interface CFA {
     str: string
@@ -149,8 +215,8 @@ export function applyConversionMatrix(
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
 
-function getCFAValue(cfa: CFA, x: number, y: number): "R" | "G" | "B" {
-    let color: "R" | "G" | "B"
+function getCFAValue(cfa: CFA, x: number, y: number): Primary {
+    let color: Primary
     const c = cfa.str[(x % cfa.width) + (y % cfa.height) * cfa.width]
     if (c == "R" || c == "G" || c == "B") {
         color = c
@@ -160,31 +226,24 @@ function getCFAValue(cfa: CFA, x: number, y: number): "R" | "G" | "B" {
     return color
 }
 
-function getColorValue(
+function getColorValueSingle(
     image: RawImage,
     cfa: CFA,
     x: number,
     y: number
-): { main: "R" | "G" | "B"; color: [number, number, number] } {
-    const w = image.width
+): { main: Primary; color: [number, number, number] } {
+    const w = image.width,
+        h = image.height
     let color: [number, number, number] = [0, 0, 0]
     let pixelCounts: [number, number, number] = [0, 0, 0]
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = image.image[x + y * w]
     pixelCounts[colorOrder[main]] = 1
-    for (
-        let i = Math.max(x - 1, 0);
-        i < Math.min(x + 1, image.width) + 1;
-        i++
-    ) {
-        for (
-            let j = Math.max(y - 1, 0);
-            j < Math.min(y + 1, image.height) + 1;
-            j++
-        ) {
+    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
             const c = getCFAValue(cfa, i, j)
             if (c !== main) {
-                color[colorOrder[c]] += image.image[i + j * w]
+                color[colorOrder[c]] += image.image[i + j * w] - 
                 pixelCounts[colorOrder[c]]++
             }
         }
@@ -198,37 +257,77 @@ function getColorValue(
     }
 }
 
+function getDensity(
+    images: Trich<RawImage>,
+    color: Primary,
+    x: number,
+    y: number
+): number {
+    const w = images.R.width
+    const im = images[color].image
+    const bg = images[bgMap[color]].image
+    return im[x + y * w] / (bg[x + y * w] * 2 ** EXPDIFF)
+}
+
+function getColorValueTrich(
+    images: Trich<RawImage>,
+    cfa: CFA,
+    x: number,
+    y: number
+): { main: Primary; color: [number, number, number] } {
+    const w = images.R.width,
+        h = images.G.height
+    const color: [number, number, number] = [0, 0, 0]
+    let pixelCounts: [number, number, number] = [0, 0, 0]
+    const main = getCFAValue(cfa, x, y)
+    color[colorOrder[main]] = getDensity(images, main, x, y)
+    pixelCounts[colorOrder[main]] = 1
+    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
+            const c = getCFAValue(cfa, i, j)
+            if (c !== main) {
+                color[colorOrder[c]] += getDensity(images, c, i, j)
+                pixelCounts[colorOrder[c]]++
+            }
+        }
+    }
+    color[0] /= pixelCounts[0]
+    color[1] /= pixelCounts[1]
+    color[2] /= pixelCounts[2]
+    return { main, color }
+}
+
 export function convertTrichrome(
-    trichImages: Trich<ProcessedImage>
-): ProcessedImage {
-    const N = trichImages[0].image.length / 4
+    trichImages: Trich<ProcessedSingle>
+): ProcessedTrichrome {
+    const N = trichImages.R.image.length / 4
     const out = new Uint16Array(N * 4)
     for (let i = 0; i < N; i++) {
         const r =
-            trichImages[0].image[i * 4] +
-            trichImages[0].image[i * 4 + 1] +
-            trichImages[0].image[i * 4 + 2]
+            trichImages.R.image[i * 4] +
+            trichImages.R.image[i * 4 + 1] +
+            trichImages.R.image[i * 4 + 2]
         const g =
-            trichImages[1].image[i * 4] +
-            trichImages[1].image[i * 4 + 1] +
-            trichImages[1].image[i * 4 + 2]
+            trichImages.G.image[i * 4] +
+            trichImages.G.image[i * 4 + 1] +
+            trichImages.G.image[i * 4 + 2]
         const b =
-            trichImages[2].image[i * 4] +
-            trichImages[2].image[i * 4 + 1] +
-            trichImages[2].image[i * 4 + 2]
+            trichImages.B.image[i * 4] +
+            trichImages.B.image[i * 4 + 1] +
+            trichImages.B.image[i * 4 + 2]
 
         const br =
-            trichImages[3].image[i * 4] +
-            trichImages[3].image[i * 4 + 1] +
-            trichImages[3].image[i * 4 + 2]
+            trichImages.BR.image[i * 4] +
+            trichImages.BR.image[i * 4 + 1] +
+            trichImages.BR.image[i * 4 + 2]
         const bg =
-            trichImages[4].image[i * 4] +
-            trichImages[4].image[i * 4 + 1] +
-            trichImages[4].image[i * 4 + 2]
+            trichImages.BG.image[i * 4] +
+            trichImages.BG.image[i * 4 + 1] +
+            trichImages.BG.image[i * 4 + 2]
         const bb =
-            trichImages[5].image[i * 4] +
-            trichImages[5].image[i * 4 + 1] +
-            trichImages[5].image[i * 4 + 2]
+            trichImages.BB.image[i * 4] +
+            trichImages.BB.image[i * 4 + 1] +
+            trichImages.BB.image[i * 4 + 2]
 
         const max = 2 ** 14
         out[i * 4] = clamp((r / (br * 2 ** EXPDIFF)) * max, 0, max)
@@ -237,68 +336,130 @@ export function convertTrichrome(
         out[i * 4 + 3] = 65535
     }
     return {
-        ...trichImages[0],
+        ...trichImages.R,
+        filenames: mapTrich((x) => x.filename, trichImages),
+        files: mapTrich((x) => x.file, trichImages),
         image: out,
         wb_coeffs: [1, 1, 1, 1],
         type: "trichrome",
     }
 }
 
+type LutSets = [number, number, number, number]
+const lutSets: [LutSets, LutSets, LutSets] = [
+    [-10.531924030702566, -5.8404278002068075, 0.1, -0.23031522712591435],
+    [-5.58974329151427, -8.0595005202138381, 0.2, -0.74694390911064334],
+    [-7.7641792146902739, -11.103306662255587, 0.2, -0.88572369488605363],
+]
+
+function paper_to_exp(x: number, sets: LutSets): number {
+    const [m, b, d, x1] = sets
+    const x0 = x1 - d
+    const a = -m * (x0 - x1) ** 2
+    const b2 = m * x0 + b - a / (x0 - x1)
+    if (x <= x0) {
+        return m * x + b
+    } else if (x < x1) {
+        return a / (x - x1) + b2
+    } else {
+        return -1000
+    }
+}
+
 function processColorValue(
     color: [number, number, number],
-    main: "R" | "G" | "B",
+    main: Primary,
     factor: [number, number, number],
-    exponent: [number, number, number],
-    matrix: ConversionMatrix,
-    log: boolean
+    exponent: [number, number, number]
 ): number {
     const j = colorOrder[main]
-    let cb = [0, 0, 0]
+    // let cb = [0, 0, 0]
 
-    cb[0] = (color[0] - 1024 - 9) / 16384
-    cb[1] = (color[1] - 1024 - 26) / 16384
-    cb[2] = (color[2] - 1024 - 17) / 16384
-    if (log) console.log(main, color)
+    // cb[0] = (color[0] - 1016) / 16384
+    // cb[1] = (color[1] - 1016) / 16384
+    // cb[2] = (color[2] - 1016) / 16384
+    const cb = color
+    // if (log) console.log(main, color)
 
-    // Change colorspace
-    const m = matrix.matrix
-    let out = m[j * 3] * cb[0] + m[j * 3 + 1] * cb[1] + m[j * 3 + 2] * cb[2]
-    if (log) console.log(out)
+    // // Change colorspace
+    // const m = matrix.matrix
+    // let out = m[j * 3] * cb[0] + m[j * 3 + 1] * cb[1] + m[j * 3 + 2] * cb[2]
+    // if (log) console.log(out)
 
-    const inv = (out * factor[j]) ** -exponent[j]
+    // const inv = (out * factor[j]) ** -exponent[j]
 
-    if (log) console.log(main, "inverted 01: ", inv)
+    // if (log) console.log(main, "inverted 01: ", inv)
 
+    // TEST: methode van bw chart
+
+    const cam_log = cb.map(Math.log10)
+    const m = cam_to_APD2.matrix
+
+    const APD =
+        m[3 * j] * cam_log[0] +
+        m[3 * j + 1] * cam_log[1] +
+        m[3 * j + 2] * cam_log[2]
+
+    const exp = paper_to_exp(APD, lutSets[j])
+    const inv = 2 ** exp
     return clamp(Math.round(inv * 16383 + 1024), 1024, 16383)
 }
 
-export function invertRaw(
-    image: RawImage,
+function getColorValue(
+    image: RawImage | Trich<RawImage>,
+    cfa: CFA,
+    x: number,
+    y: number
+): { main: Primary; color: [number, number, number] } {
+    if ("R" in image) {
+        return getColorValueTrich(image, cfa, x, y)
+    } else {
+        return getColorValueSingle(image, cfa, x, y)
+    }
+}
+
+export function invertRaw<Im extends RawImage | Trich<RawImage>>(
+    image: Im,
     cfa: CFA,
     settings: Settings
 ): Uint16Array {
-    const w = image.width,
+    const kind = "R" in image ? "trichrome" : "normal"
+    let w, h: number
+    if ("R" in image) {
+        // Trichrome
+        w = image.R.width
+        h = image.R.height
+    } else {
+        w = image.width
         h = image.height
+    }
+
     const { factor, exponent } = calculateConversionValues(settings, "normal")
     let out = new Uint16Array(w * h)
-
-    const tr = {
-        matrix: [1, 0, 1, 1, 0, 1, 1, 1, 1],
-        n: 3,
-        m: 3,
-    }
 
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, cfa, i, j)
-            out[i + j * w] = processColorValue(
-                color,
-                main,
-                factor,
-                exponent,
-                tr,
-                false
-            )
+            out[i + j * w] = processColorValue(color, main, factor, exponent)
+        }
+    }
+    return out
+}
+
+export function invertRawTrich(
+    images: Trich<RawImage>,
+    cfa: CFA,
+    settings: Settings
+): Uint16Array {
+    const w = images.R.width,
+        h = images.R.height
+    const { factor, exponent } = calculateConversionValues(settings, "normal")
+    let out = new Uint16Array(w * h)
+
+    for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+            const { main, color } = getColorValueTrich(images, cfa, i, j)
+            out[i + j * w] = processColorValue(color, main, factor, exponent)
         }
     }
     return out
@@ -516,7 +677,7 @@ function webglDraw(
     for (const parameter of parameters) {
         const { name, f, data } = parameter
         const loc = gl.getUniformLocation(program, name)
-        if (loc == null) {
+        if (!loc) {
             throw new Error("Could not find uniform " + name)
         }
         f.apply(gl, [loc, ...data])

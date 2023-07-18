@@ -30,7 +30,7 @@
                     $currentIndex = index
                 }}
             >
-                <ImageView {image} />
+                <ImageView {image} canvas={null}/>
             </div>
         {/each}
     </div>

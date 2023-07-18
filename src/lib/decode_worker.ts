@@ -6,7 +6,7 @@ import { defaultSettings } from "./RawImage"
 import { deBayer, deMosaicFuji } from "./deMosaic"
 import type {
     RawImage,
-    ProcessedImage,
+    ProcessedSingle,
     CFA,
     ConversionMatrix,
 } from "./RawImage"
@@ -87,7 +87,7 @@ onmessage = async function (e: MessageEvent) {
             m: 4,
         }
         console.log(decoded.get_make())
-        const processed: ProcessedImage = {
+        const processed: ProcessedSingle = {
             ...deBayered,
             type: "normal",
             file: file[1],

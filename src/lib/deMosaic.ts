@@ -1,8 +1,6 @@
 import type {
     RawImage,
-    ProcessedImage,
     CFA,
-    ConversionMatrix,
 } from "./RawImage"
 
 export function deBayer(

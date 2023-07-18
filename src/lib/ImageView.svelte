@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import { draw } from "./RawImage"
-    import type { ProcessedImage } from "./RawImage"
+    import type { ProcessedImage, Trich } from "./RawImage"
     import { images, index } from "../stores"
 
     export let image: ProcessedImage
@@ -10,18 +10,29 @@
     let zoom = -1
     let canvasRedraw: boolean = true
     let filename: String = ""
-    export let canvas: HTMLCanvasElement
+    export let canvas: HTMLCanvasElement | null
     let gl: WebGL2RenderingContext
     let wrapper: HTMLDivElement
 
+    function getFileName(image: ProcessedImage): string {
+        if (image.type == "normal") {
+            return image.filename
+        } else {
+            return image.filename[0]
+        }
+    }
+
     async function drawImage(image: ProcessedImage) {
         if (image && image.image && canvas) {
-            draw(gl, image, true)
+            draw(gl, image)
         }
     }
 
     function setSize(image: ProcessedImage) {
-        let imRatio = (image.width*image.settings.zoom[0]) / (image.height*image.settings.zoom[1])
+        if (!canvas) return
+        let imRatio =
+            (image.width * image.settings.zoom[0]) /
+            (image.height * image.settings.zoom[1])
         if (image.settings.rotation == 1 || image.settings.rotation == 3) {
             imRatio = 1 / imRatio
         }
@@ -38,17 +49,23 @@
 
     function rotateHandle(image: ProcessedImage) {
         if (image && wrapper) {
-            if (image && (image.settings.rotation != rotation || image.settings.zoom[0] != zoom)) {
+            if (
+                image &&
+                (image.settings.rotation != rotation ||
+                    image.settings.zoom[0] != zoom)
+            ) {
                 canvasRedraw = !canvasRedraw
                 setTimeout(() => {
                     setSize(image)
                     rotation = image.settings.rotation
                     zoom = image.settings.zoom[0]
-                    const ct = canvas.getContext("webgl2")
-                    if (!ct) {
-                        throw new Error("WebGL2 not supported")
+                    if (canvas) {
+                        const ct = canvas.getContext("webgl2")
+                        if (!ct) {
+                            throw new Error("WebGL2 not supported")
+                        }
+                        gl = ct
                     }
-                    gl = ct
                     iter = 0
                 }, 50)
             }
@@ -60,27 +77,31 @@
     onMount(() => {
         if (image && image.image) {
             setSize(image)
-            const ct = canvas.getContext("webgl2")
-            if (!ct) {
-                throw new Error("WebGL2 not supported")
-            }
-            gl = ct
-            drawImage(image)
-            iter = 0
-        }
-    })
-    $: {
-        if (image && wrapper) {
-            if (image.filename != filename) {
-                filename = image.filename
-                setSize(image)
+            if (canvas) {
                 const ct = canvas.getContext("webgl2")
                 if (!ct) {
                     throw new Error("WebGL2 not supported")
                 }
                 gl = ct
+                drawImage(image)
+                iter = 0
+            }
+        }
+    })
+    $: {
+        if (image && wrapper) {
+            if (getFileName(image) != filename) {
+                filename = getFileName(image)
+                setSize(image)
+                if (canvas) {
+                    const ct = canvas.getContext("webgl2")
+                    if (!ct) {
+                        throw new Error("WebGL2 not supported")
+                    }
+                    gl = ct
                     drawImage(image)
                     iter = image.iter
+                }
             } else if (image.iter != iter) {
                 drawImage(image)
                 iter = image.iter
@@ -99,6 +120,7 @@
         <canvas id="imagecanvas" bind:this={canvas} />
     {/key}
 </div>
+
 <style>
     .view {
         width: 100%;

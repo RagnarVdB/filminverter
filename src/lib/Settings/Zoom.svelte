@@ -14,6 +14,7 @@
     export let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     function getZoomPoint(e: MouseEvent): [number, number] {
+        if (!$canvas) return [0,0]
         const rect = $canvas.getBoundingClientRect()
 
         const mouseX = e.clientX - rect.left
@@ -57,7 +58,7 @@
     function buttonClick() {
         if (state == "none") {
             state = "first"
-            $canvas.addEventListener("click", handleClick)
+            if ($canvas) $canvas.addEventListener("click", handleClick)
         } else {
             state = "none"
             console.log("Zoom cancelled")
