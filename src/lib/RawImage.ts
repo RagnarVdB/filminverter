@@ -257,7 +257,7 @@ function getColorValueSingle(
     }
 }
 
-function getDensity(
+function getTransmittance(
     images: Trich<RawImage>,
     color: Primary,
     x: number,
@@ -277,16 +277,16 @@ function getColorValueTrich(
 ): { main: Primary; color: [number, number, number] } {
     const w = images.R.width,
         h = images.G.height
-    const color: [number, number, number] = [0, 0, 0]
+    let color: [number, number, number] = [0, 0, 0]
     let pixelCounts: [number, number, number] = [0, 0, 0]
     const main = getCFAValue(cfa, x, y)
-    color[colorOrder[main]] = getDensity(images, main, x, y)
+    color[colorOrder[main]] = getTransmittance(images, main, x, y)
     pixelCounts[colorOrder[main]] = 1
     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
             const c = getCFAValue(cfa, i, j)
             if (c !== main) {
-                color[colorOrder[c]] += getDensity(images, c, i, j)
+                color[colorOrder[c]] += getTransmittance(images, c, i, j)
                 pixelCounts[colorOrder[c]]++
             }
         }
@@ -402,7 +402,7 @@ function processColorValue(
 
     const exp = paper_to_exp(APD, lutSets[j])
     const inv = 2 ** exp
-    return clamp(Math.round(inv * 16383 + 1024), 1024, 16383)
+    return clamp(Math.round(inv * 16383 + BLACK), 0, 16383)
 }
 
 function getColorValue(
