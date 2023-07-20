@@ -76,7 +76,7 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
     }
 }
 
-const EXPDIFF = 3
+const EXPFAC: [number, number, number] = [30 / 4, 30 / 4, 13 * 0.6]
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -216,8 +216,13 @@ export function applyConversionMatrix(
 }
 
 function getCFAValue(cfa: CFA, x: number, y: number): Primary {
+    // Getransponeerde CFA
     let color: Primary
-    const c = cfa.str[(x % cfa.width) + (y % cfa.height) * cfa.width]
+    const c =
+        cfa.str[
+            ((y + 6 - cfa.offset[1]) % cfa.width) +
+                ((x + 6 - cfa.offset[0]) % cfa.height) * cfa.width
+        ]
     if (c == "R" || c == "G" || c == "B") {
         color = c
     } else {
@@ -243,8 +248,8 @@ function getColorValueSingle(
         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
             const c = getCFAValue(cfa, i, j)
             if (c !== main) {
-                color[colorOrder[c]] += image.image[i + j * w] - 
-                pixelCounts[colorOrder[c]]++
+                color[colorOrder[c]] +=
+                    image.image[i + j * w] - pixelCounts[colorOrder[c]]++
             }
         }
     }
@@ -266,7 +271,11 @@ function getTransmittance(
     const w = images.R.width
     const im = images[color].image
     const bg = images[bgMap[color]].image
-    return im[x + y * w] / (bg[x + y * w] * 2 ** EXPDIFF)
+    return (
+        (im[x + y * w] - BLACK) /
+        (bg[x + y * w] - BLACK) /
+        EXPFAC[colorOrder[color]]
+    )
 }
 
 function getColorValueTrich(
@@ -278,7 +287,7 @@ function getColorValueTrich(
     const w = images.R.width,
         h = images.G.height
     let color: [number, number, number] = [0, 0, 0]
-    let pixelCounts: [number, number, number] = [0, 0, 0]
+    let pixelCounts: [number, number, number] = [1, 1, 1]
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = getTransmittance(images, main, x, y)
     pixelCounts[colorOrder[main]] = 1
@@ -330,9 +339,9 @@ export function convertTrichrome(
             trichImages.BB.image[i * 4 + 2]
 
         const max = 2 ** 14
-        out[i * 4] = clamp((r / (br * 2 ** EXPDIFF)) * max, 0, max)
-        out[i * 4 + 1] = clamp((g / (bg * 2 ** EXPDIFF)) * max, 0, max)
-        out[i * 4 + 2] = clamp((b / (bb * 2 ** EXPDIFF)) * max, 0, max)
+        out[i * 4] = clamp((r / (br * EXPFAC[0])) * max, 0, max)
+        out[i * 4 + 1] = clamp((g / (bg * EXPFAC[1])) * max, 0, max)
+        out[i * 4 + 2] = clamp((b / (bb * EXPFAC[2])) * max, 0, max)
         out[i * 4 + 3] = 65535
     }
     return {
@@ -423,8 +432,7 @@ export function invertRaw<Im extends RawImage | Trich<RawImage>>(
     cfa: CFA,
     settings: Settings
 ): Uint16Array {
-    const kind = "R" in image ? "trichrome" : "normal"
-    let w, h: number
+    let w: number, h: number
     if ("R" in image) {
         // Trichrome
         w = image.R.width
@@ -440,25 +448,6 @@ export function invertRaw<Im extends RawImage | Trich<RawImage>>(
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, cfa, i, j)
-            out[i + j * w] = processColorValue(color, main, factor, exponent)
-        }
-    }
-    return out
-}
-
-export function invertRawTrich(
-    images: Trich<RawImage>,
-    cfa: CFA,
-    settings: Settings
-): Uint16Array {
-    const w = images.R.width,
-        h = images.R.height
-    const { factor, exponent } = calculateConversionValues(settings, "normal")
-    let out = new Uint16Array(w * h)
-
-    for (let i = 0; i < w; i++) {
-        for (let j = 0; j < h; j++) {
-            const { main, color } = getColorValueTrich(images, cfa, i, j)
             out[i + j * w] = processColorValue(color, main, factor, exponent)
         }
     }
