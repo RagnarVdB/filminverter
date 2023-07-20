@@ -11,6 +11,8 @@ import type {
     ConversionMatrix,
 } from "./RawImage"
 
+type Triple = [number, number, number]
+
 async function read_file(file: File): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -49,7 +51,7 @@ function getCFA(decoded: WasmImage): CFA {
 function getDeMosaiced(
     decoded: WasmImage,
     cfa: CFA,
-    black: [number, number, number] | number[]
+    black: Triple | number[]
 ): RawImage {
     const rawImage: RawImage = {
         image: decoded.get_data(),

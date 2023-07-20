@@ -8,10 +8,11 @@
     import { getRotationMatrix } from "../RawImage"
 
     const dispatch = createEventDispatcher()
+    type Triple = [number, number, number]
 
     let toe = true
-    let dmin: [number, number, number] = [7662, 2939, 1711]
-    let neutral: [number, number, number] = [3300, 730, 320]
+    let dmin: Triple = [7662, 2939, 1711]
+    let neutral: Triple = [3300, 730, 320]
     let exposure: [number, number] = [5, 0]
     let blue: [number, number] = [5, 0]
     let green: [number, number] = [5, 0]
@@ -47,8 +48,8 @@
 
     function updateSettings(
         toe: boolean,
-        dmin: [number, number, number],
-        neutral: [number, number, number],
+        dmin: Triple,
+        neutral: Triple,
         exposure: [number, number],
         blue: [number, number],
         green: [number, number],

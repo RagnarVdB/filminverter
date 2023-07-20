@@ -28,6 +28,7 @@ const bgMap: { [Key in Primary]: BgPrimary } = {
 
 type Primary = "R" | "G" | "B"
 type BgPrimary = "BR" | "BG" | "BB"
+type Triple = [number, number, number]
 
 export const TRICHNAMES = [
     "Red",
@@ -76,7 +77,7 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
     }
 }
 
-const EXPFAC: [number, number, number] = [30 / 4, 30 / 4, 13 * 0.6]
+const EXPFAC: Triple = [30 / 4, 30 / 4, 13 * 0.6]
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -126,8 +127,8 @@ export interface Settings {
     zoom: [number, number, number, number]
     advanced: {
         toe: boolean
-        dmin: [number, number, number]
-        neutral: [number, number, number]
+        dmin: Triple
+        neutral: Triple
         exposure: number
         blue: number
         green: number
@@ -136,11 +137,11 @@ export interface Settings {
         facB: number
     }
     bw: {
-        black: [number, number, number]
+        black: Triple
         fade: number
         gamma: number
     }
-    //mask: [number, number, number]
+    //mask: Triple
 }
 
 export interface ConversionMatrix {
@@ -236,11 +237,11 @@ function getColorValueSingle(
     cfa: CFA,
     x: number,
     y: number
-): { main: Primary; color: [number, number, number] } {
+): { main: Primary; color: Triple } {
     const w = image.width,
         h = image.height
-    let color: [number, number, number] = [0, 0, 0]
-    let pixelCounts: [number, number, number] = [0, 0, 0]
+    let color: Triple = [0, 0, 0]
+    let pixelCounts: Triple = [0, 0, 0]
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = image.image[x + y * w]
     pixelCounts[colorOrder[main]] = 1
@@ -283,11 +284,11 @@ function getColorValueTrich(
     cfa: CFA,
     x: number,
     y: number
-): { main: Primary; color: [number, number, number] } {
+): { main: Primary; color: Triple } {
     const w = images.R.width,
         h = images.G.height
-    let color: [number, number, number] = [0, 0, 0]
-    let pixelCounts: [number, number, number] = [1, 1, 1]
+    let color: Triple = [0, 0, 0]
+    let pixelCounts: Triple = [1, 1, 1]
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = getTransmittance(images, main, x, y)
     pixelCounts[colorOrder[main]] = 1
@@ -376,10 +377,10 @@ function paper_to_exp(x: number, sets: LutSets): number {
 }
 
 function processColorValue(
-    color: [number, number, number],
+    color: Triple,
     main: Primary,
-    factor: [number, number, number],
-    exponent: [number, number, number]
+    factor: Triple,
+    exponent: Triple
 ): number {
     const j = colorOrder[main]
     // let cb = [0, 0, 0]
@@ -419,7 +420,7 @@ function getColorValue(
     cfa: CFA,
     x: number,
     y: number
-): { main: Primary; color: [number, number, number] } {
+): { main: Primary; color: Triple } {
     if ("R" in image) {
         return getColorValueTrich(image, cfa, x, y)
     } else {
@@ -454,7 +455,7 @@ export function invertRaw<Im extends RawImage | Trich<RawImage>>(
     return out
 }
 
-function to_color(x: number[]): [number, number, number] {
+function to_color(x: number[]): Triple {
     return [x[0], x[1], x[2]]
 }
 
@@ -462,20 +463,20 @@ function calculateConversionValues(
     settings: Settings,
     type: "normal" | "trichrome"
 ): {
-    factor: [number, number, number]
-    exponent: [number, number, number]
-    dmin: [number, number, number]
+    factor: Triple
+    exponent: Triple
+    dmin: Triple
 } {
     const s = settings.advanced
 
     const gamma = [s.gamma, s.gamma * s.facG, s.gamma * s.facB]
-    const exponent: [number, number, number] = [
+    const exponent: Triple = [
         1 / (gamma[0] * 1.818181),
         1 / (gamma[1] * 1.818181),
         1 / (gamma[2] * 1.818181),
     ]
 
-    const dminCam: [number, number, number] = [
+    const dminCam: Triple = [
         s.dmin[0] / 2 ** 14,
         s.dmin[1] / 2 ** 14,
         s.dmin[2] / 2 ** 14,
@@ -493,7 +494,7 @@ function calculateConversionValues(
         Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[1]),
         Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[2]),
     ]
-    const selectedNeutralCam: [number, number, number] = [
+    const selectedNeutralCam: Triple = [
         s.neutral[0] / 2 ** 14,
         s.neutral[1] / 2 ** 14,
         s.neutral[2] / 2 ** 14,
@@ -525,12 +526,12 @@ function calculateConversionValues(
     //     a - s.exposure * s.green,
     //     a - s.exposure * s.blue,
     // ]
-    // const factor: [number, number, number] = [
+    // const factor: Triple = [
     //     10 ** -exposure[0],
     //     10 ** -exposure[1],
     //     10 ** -exposure[2],
     // ]
-    const factor: [number, number, number] = [
+    const factor: Triple = [
         neutralTargetLogE[0] - selectedNeutralLogE[0],
         neutralTargetLogE[1] - selectedNeutralLogE[1],
         neutralTargetLogE[2] - selectedNeutralLogE[2],
