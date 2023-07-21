@@ -85,11 +85,21 @@ export interface RawImage {
     height: number
 }
 
+export interface LoadedImage extends RawImage {
+    make: string
+    bps: number
+    cfa: CFA
+    cam_to_xyz: ConversionMatrix
+    wb_coeffs: number[]
+    blacks: number[]
+}
+
 export interface _ProcessedInfo {
     // Abstract
     image: Uint16Array // RGBA 14bit
     width: number
     height: number
+    make: string
     bps: number
     cfa: CFA
     cam_to_xyz: ConversionMatrix
@@ -102,13 +112,13 @@ export interface _ProcessedInfo {
 export interface ProcessedSingle extends _ProcessedInfo {
     filename: string
     file: File
-    type: "normal"
+    kind: "normal"
 }
 
 export interface ProcessedTrichrome extends _ProcessedInfo {
     filenames: Trich<string>
     files: Trich<File>
-    type: "trichrome"
+    kind: "trichrome"
 }
 
 export type ProcessedImage = ProcessedSingle | ProcessedTrichrome
@@ -351,7 +361,7 @@ export function convertTrichrome(
         files: mapTrich((x) => x.file, trichImages),
         image: out,
         wb_coeffs: [1, 1, 1, 1],
-        type: "trichrome",
+        kind: "trichrome",
     }
 }
 
@@ -382,6 +392,7 @@ function processColorValue(
     factor: Triple,
     exponent: Triple
 ): number {
+    // Camera raw to output (sRGB)
     const j = colorOrder[main]
     // let cb = [0, 0, 0]
 
@@ -416,40 +427,49 @@ function processColorValue(
 }
 
 function getColorValue(
-    image: RawImage | Trich<RawImage>,
-    cfa: CFA,
+    image: LoadedImage | Trich<LoadedImage>,
     x: number,
     y: number
 ): { main: Primary; color: Triple } {
     if ("R" in image) {
-        return getColorValueTrich(image, cfa, x, y)
+        return getColorValueTrich(image, image.R.cfa, x, y)
     } else {
-        return getColorValueSingle(image, cfa, x, y)
+        return getColorValueSingle(image, image.cfa, x, y)
     }
 }
 
-export function invertRaw<Im extends RawImage | Trich<RawImage>>(
-    image: Im,
-    cfa: CFA,
+export function invertRaw(
+    image: LoadedImage | Trich<LoadedImage>,
     settings: Settings
 ): Uint16Array {
     let w: number, h: number
+    let wb_coeffs: number[]
     if ("R" in image) {
         // Trichrome
         w = image.R.width
         h = image.R.height
+        wb_coeffs = image.R.wb_coeffs
     } else {
         w = image.width
         h = image.height
+        wb_coeffs = image.wb_coeffs
     }
+
+    const wb: Triple = [
+        wb_coeffs[0] / wb_coeffs[1] / 2,
+        1,
+        wb_coeffs[2] / wb_coeffs[1] / 2,
+    ]
 
     const { factor, exponent } = calculateConversionValues(settings, "normal")
     let out = new Uint16Array(w * h)
 
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
-            const { main, color } = getColorValue(image, cfa, i, j)
-            out[i + j * w] = processColorValue(color, main, factor, exponent)
+            const { main, color } = getColorValue(image, i, j)
+            const mult = wb[colorOrder[main]]
+            out[i + j * w] =
+                processColorValue(color, main, factor, exponent) / mult
         }
     }
     return out
@@ -691,7 +711,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
 
     const { factor, exponent, dmin } = calculateConversionValues(
         image.settings,
-        image.type
+        image.kind
     )
     console.log(factor, exponent, dmin)
     const rot = image.settings.rotationMatrix.matrix

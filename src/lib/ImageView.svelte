@@ -15,10 +15,10 @@
     let wrapper: HTMLDivElement
 
     function getFileName(image: ProcessedImage): string {
-        if (image.type == "normal") {
+        if (image.kind == "normal") {
             return image.filename
         } else {
-            return image.filename[0]
+            return image.filenames.R
         }
     }
 

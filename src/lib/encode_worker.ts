@@ -3,37 +3,18 @@ import init, {
     Image as WasmImage,
 } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
 import { invertRaw, mapTrich } from "./RawImage"
-import type { RawImage, ProcessedImage, ProcessedSingle, CFA } from "./RawImage"
+import type { ProcessedImage, LoadedImage } from "./RawImage"
 import { allPromises } from "./utils.js"
-
-async function read_file(file: File): Promise<Uint8Array> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-            const arrayBuffer = reader.result
-            if (typeof arrayBuffer == "string" || arrayBuffer == null) {
-                reject("file cannot be read")
-            } else {
-                const original = new Uint8Array(arrayBuffer)
-                resolve(original)
-            }
-        }
-        reader.readAsArrayBuffer(file)
-    })
-}
+import { read_file, getLoadedImage } from "./wasm_loader.js"
 
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
     return URL.createObjectURL(new Blob([arr.buffer], { type: mimeType }))
 }
 
-async function getRawImage(file: File): Promise<[WasmImage, RawImage]> {
+async function getRawImage(file: File): Promise<[WasmImage, LoadedImage]> {
     const original = await read_file(file)
     const decoded: WasmImage = decode_image(original)
-    const old: RawImage = {
-        image: decoded.get_data(),
-        width: decoded.get_width(),
-        height: decoded.get_height(),
-    }
+    const old = getLoadedImage(decoded)
     return [decoded, old]
 }
 
@@ -45,10 +26,9 @@ onmessage = async function (e) {
     let filename: string
 
     for (const image of images) {
-        const cfa = image.cfa
-        if (image.type == "normal") {
+        if (image.kind == "normal") {
             const [decoded, old] = await getRawImage(image.file)
-            const newArr = invertRaw(old, cfa, image.settings)
+            const newArr = invertRaw(old, image.settings)
             newImage = decoded.encode(newArr)
             filename = image.filename
         } else {
@@ -56,7 +36,6 @@ onmessage = async function (e) {
             const raws = await allPromises(xs)
             const newArr = invertRaw(
                 mapTrich((raw) => raw[1], raws),
-                cfa,
                 image.settings
             )
             console.log(newArr)
