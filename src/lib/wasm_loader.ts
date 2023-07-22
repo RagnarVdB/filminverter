@@ -36,7 +36,7 @@ function getCFA(decoded: WasmImage): CFA {
     return cfa
 }
 
-export function getLoadedImage(wasmIm: WasmImage): LoadedImage {
+export function loadImage(wasmIm: WasmImage): LoadedImage {
     const cam_to_xyz: ConversionMatrix = {
         matrix: Array.from(wasmIm.get_cam_to_xyz()),
         n: 3,

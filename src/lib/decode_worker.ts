@@ -2,7 +2,7 @@ import init, { decode_image } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
 import { defaultSettings } from "./RawImage"
 import { deBayer, deMosaicFuji } from "./deMosaic"
 import type { RawImage, ProcessedSingle, LoadedImage } from "./RawImage"
-import { read_file, getLoadedImage } from "./wasm_loader.js"
+import { read_file, loadImage } from "./wasm_loader.js"
 
 function getDeMosaiced(im: LoadedImage): RawImage {
     if (im.make == "FUJIFILM") {
@@ -23,7 +23,7 @@ onmessage = async function (e: MessageEvent) {
     for (const file of files) {
         const arr = await read_file(file[1])
         const decoded = decode_image(arr)
-        const loadedImage = getLoadedImage(decoded)
+        const loadedImage = loadImage(decoded)
         const deBayered = getDeMosaiced(loadedImage)
 
         console.log(decoded.get_make())

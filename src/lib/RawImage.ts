@@ -481,7 +481,7 @@ function to_color(x: number[]): Triple {
 
 function calculateConversionValues(
     settings: Settings,
-    type: "normal" | "trichrome"
+    kind: "normal" | "trichrome"
 ): {
     factor: Triple
     exponent: Triple
