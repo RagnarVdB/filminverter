@@ -3,7 +3,7 @@
     import {
         applyMatrixVector,
         applyRotation,
-        ConversionMatrix,
+        Matrix,
     } from "../RawImage"
     $: image = $images[$index]
 

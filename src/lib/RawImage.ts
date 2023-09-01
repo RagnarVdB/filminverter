@@ -2,9 +2,11 @@ import { chunksRgba, zip, clamp, omap } from "./utils"
 import {
     cam_to_APD,
     cam_to_APD2,
+    cam_to_sRGB,
     cdd_to_cid,
     exp_to_sRGB,
     sRGB_to_EXP,
+    sRGB_to_cam,
 } from "./matrices"
 
 //@ts-ignore
@@ -77,6 +79,10 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
     }
 }
 
+export function mapTriple(f: (x: number) => number, x: Triple): Triple {
+    return [f(x[0]), f(x[1]), f(x[2])]
+}
+
 const EXPFAC: Triple = [30 / 4, 30 / 4, 13 * 0.6]
 
 export interface RawImage {
@@ -89,7 +95,7 @@ export interface LoadedImage extends RawImage {
     make: string
     bps: number
     cfa: CFA
-    cam_to_xyz: ConversionMatrix
+    cam_to_xyz: Matrix
     wb_coeffs: number[]
     blacks: number[]
 }
@@ -102,7 +108,7 @@ export interface _ProcessedInfo {
     make: string
     bps: number
     cfa: CFA
-    cam_to_xyz: ConversionMatrix
+    cam_to_xyz: Matrix
     wb_coeffs: number[]
     blacks: number[]
     orientation: string
@@ -133,7 +139,7 @@ export interface CFA {
 export interface Settings {
     mode: "advanced" | "basic" | "bw"
     rotation: number
-    rotationMatrix: ConversionMatrix
+    rotationMatrix: Matrix
     zoom: [number, number, number, number]
     advanced: {
         toe: boolean
@@ -154,41 +160,80 @@ export interface Settings {
     //mask: Triple
 }
 
-export interface ConversionMatrix {
+export interface Matrix {
     matrix: number[]
     n: number // naar
     m: number // van
 }
 
-export function multiplyMatrices(
-    matrix1: ConversionMatrix,
-    matrix2: ConversionMatrix
-): ConversionMatrix {
-    if (matrix1.m != matrix2.n) {
-        throw new Error("Invalid shapes")
-    }
+export interface ColorMatrix {
+    matrix: number[]
+    n: 3 // naar
+    m: 3 // van
+}
+
+type LutSets = [number, number, number, number]
+const lutSets: [LutSets, LutSets, LutSets] = [
+    [-10.531924030702566, -5.8404278002068075, 0.1, -0.23031522712591435],
+    [-5.58974329151427, -8.0595005202138381, 0.2, -0.74694390911064334],
+    [-7.7641792146902739, -11.103306662255587, 0.2, -0.88572369488605363],
+]
+
+function matmul(
+    M1: number[],
+    n1: number,
+    m1: number,
+    M2: number[],
+    n2: number,
+    m2: number
+): number[] {
     let result: number[] = []
-    for (let i = 0; i < matrix1.n; i++) {
-        const row = matrix1.matrix.slice(i * matrix1.m, (i + 1) * matrix1.m)
-        for (let j = 0; j < matrix2.m; j++) {
+    for (let i = 0; i < n1; i++) {
+        const row = M1.slice(i * m1, (i + 1) * m1)
+        for (let j = 0; j < m2; j++) {
             let col: number[] = []
-            for (let k = 0; k < matrix2.n; k++) {
-                col[k] = matrix2.matrix[j + k * matrix2.m]
+            for (let k = 0; k < n2; k++) {
+                col[k] = M2[j + k * m2]
             }
-            result[i * matrix2.m + j] = zip(row, col).reduce(
+            result[i * m2 + j] = zip(row, col).reduce(
                 (acc, [x, y]) => acc + x * y,
                 0
             )
         }
     }
+    return result
+}
+
+export function multiplyMatrices(matrix1: Matrix, matrix2: Matrix): Matrix {
+    if (matrix1.m != matrix2.n) {
+        throw new Error("Invalid shapes")
+    }
     return {
-        matrix: result,
+        matrix: matmul(
+            matrix1.matrix,
+            matrix1.n,
+            matrix1.m,
+            matrix2.matrix,
+            matrix2.n,
+            matrix2.m
+        ),
         n: matrix1.n,
         m: matrix2.m,
     }
 }
 
-function transpose(matrix: ConversionMatrix): ConversionMatrix {
+export function multiplyColorMatrices(
+    matrix1: ColorMatrix,
+    matrix2: ColorMatrix
+): ColorMatrix {
+    return {
+        matrix: matmul(matrix1.matrix, 3, 3, matrix2.matrix, 3, 3),
+        n: 3,
+        m: 3,
+    }
+}
+
+function transpose(matrix: Matrix): Matrix {
     const transposed = []
     for (let i = 0; i < matrix.m; i++) {
         for (let j = 0; j < matrix.n; j++) {
@@ -202,10 +247,7 @@ function transpose(matrix: ConversionMatrix): ConversionMatrix {
     }
 }
 
-export function applyMatrixVector(
-    vec: number[],
-    matrix: ConversionMatrix
-): number[] {
+export function applyMatrixVector(vec: number[], matrix: Matrix): number[] {
     const result: number[] = []
     const { n, m } = matrix
     for (let i = 0; i < n; i++) {
@@ -219,9 +261,20 @@ export function applyMatrixVector(
     return result
 }
 
+export function applyCMV(matrix: ColorMatrix, vec: Triple): Triple {
+    const result: Triple = [0, 0, 0]
+    for (let i = 0; i < 3; i++) {
+        result[i] = zip(
+            Array.from(matrix.matrix).slice(i * 3, (i + 1) * 3),
+            vec
+        ).reduce((acc, val) => acc + val[0] * val[1], 0)
+    }
+    return result
+}
+
 export function applyConversionMatrix(
     image: number[] | Uint16Array,
-    matrix: ConversionMatrix
+    matrix: Matrix
 ): number[] {
     return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
 }
@@ -365,30 +418,32 @@ export function convertTrichrome(
     }
 }
 
-type LutSets = [number, number, number, number]
-const lutSets: [LutSets, LutSets, LutSets] = [
-    [-10.531924030702566, -5.8404278002068075, 0.1, -0.23031522712591435],
-    [-5.58974329151427, -8.0595005202138381, 0.2, -0.74694390911064334],
-    [-7.7641792146902739, -11.103306662255587, 0.2, -0.88572369488605363],
-]
-
-function paper_to_exp(x: number, sets: LutSets): number {
+function pte_curve(x: number, sets: LutSets): number {
     const [m, b, d, x1] = sets
     const x0 = x1 - d
     const a = -m * (x0 - x1) ** 2
     const b2 = m * x0 + b - a / (x0 - x1)
     if (x <= x0) {
         return m * x + b
-    } else if (x < x1) {
+    } else if (x <= x1) {
         return a / (x - x1) + b2
     } else {
         return -1000
     }
 }
 
+function paper_to_exp(color: Triple): Triple {
+    return [
+        pte_curve(color[0], lutSets[0]),
+        pte_curve(color[1], lutSets[1]),
+        pte_curve(color[2], lutSets[2]),
+    ]
+}
+
 function processColorValue(
     color: Triple,
     main: Primary,
+    mult: number,
     factor: Triple,
     exponent: Triple
 ): number {
@@ -399,7 +454,6 @@ function processColorValue(
     // cb[0] = (color[0] - 1016) / 16384
     // cb[1] = (color[1] - 1016) / 16384
     // cb[2] = (color[2] - 1016) / 16384
-    const cb = color
     // if (log) console.log(main, color)
 
     // // Change colorspace
@@ -413,17 +467,21 @@ function processColorValue(
 
     // TEST: methode van bw chart
 
-    const cam_log = cb.map(Math.log10)
-    const m = cam_to_APD2.matrix
+    // const m = cam_to_APD2.matrix
 
-    const APD =
-        m[3 * j] * cam_log[0] +
-        m[3 * j + 1] * cam_log[1] +
-        m[3 * j + 2] * cam_log[2]
+    // const APD =
+    //     m[3 * j] * cam_log[0] +
+    //     m[3 * j + 1] * cam_log[1] +
+    //     m[3 * j + 2] * cam_log[2]
 
-    const exp = paper_to_exp(APD, lutSets[j])
-    const inv = 2 ** exp
-    return clamp(Math.round(inv * 16383 + BLACK), 0, 16383)
+    const cam_log = mapTriple(Math.log10, color)
+    const APD = applyCMV(cam_to_APD2, cam_log)
+    const exp = paper_to_exp(APD)
+    const inv = mapTriple((x) => 0.2823561717 * 2 ** x, exp)
+    const out = applyCMV(sRGB_to_cam, inv)[j] / mult
+    // const out = inv[colorOrder[main]]
+    // return clamp(Math.round(out * 16384 + BLACK), 0, 16383)
+    return clamp(out, 0, 1) * 16384
 }
 
 function getColorValue(
@@ -460,7 +518,7 @@ export function invertRaw(
         1,
         wb_coeffs[2] / wb_coeffs[1] / 2,
     ]
-
+    console.log("wb", wb)
     const { factor, exponent } = calculateConversionValues(settings, "normal")
     let out = new Uint16Array(w * h)
 
@@ -468,8 +526,13 @@ export function invertRaw(
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, i, j)
             const mult = wb[colorOrder[main]]
-            out[i + j * w] =
-                processColorValue(color, main, factor, exponent) / mult
+            out[i + j * w] = processColorValue(
+                color,
+                main,
+                mult,
+                factor,
+                exponent
+            )
         }
     }
     return out
@@ -560,7 +623,7 @@ function calculateConversionValues(
     return { exponent: exponent, factor: factor, dmin: dminAPD }
 }
 
-export function getRotationMatrix(rotationValue: number): ConversionMatrix {
+export function getRotationMatrix(rotationValue: number): Matrix {
     // Determine rotation matrix
     let Rot: [number, number, number, number], trans: [number, number]
     switch (rotationValue) {
@@ -585,7 +648,7 @@ export function getRotationMatrix(rotationValue: number): ConversionMatrix {
 export function applyRotation(
     x: number,
     y: number,
-    rot: ConversionMatrix
+    rot: Matrix
 ): [number, number] {
     const a = applyMatrixVector([2 * x - 1, 2 * y - 1], rot)
     return [(a[0] + 1) / 2, (a[1] + 1) / 2]
@@ -594,7 +657,7 @@ export function applyRotation(
 export function applyRotationAndZoom(
     x: number,
     y: number,
-    rot: ConversionMatrix,
+    rot: Matrix,
     zoom: [number, number, number, number]
 ): [number, number] {
     // [0, 1] -> [0, 1]
@@ -696,17 +759,85 @@ function webglDraw(
     gl.drawArrays(gl.TRIANGLES, 0, 6) // execute program
 }
 
+const m = 0.97196409570708564
+const b1 = 7.7569813579659606 - 8.0
+const x1 = -2.7564270485348357
+const x2 = 3.2564838780152452
+const a = 5.1823082903070744e-18
+const b = -0.080823091143373382
+const c = 0.52639818655950421
+const d = 7.1428963960262566 - 8.0
+
+function ets_curve(x: number): number {
+    if (x < x1) {
+        return b1 + m * x
+    } else if (x < x2) {
+        return a * x * x * x + b * x * x + c * x + d
+    } else {
+        return 0.0
+    }
+}
+
+function _processColor(color: Triple): Triple {
+    const c = mapTriple((x) => x / 16384, color)
+    const r1 = processColorValue(c, "R", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    const g1 = processColorValue(c, "G", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    const b1 = processColorValue(c, "B", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    return [r1, g1, b1]
+}
+
+function rawConvertMock(color: Triple): Triple {
+    const raw = color.map((x) => x / 16384)
+    const FC = applyMatrixVector(raw, cam_to_sRGB)
+    const [r, g, b] = FC.map(
+        (x) => 16384 * 2 ** ets_curve(Math.log2(x / 0.2823561717))
+    )
+    return [r, g, b]
+}
+
+
 export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     if (!gl) console.log("No gl")
 
     const w = image.width
     const h = image.height
-    const img = image.image
+    // const img = image.image
+    const im = image.image
+    const img = new Uint16Array(im.length)
+    console.log("calculating")
+    if (!image.settings.advanced.toe) {
+        for (let i = 0; i < img.length; i += 4) {
+            const color: Triple = [im[i], im[i + 1], im[i + 2]]
+            // const c = color.map((x) => Math.log10(x / 16384))
+            // const [r, g, b] = applyMatrixVector(c, cam_to_APD2)
+            // const E = [
+            //     paper_to_exp(r, lutSets[0]),
+            //     paper_to_exp(g, lutSets[1]),
+            //     paper_to_exp(b, lutSets[2]),
+            // ]
+
+            // const Rs = E.map((x) => 0.28235617170 * 2 ** x)
+            // const R = applyMatrixVector(Rs, sRGB_to_cam)
+
+            // const out = R.map((x) => clamp(x, 0, 1) * 16384)
+            // const c = mapTriple((x) => x / 16384, color)
+            // const out: Triple = [r, g, b]
+            const out: Triple = mapTriple((x) => x / 16384, color)
+            img[i] = processColorValue(out, "R", 1, [0, 0, 0], [0, 0, 0])
+            img[i + 1] = processColorValue(out, "G", 1, [0, 0, 0], [0, 0, 0])
+            img[i + 2] = processColorValue(out, "B", 1, [0, 0, 0], [0, 0, 0])
+        }
+        console.log("Done")
+    } else {
+        for (let i = 0; i < img.length; i++) {
+            img[i] = im[i]
+        }
+    }
 
     const [matr1, matr2, matr3] = [
-        transpose(cam_to_APD),
-        transpose(cdd_to_cid),
-        transpose(exp_to_sRGB),
+        transpose(cam_to_APD2),
+        transpose(cam_to_sRGB),
+        transpose(sRGB_to_cam),
     ]
 
     const { factor, exponent, dmin } = calculateConversionValues(
@@ -735,19 +866,19 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             f: gl.uniformMatrix3fv,
             data: [false, matr2.matrix],
         },
-        {
-            name: "matrix3",
-            f: gl.uniformMatrix3fv,
-            data: [false, matr3.matrix],
-        },
+        // {
+        //     name: "matrix3",
+        //     f: gl.uniformMatrix3fv,
+        //     data: [false, matr3.matrix],
+        // },
         // {
         //     name: "trichrome",
         //     f: gl.uniform1i,
         //     data: [image.type == "trichrome" ? 1 : 0],
         // },
-        { name: "fac", f: gl.uniform3f, data: factor },
-        { name: "exponent", f: gl.uniform3f, data: exponent },
-        { name: "dmin", f: gl.uniform3f, data: dmin },
+        // { name: "fac", f: gl.uniform3f, data: factor },
+        // { name: "exponent", f: gl.uniform3f, data: exponent },
+        // { name: "dmin", f: gl.uniform3f, data: dmin },
     ]
 
     webglDraw(gl, img, w, h, parameters)
