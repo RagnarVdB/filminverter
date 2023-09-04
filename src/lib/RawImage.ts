@@ -12,7 +12,9 @@ import {
 //@ts-ignore
 import vertex_shader from "./glsl/vertex_shader.glsl"
 //@ts-ignore
-import fragment_shader from "./glsl/fragment_shader.glsl"
+import fragment_color from "./glsl/fragment_color.glsl"
+//@ts-ignore
+import fragment_bw from "./glsl/fragment_bw.glsl"
 
 const BLACK = 1016
 
@@ -153,8 +155,9 @@ export interface Settings {
         facB: number
     }
     bw: {
-        black: Triple
-        fade: number
+        toe: boolean
+        dmin: Triple
+        exposure: number
         gamma: number
     }
     //mask: Triple
@@ -680,8 +683,11 @@ function webglDraw(
     img: Uint16Array,
     w: number,
     h: number,
+    fragment_shader: string,
     parameters: WebGLArgument<unknown[]>[]
 ) {
+    console.log(fragment_shader)
+    console.log(parameters)
     // program
     const program: any = gl.createProgram()
     const ext = gl.getExtension("EXT_color_buffer_float")
@@ -795,67 +801,26 @@ function rawConvertMock(color: Triple): Triple {
     return [r, g, b]
 }
 
-
-export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
-    if (!gl) console.log("No gl")
-
-    const w = image.width
-    const h = image.height
-    // const img = image.image
-    const im = image.image
-    const img = new Uint16Array(im.length)
-    console.log("calculating")
-    if (!image.settings.advanced.toe) {
-        for (let i = 0; i < img.length; i += 4) {
-            const color: Triple = [im[i], im[i + 1], im[i + 2]]
-            // const c = color.map((x) => Math.log10(x / 16384))
-            // const [r, g, b] = applyMatrixVector(c, cam_to_APD2)
-            // const E = [
-            //     paper_to_exp(r, lutSets[0]),
-            //     paper_to_exp(g, lutSets[1]),
-            //     paper_to_exp(b, lutSets[2]),
-            // ]
-
-            // const Rs = E.map((x) => 0.28235617170 * 2 ** x)
-            // const R = applyMatrixVector(Rs, sRGB_to_cam)
-
-            // const out = R.map((x) => clamp(x, 0, 1) * 16384)
-            // const c = mapTriple((x) => x / 16384, color)
-            // const out: Triple = [r, g, b]
-            const out: Triple = mapTriple((x) => x / 16384, color)
-            img[i] = processColorValue(out, "R", 1, [0, 0, 0], [0, 0, 0])
-            img[i + 1] = processColorValue(out, "G", 1, [0, 0, 0], [0, 0, 0])
-            img[i + 2] = processColorValue(out, "B", 1, [0, 0, 0], [0, 0, 0])
-        }
-        console.log("Done")
-    } else {
-        for (let i = 0; i < img.length; i++) {
-            img[i] = im[i]
-        }
-    }
-
+function get_shader_params_color(
+    gl: WebGL2RenderingContext,
+    settings: Settings,
+    kind: "normal" | "trichrome"
+): WebGLArgument<any[]>[] {
     const [matr1, matr2, matr3] = [
         transpose(cam_to_APD2),
         transpose(cam_to_sRGB),
         transpose(sRGB_to_cam),
     ]
 
-    const { factor, exponent, dmin } = calculateConversionValues(
-        image.settings,
-        image.kind
-    )
+    const { factor, exponent, dmin } = calculateConversionValues(settings, kind)
     console.log(factor, exponent, dmin)
-    const rot = image.settings.rotationMatrix.matrix
-    const zoom = image.settings.zoom
+
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
             f: gl.uniform1i,
-            data: [image.settings.advanced.toe === true ? 1 : 0],
+            data: [settings.advanced.toe === true ? 1 : 0],
         },
-        { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
-        { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
-        { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
         {
             name: "matrix1",
             f: gl.uniformMatrix3fv,
@@ -880,8 +845,71 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
         // { name: "exponent", f: gl.uniform3f, data: exponent },
         // { name: "dmin", f: gl.uniform3f, data: dmin },
     ]
+    return parameters
+}
 
-    webglDraw(gl, img, w, h, parameters)
+function get_shader_params_bw(
+    gl: WebGL2RenderingContext,
+    settings: Settings
+): WebGLArgument<any[]>[] {
+    const parameters: WebGLArgument<any[]>[] = []
+    return parameters
+}
+
+function test_prepare_image(im: Uint16Array): Uint16Array {
+    const img = new Uint16Array(im.length)
+    for (let i = 0; i < img.length; i += 4) {
+        const color: Triple = [im[i], im[i + 1], im[i + 2]]
+        // const c = color.map((x) => Math.log10(x / 16384))
+        // const [r, g, b] = applyMatrixVector(c, cam_to_APD2)
+        // const E = [
+        //     paper_to_exp(r, lutSets[0]),
+        //     paper_to_exp(g, lutSets[1]),
+        //     paper_to_exp(b, lutSets[2]),
+        // ]
+
+        // const Rs = E.map((x) => 0.28235617170 * 2 ** x)
+        // const R = applyMatrixVector(Rs, sRGB_to_cam)
+
+        // const out = R.map((x) => clamp(x, 0, 1) * 16384)
+        // const c = mapTriple((x) => x / 16384, color)
+        // const out: Triple = [r, g, b]
+        const out: Triple = mapTriple((x) => x / 16384, color)
+        img[i] = processColorValue(out, "R", 1, [0, 0, 0], [0, 0, 0])
+        img[i + 1] = processColorValue(out, "G", 1, [0, 0, 0], [0, 0, 0])
+        img[i + 2] = processColorValue(out, "B", 1, [0, 0, 0], [0, 0, 0])
+    }
+    return img
+}
+
+export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
+    if (!gl) console.log("No gl")
+
+    const w = image.width
+    const h = image.height
+    // const img = image.image
+    const im = image.image
+    // const img = test_prepare_image(im)
+    const img = im
+
+    const rot = image.settings.rotationMatrix.matrix
+    const zoom = image.settings.zoom
+
+    const mode = image.settings.mode
+    const shader = mode == "bw" ? fragment_bw : fragment_color
+    const fragment_parameters =
+        mode == "bw"
+            ? get_shader_params_bw(gl, image.settings)
+            : get_shader_params_color(gl, image.settings, image.kind)
+
+    const parameters: WebGLArgument<any[]>[] = [
+        { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
+        { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
+        { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
+        ...fragment_parameters,
+    ]
+
+    webglDraw(gl, img, w, h, shader, parameters)
 }
 
 export const defaultSettings: Settings = {
@@ -901,8 +929,9 @@ export const defaultSettings: Settings = {
         facG: 1 / 0.92,
     },
     bw: {
-        black: [1886, 1657, 1135],
-        fade: 0,
-        gamma: 0.9,
+        toe: true,
+        dmin: [1886, 1657, 1135],
+        exposure: 0,
+        gamma: 55 / 100,
     },
 }

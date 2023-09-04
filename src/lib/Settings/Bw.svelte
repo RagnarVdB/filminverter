@@ -1,58 +1,79 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
+    // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
+    import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
+    import { getRotationMatrix } from "../RawImage"
 
     const dispatch = createEventDispatcher()
 
-    let black: [number, number, number] = [1886, 1657, 1135]
+    type Triple = [number, number, number]
+
+    let toe = true
+    let dmin: Triple = [7662, 2939, 1711]
+    let exposure: [number, number] = [5, 0]
     let gamma: [number, number] = [0.5, 0]
-    let fade: [number, number] = [0, 0]
     let rotation: number = 0
+    let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     export let settings: Settings
 
-    const m = 1 / 20
 
     $: {
         updateSliders(settings)
     }
     $: {
-        updateSettings(black, gamma, fade, rotation)
+        updateSettings(toe, dmin, exposure, gamma, rotation, zoom)
     }
 
-    function updateSettings(black, gamma, fade, rotation) {
+    function updateSettings(
+        toe: boolean,
+        dmin: Triple,
+        exposure: [number, number],
+        gamma: [number, number],
+        rotation: number,
+        zoom: [number, number, number, number]
+    ) {
         if (settings) {
             settings.bw = {
-                black,
+                toe: toe,
+                dmin: dmin,
+                exposure: exposure[0] - 5,
                 gamma: gamma[0],
-                fade: fade[0],
             }
             settings.rotation = rotation
+            settings.rotationMatrix = getRotationMatrix(rotation)
+            settings.zoom = zoom
         }
     }
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        if (sets || sets.rotation != rotation) {
-            fade[0] = sets.bw.fade
-            gamma[0] = sets.bw.gamma
+        if (sets.rotation != rotation || sets.zoom != zoom) {
+            toe = sets.advanced.toe
+            exposure[0] = sets.advanced.exposure + 5
+            gamma[0] = sets.advanced.gamma
             rotation = sets.rotation
-            black = sets.bw.black
+            dmin = sets.advanced.dmin
+            zoom = sets.zoom
         }
     }
 </script>
 
 <div class="advanced">
-    Black:
-    <Picker bind:color={black} />
+    film border:
+    <Picker bind:color={dmin} />
+
+    invert toe:
+    <input type="checkbox" bind:checked={toe} />
+    <br />
+    exposure: {Math.round((exposure[0] - 5) * 100) / 100}
+    <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
     gamma: {Math.round(gamma[0] * 100) / 100}
     <Slider bind:value={gamma} min="0" max="1" step="0.01" />
-
-    black fade: {Math.round(fade[0] * 100) / 100}
-    <Slider bind:value={fade} min="0" max="10" step="0.05" />
 
     <button
         on:click={() => {
@@ -62,6 +83,7 @@
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
+    <Zoom bind:zoom />
 </div>
 
 <style>
