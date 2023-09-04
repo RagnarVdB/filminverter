@@ -72,7 +72,7 @@ float pte_curve(float x, float m, float b, float d, float x1) {
   if(x >= x0) {
     return m * x + b;
   } else if(x >= x1) {
-    return m * (2 * x0 - x1 - (x0 - x1) * (x0 - x1) / (x - x1)) + b;
+    return m * (2.0f * x0 - x1 - (x0 - x1) * (x0 - x1) / (x - x1)) + b;
   } else {
     return -1000.0f;
   }
