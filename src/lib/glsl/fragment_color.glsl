@@ -16,11 +16,6 @@ uniform bool toe;
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
-vec3 correctGamma(vec3 color) {
-  float gamma = 0.41666666f;
-  return (pow(color, vec3(gamma, gamma, gamma)) * 1.055f) - 0.055f;
-}
-
 // float LUT1D(float x) {
 //   // CID -> ACES tone curve 
 //   if(x < 0.0f) {
@@ -80,11 +75,7 @@ float pte_curve(float x, float m, float b, float d, float x1) {
 
 vec3 paper_to_exp(vec3 color) {
   // Log10 to Log2
-  return vec3(
-    pte_curve(color[0], 10.531269923574797f, -7.6235230730095038f, 0.1f, 0.23031522712591435f),
-    pte_curve(color[1], 5.5893286963405719f, -9.8423546905078698f, 0.2f, 0.74694390911064334f),
-    pte_curve(color[2], 7.7636770103438666f, -12.886045218300108f, 0.2f, 0.88572369488605363f)
-  );
+  return vec3(pte_curve(color[0], 10.531269923574797f, -7.6235230730095038f, 0.1f, 0.23031522712591435f), pte_curve(color[1], 5.5893286963405719f, -9.8423546905078698f, 0.2f, 0.74694390911064334f), pte_curve(color[2], 7.7636770103438666f, -12.886045218300108f, 0.2f, 0.88572369488605363f));
 }
 
 void main() {
@@ -104,7 +95,7 @@ void main() {
   if(toe) {
     // Raw to sRGB
     // f(A log10(c))
-    color = matrix1 * (log(color) / log(vec3(10.0f))); // APD
+    color = - matrix1 * (log(color) / log(vec3(10.0f))); // APD
     color = paper_to_exp(color); // Paper
 
     // exp2(g(x))
