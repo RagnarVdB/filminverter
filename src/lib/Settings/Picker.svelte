@@ -7,6 +7,7 @@
     $: image = $images[$index]
 
     function detectColor(e: MouseEvent) {
+        if (!$canvas) return
         const rect = $canvas.getBoundingClientRect()
 
         const w = image.width
@@ -34,19 +35,19 @@
         let pickedColor: [number, number, number] = [0, 0, 0]
         for (let i of [x - 1, x, x + 1]) {
             for (let j of [y - 1, y, y + 1]) {
-                pickedColor[0] += image.image[(y * w + x) * 4]
-                pickedColor[1] += image.image[(y * w + x) * 4 + 1]
-                pickedColor[2] += image.image[(y * w + x) * 4 + 2]
+                pickedColor[0] += image.image[(j * w + i) * 4]
+                pickedColor[1] += image.image[(j * w + i) * 4 + 1]
+                pickedColor[2] += image.image[(j * w + i) * 4 + 2]
             }
         }
-        color = pickedColor
-        color[0] /= 9
-        color[1] /= 9
-        color[2] /= 9
+        color[0] = Math.round(pickedColor[0] / 9)
+        color[1] = Math.round(pickedColor[1] / 9)
+        color[2] = Math.round(pickedColor[2] / 9)
         $canvas.removeEventListener("click", detectColor)
     }
 
     function startPicking() {
+        if (!$canvas) return
         $canvas.addEventListener("click", detectColor)
     }
 
