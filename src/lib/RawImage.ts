@@ -86,6 +86,7 @@ export function mapTriple(f: (x: number) => number, x: Triple): Triple {
 }
 
 const EXPFAC: Triple = [30 / 4, 30 / 4, 13 * 0.6]
+const EXPFACSINGLE = 180 / 15
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -123,13 +124,24 @@ export interface ProcessedSingle extends _ProcessedInfo {
     kind: "normal"
 }
 
+export interface ProcessedDensity extends _ProcessedInfo {
+    filename: string
+    file: File
+    bgFilename: string
+    bgFile: File
+    kind: "density"
+}
+
 export interface ProcessedTrichrome extends _ProcessedInfo {
     filenames: Trich<string>
     files: Trich<File>
     kind: "trichrome"
 }
 
-export type ProcessedImage = ProcessedSingle | ProcessedTrichrome
+export type ProcessedImage =
+    | ProcessedSingle
+    | ProcessedTrichrome
+    | ProcessedDensity
 
 export interface CFA {
     str: string
@@ -156,9 +168,11 @@ export interface Settings {
     }
     bw: {
         toe: boolean
-        dmin: Triple
+        blackpoint: Triple
         exposure: number
         gamma: number
+        toe_width: number
+        blackpoint_shift: number
     }
     //mask: Triple
 }
@@ -378,6 +392,7 @@ export function convertTrichrome(
 ): ProcessedTrichrome {
     const N = trichImages.R.image.length / 4
     const out = new Uint16Array(N * 4)
+    const max = 2 ** 14
     for (let i = 0; i < N; i++) {
         const r =
             trichImages.R.image[i * 4] +
@@ -405,8 +420,7 @@ export function convertTrichrome(
             trichImages.BB.image[i * 4 + 1] +
             trichImages.BB.image[i * 4 + 2]
 
-        const max = 2 ** 14
-        out[i * 4] = clamp((r / (br * EXPFAC[0])) * max, 0, max)
+        out[i * 4 + 0] = clamp((r / (br * EXPFAC[0])) * max, 0, max)
         out[i * 4 + 1] = clamp((g / (bg * EXPFAC[1])) * max, 0, max)
         out[i * 4 + 2] = clamp((b / (bb * EXPFAC[2])) * max, 0, max)
         out[i * 4 + 3] = 65535
@@ -418,6 +432,49 @@ export function convertTrichrome(
         image: out,
         wb_coeffs: [1, 1, 1, 1],
         kind: "trichrome",
+    }
+}
+
+export function convertWithBackground(
+    background: ProcessedSingle,
+    image: ProcessedSingle
+): ProcessedDensity {
+    const N = image.image.length / 4
+    const out = new Uint16Array(N * 4)
+    const max = 2 ** 14
+    for (let i = 0; i < N; i++) {
+        out[i * 4 + 0] = clamp(
+            (image.image[i * 4 + 0] /
+                (background.image[i * 4 + 0] * EXPFACSINGLE)) *
+                max,
+            0,
+            max
+        )
+        out[i * 4 + 1] = clamp(
+            (image.image[i * 4 + 1] /
+                (background.image[i * 4 + 1] * EXPFACSINGLE)) *
+                max,
+            0,
+            max
+        )
+        out[i * 4 + 2] = clamp(
+            (image.image[i * 4 + 2] /
+                (background.image[i * 4 + 2] * EXPFACSINGLE)) *
+                max,
+            0,
+            max
+        )
+        out[i * 4 + 3] = 65535
+    }
+    return {
+        ...image,
+        image: out,
+        wb_coeffs: [1, 1, 1, 1],
+        filename: image.filename,
+        file: image.file,
+        bgFilename: background.filename,
+        bgFile: background.file,
+        kind: "density",
     }
 }
 
@@ -547,7 +604,7 @@ function to_color(x: number[]): Triple {
 
 function calculateConversionValues(
     settings: Settings,
-    kind: "normal" | "trichrome"
+    kind: "normal" | "trichrome" | "density"
 ): {
     factor: Triple
     exponent: Triple
@@ -664,7 +721,6 @@ export function applyRotationAndZoom(
     zoom: [number, number, number, number]
 ): [number, number] {
     // [0, 1] -> [0, 1]
-    console.log("apply", rot, zoom)
     const a = applyMatrixVector([2 * x - 1, 1 - 2 * y], rot)
     return [
         (zoom[0] / 2) * (a[0] + 1) + zoom[2],
@@ -686,8 +742,6 @@ function webglDraw(
     fragment_shader: string,
     parameters: WebGLArgument<unknown[]>[]
 ) {
-    console.log(fragment_shader)
-    console.log(parameters)
     // program
     const program: any = gl.createProgram()
     const ext = gl.getExtension("EXT_color_buffer_float")
@@ -804,7 +858,7 @@ function rawConvertMock(color: Triple): Triple {
 function get_shader_params_color(
     gl: WebGL2RenderingContext,
     settings: Settings,
-    kind: "normal" | "trichrome"
+    kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
     const [matr1, matr2, matr3] = [
         transpose(cam_to_APD2),
@@ -850,10 +904,46 @@ function get_shader_params_color(
 
 function get_shader_params_bw(
     gl: WebGL2RenderingContext,
-    settings: Settings
+    settings: Settings,
+    kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    const parameters: WebGLArgument<any[]>[] = []
-    return parameters
+    console.log("kind", kind)
+    if (kind == "trichrome") {
+        throw new Error("BW not supported for trichrome")
+    } else if (kind == "normal") {
+        throw new Error("BW not supported for normal")
+    } else {
+        const dmin = mapTriple(
+            (x) => -Math.log10(x / 2 ** 14) + settings.bw.blackpoint_shift,
+            settings.bw.blackpoint
+        )
+        console.log("dmin", dmin)
+        const m = 1 / (settings.bw.gamma * Math.log10(2))
+        console.log("m", m)
+        const d = settings.bw.toe_width
+        console.log("d", d)
+
+        const neutralDensity = dmin[1] + 0.82
+        const b = settings.bw.exposure - m * neutralDensity
+        console.log("exposure", settings.bw.exposure)
+        console.log("b", b)
+        return [
+            {
+                name: "density",
+                f: gl.uniform1i,
+                data: [1],
+            },
+            {
+                name: "toe",
+                f: gl.uniform1i,
+                data: [settings.bw.toe === true ? 1 : 0],
+            },
+            { name: "m", f: gl.uniform1f, data: [m] },
+            { name: "b", f: gl.uniform1f, data: [b] },
+            { name: "d", f: gl.uniform1f, data: [d] },
+            { name: "dmin", f: gl.uniform3f, data: dmin },
+        ]
+    }
 }
 
 function test_prepare_image(im: Uint16Array): Uint16Array {
@@ -899,7 +989,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const shader = mode == "bw" ? fragment_bw : fragment_color
     const fragment_parameters =
         mode == "bw"
-            ? get_shader_params_bw(gl, image.settings)
+            ? get_shader_params_bw(gl, image.settings, image.kind)
             : get_shader_params_color(gl, image.settings, image.kind)
 
     const parameters: WebGLArgument<any[]>[] = [
@@ -930,8 +1020,10 @@ export const defaultSettings: Settings = {
     },
     bw: {
         toe: true,
-        dmin: [1886, 1657, 1135],
+        blackpoint: [6583, 6583, 6583],
         exposure: 0,
-        gamma: 55 / 100,
+        gamma: 68 / 100,
+        toe_width: 0.2,
+        blackpoint_shift: 0,
     },
 }

@@ -15,7 +15,7 @@
     let wrapper: HTMLDivElement
 
     function getFileName(image: ProcessedImage): string {
-        if (image.kind == "normal") {
+        if (image.kind == "normal" || image.kind == "density") {
             return image.filename
         } else {
             return image.filenames.R

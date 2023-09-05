@@ -2,19 +2,20 @@
     import { createEventDispatcher } from "svelte"
     // @ts-ignore
     import Dropzone from "svelte-file-dropzone"
-    import { number_of_workers } from "./utils"
+    import type { ProcessedSingle, Trich } from "./RawImage"
     import {
         TRICHNAMES,
-        convertTrichrome,
-        trichNotNull,
         TrichNameMap,
+        convertTrichrome,
+        convertWithBackground,
         isTrichName,
+        trichNotNull,
     } from "./RawImage"
-    import type { ProcessedSingle, Trich, TrichName } from "./RawImage"
+    import { number_of_workers, partition } from "./utils"
     const dispatch = createEventDispatcher()
 
     function decoder(
-        files: [Number, File][],
+        files: [number, File][],
         callback: (n: number, im: ProcessedSingle) => void
     ) {
         const nWorkers = number_of_workers(files.length)
@@ -42,7 +43,7 @@
             }
         }
     }
-    function openFiles(files: [Number, File][]) {
+    function openFiles(files: [number, File][]) {
         decoder(files, (index, image) => {
             dispatch("image", {
                 index,
@@ -51,7 +52,29 @@
         })
     }
 
-    function openTrichrome(files: [Number, File][]) {
+    function openWithBackground(files: [number, File][]) {
+        const [backgroundFiles, imageFiles] = partition(
+            files,
+            ([_, file]) => file.name.split(".")[0] == "background"
+        )
+        if (backgroundFiles.length != 1) {
+            throw new Error("Too many background files")
+        }
+        const backgroundFile = backgroundFiles[0]
+        const backgroundIndex = backgroundFile[0]
+        decoder([backgroundFile], (_, background) => {
+            decoder(imageFiles, (i, image) => {
+                const densityImage = convertWithBackground(background, image)
+                const index = i < backgroundIndex ? i : i - 1
+                dispatch("image", {
+                    index,
+                    image: densityImage,
+                })
+            })
+        })
+    }
+
+    function openTrichrome(files: [number, File][]) {
         const trichImages: Trich<ProcessedSingle | null> = {
             R: null,
             G: null,
@@ -94,6 +117,9 @@
         ) {
             console.log("Trichrome")
             openTrichrome(files)
+        } else if (filenames.includes("background")) {
+            console.log("Background")
+            openWithBackground(files)
         } else {
             console.log("Single")
             openFiles(files)

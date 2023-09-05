@@ -73,7 +73,7 @@
                 $images[$index].settings.mode = "bw"
             }}
         >
-            BW
+            B&W
         </div>
     </div>
     {#if settings.mode === "basic"}
