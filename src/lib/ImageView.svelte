@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { draw } from "./RawImage"
+    import { draw } from "./draw"
     import type { ProcessedImage, Trich } from "./RawImage"
     import { images, index } from "../stores"
 

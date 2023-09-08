@@ -2,7 +2,8 @@ import init, {
     decode_image,
     Image as WasmImage,
 } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { invertRaw, mapTrich } from "./RawImage"
+import { mapTrich } from "./RawImage"
+import { invertRaw } from "./inversion"
 import type { ProcessedImage, LoadedImage } from "./RawImage"
 import { allPromises } from "./utils.js"
 import { read_file, loadImage } from "./wasm_loader.js"

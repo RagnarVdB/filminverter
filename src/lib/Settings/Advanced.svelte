@@ -5,7 +5,7 @@
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
-    import { getRotationMatrix } from "../RawImage"
+    import { getRotationMatrix } from "../rotation"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { images, index, mainCanvas as canvas } from "../../stores"
-    import { applyRotationAndZoom } from "../RawImage"
+    import { applyRotationAndZoom } from "../rotation"
 
     export let color: [number, number, number] = [0, 0, 0]
     $: cssColor = ((x) => `rgb(${x[0]}, ${x[1]}, ${x[2]})`)(to8bit(color))

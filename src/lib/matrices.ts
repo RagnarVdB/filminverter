@@ -1,5 +1,5 @@
-import type { ColorMatrix, Matrix } from "./RawImage"
-import { multiplyColorMatrices, multiplyMatrices } from "./RawImage"
+import type { ColorMatrix } from "./utils"
+import { multiplyColorMatrices, multiplyMatrices } from "./utils"
 export const XYZ_to_sRGB: ColorMatrix = {
     matrix: [
         3.2404542, -1.5371385, -0.4985314, -0.969266, 1.8760108, 0.041556,

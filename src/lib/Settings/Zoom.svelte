@@ -1,10 +1,6 @@
 <script lang="ts">
-    import { images, index, mainCanvas as canvas } from "../../stores"
-    import {
-        applyMatrixVector,
-        applyRotation,
-        Matrix,
-    } from "../RawImage"
+    import { mainCanvas as canvas, images, index } from "../../stores"
+    import { applyRotation } from "../rotation"
     $: image = $images[$index]
 
     let state: "none" | "first" | "second" = "none"
@@ -14,7 +10,7 @@
     export let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     function getZoomPoint(e: MouseEvent): [number, number] {
-        if (!$canvas) return [0,0]
+        if (!$canvas) return [0, 0]
         const rect = $canvas.getBoundingClientRect()
 
         const mouseX = e.clientX - rect.left
