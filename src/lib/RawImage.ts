@@ -15,6 +15,7 @@ import vertex_shader from "./glsl/vertex_shader.glsl"
 import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
+import { get } from "svelte/store"
 
 const BLACK = 1016
 
@@ -55,6 +56,11 @@ export const TrichNameMap: { [Key in TrichName]: Primary | BgPrimary } = {
     BRed: "BR",
     BGreen: "BG",
     BBlue: "BB",
+}
+
+export interface Bg<T> {
+    image: T
+    background: T
 }
 
 export interface Trich<T> {
@@ -127,8 +133,8 @@ export interface ProcessedSingle extends _ProcessedInfo {
 export interface ProcessedDensity extends _ProcessedInfo {
     filename: string
     file: File
-    bgFilename: string
-    bgFile: File
+    bg_filename: string
+    bg_file: File
     kind: "density"
 }
 
@@ -175,6 +181,13 @@ export interface Settings {
         blackpoint_shift: number
     }
     //mask: Triple
+}
+
+interface ConversionValuesBw {
+    m: number
+    b: number
+    d: number
+    dmin: Triple
 }
 
 export interface Matrix {
@@ -343,7 +356,47 @@ function getColorValueSingle(
     }
 }
 
-function getTransmittance(
+function getTransmittanceBg(image: Bg<RawImage>, x: number, y: number): number {
+    const w = image.image.width
+    return (
+        (image.image.image[x + y * w] - BLACK) /
+        (image.background.image[x + y * w] - BLACK) /
+        EXPFACSINGLE
+    )
+}
+
+function getColorValueBg(
+    image: Bg<RawImage>,
+    cfa: CFA,
+    x: number,
+    y: number
+): { main: Primary; color: Triple } {
+    const w = image.image.width,
+        h = image.image.height
+    let color: Triple = [0, 0, 0]
+    let pixelCounts: Triple = [0, 0, 0]
+    const main = getCFAValue(cfa, x, y)
+    color[colorOrder[main]] = getTransmittanceBg(image, x, y)
+    pixelCounts[colorOrder[main]] = 1
+    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
+            const c = getCFAValue(cfa, i, j)
+            if (c !== main) {
+                color[colorOrder[c]] += getTransmittanceBg(image, i, j)
+                pixelCounts[colorOrder[c]]++
+            }
+        }
+    }
+    color[0] /= pixelCounts[0]
+    color[1] /= pixelCounts[1]
+    color[2] /= pixelCounts[2]
+    return {
+        main,
+        color,
+    }
+}
+
+function getTransmittanceTrich(
     images: Trich<RawImage>,
     color: Primary,
     x: number,
@@ -370,13 +423,13 @@ function getColorValueTrich(
     let color: Triple = [0, 0, 0]
     let pixelCounts: Triple = [1, 1, 1]
     const main = getCFAValue(cfa, x, y)
-    color[colorOrder[main]] = getTransmittance(images, main, x, y)
+    color[colorOrder[main]] = getTransmittanceTrich(images, main, x, y)
     pixelCounts[colorOrder[main]] = 1
     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
             const c = getCFAValue(cfa, i, j)
             if (c !== main) {
-                color[colorOrder[c]] += getTransmittance(images, c, i, j)
+                color[colorOrder[c]] += getTransmittanceTrich(images, c, i, j)
                 pixelCounts[colorOrder[c]]++
             }
         }
@@ -469,24 +522,21 @@ export function convertWithBackground(
     return {
         ...image,
         image: out,
-        wb_coeffs: [1, 1, 1, 1],
         filename: image.filename,
         file: image.file,
-        bgFilename: background.filename,
-        bgFile: background.file,
+        bg_filename: background.filename,
+        bg_file: background.file,
         kind: "density",
     }
 }
 
 function pte_curve(x: number, sets: LutSets): number {
     const [m, b, d, x1] = sets
-    const x0 = x1 - d
-    const a = -m * (x0 - x1) ** 2
-    const b2 = m * x0 + b - a / (x0 - x1)
-    if (x <= x0) {
+    const x0 = x1 + d
+    if (x >= x0) {
         return m * x + b
-    } else if (x <= x1) {
-        return a / (x - x1) + b2
+    } else if (x > x1) {
+        return m * (2.0 * x0 - x1 - ((x0 - x1) * (x0 - x1)) / (x - x1)) + b
     } else {
         return -1000
     }
@@ -500,15 +550,15 @@ function paper_to_exp(color: Triple): Triple {
     ]
 }
 
-function processColorValue(
+function procesValueColor(
     color: Triple,
-    main: Primary,
+    primary: Primary,
     mult: number,
     factor: Triple,
     exponent: Triple
 ): number {
     // Camera raw to output (sRGB)
-    const j = colorOrder[main]
+    const j = colorOrder[primary]
     // let cb = [0, 0, 0]
 
     // cb[0] = (color[0] - 1016) / 16384
@@ -544,20 +594,39 @@ function processColorValue(
     return clamp(out, 0, 1) * 16384
 }
 
+function processColorValueBw(
+    colorValue: number,
+    conversionValues: {
+        m: number
+        b: number
+        d: number
+        dmin: number
+        wb_coeff: number
+    }
+): number {
+    const { m, b, d, dmin, wb_coeff } = conversionValues
+    const density = -Math.log10(colorValue)
+    const exp = pte_curve(density, [m, b, d, dmin])
+    const rawValue = 2 ** exp / wb_coeff
+    return clamp(rawValue * 16384 + BLACK, 0, 16384)
+}
+
 function getColorValue(
-    image: LoadedImage | Trich<LoadedImage>,
+    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
     x: number,
     y: number
 ): { main: Primary; color: Triple } {
     if ("R" in image) {
         return getColorValueTrich(image, image.R.cfa, x, y)
+    } else if ("background" in image) {
+        return getColorValueBg(image, image.image.cfa, x, y)
     } else {
         return getColorValueSingle(image, image.cfa, x, y)
     }
 }
 
-export function invertRaw(
-    image: LoadedImage | Trich<LoadedImage>,
+function invertRawColor(
+    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
     settings: Settings
 ): Uint16Array {
     let w: number, h: number
@@ -567,6 +636,10 @@ export function invertRaw(
         w = image.R.width
         h = image.R.height
         wb_coeffs = image.R.wb_coeffs
+    } else if ("background" in image) {
+        w = image.image.width
+        h = image.image.height
+        wb_coeffs = image.image.wb_coeffs
     } else {
         w = image.width
         h = image.height
@@ -586,7 +659,7 @@ export function invertRaw(
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, i, j)
             const mult = wb[colorOrder[main]]
-            out[i + j * w] = processColorValue(
+            out[i + j * w] = procesValueColor(
                 color,
                 main,
                 mult,
@@ -596,6 +669,67 @@ export function invertRaw(
         }
     }
     return out
+}
+
+// Tijdelijke colorramp functies
+function cmap(i: number): number {
+    return (i / 6384) * (16384 - BLACK)
+}
+
+function cmap2(i: number): number {
+    return (i / 6384) ** 4 * (16384 - BLACK)
+}
+
+function invertRawBW(
+    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    settings: Settings
+): Uint16Array {
+    if ("R" in image) {
+        throw new Error("BW not implemented for trichrome")
+    }
+    const withBackground = "background" in image
+    const [w, h] = withBackground
+        ? [image.image.width, image.image.height]
+        : [image.width, image.height]
+    const cfa = withBackground ? image.image.cfa : image.cfa
+
+    const { m, b, d, dmin } = getConversionValuesBw(settings)
+    let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
+    console.log("wb2", wb)
+    const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
+    const out = new Uint16Array(w * h)
+    for (let j = 0; j < h; j++) {
+        for (let i = 0; i < w; i++) {
+            const primary = getCFAValue(cfa, i, j)
+            const colorIndex = colorOrder[primary]
+            const color_value = withBackground
+                ? getTransmittanceBg(image, i, j)
+                : image.image[i + j * w]
+            // out[i + j * w] = (cmap2(i) / white_balance[colorIndex]) + BLACK
+
+            out[i + j * w] = 3000
+            out[i + j * w] = processColorValueBw(color_value, {
+                m,
+                b,
+                d,
+                dmin: dmin[colorIndex],
+                wb_coeff: white_balance[colorIndex],
+            })
+        }
+    }
+
+    return out
+}
+
+export function invertRaw(
+    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    settings: Settings
+): Uint16Array {
+    if (settings.mode == "bw") {
+        return invertRawBW(image, settings)
+    } else {
+        return invertRawColor(image, settings)
+    }
 }
 
 function to_color(x: number[]): Triple {
@@ -840,9 +974,9 @@ function ets_curve(x: number): number {
 
 function _processColor(color: Triple): Triple {
     const c = mapTriple((x) => x / 16384, color)
-    const r1 = processColorValue(c, "R", 1, [1, 1, 1], [1, 1, 1]) - BLACK
-    const g1 = processColorValue(c, "G", 1, [1, 1, 1], [1, 1, 1]) - BLACK
-    const b1 = processColorValue(c, "B", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    const r1 = procesValueColor(c, "R", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    const g1 = procesValueColor(c, "G", 1, [1, 1, 1], [1, 1, 1]) - BLACK
+    const b1 = procesValueColor(c, "B", 1, [1, 1, 1], [1, 1, 1]) - BLACK
     return [r1, g1, b1]
 }
 
@@ -902,6 +1036,24 @@ function get_shader_params_color(
     return parameters
 }
 
+function getConversionValuesBw(settings: Settings): ConversionValuesBw {
+    const dmin = mapTriple(
+        (x) => -Math.log10(x / 2 ** 14) + settings.bw.blackpoint_shift,
+        settings.bw.blackpoint
+    )
+    console.log("dmin", dmin)
+    const m = 1 / (settings.bw.gamma * Math.log10(2))
+    console.log("m", m)
+    const d = settings.bw.toe_width
+    console.log("d", d)
+
+    const neutralDensity = dmin[1] + 0.82
+    const b = settings.bw.exposure - m * neutralDensity
+    console.log("exposure", settings.bw.exposure)
+    console.log("b", b)
+    return { m, b, d, dmin }
+}
+
 function get_shader_params_bw(
     gl: WebGL2RenderingContext,
     settings: Settings,
@@ -913,20 +1065,7 @@ function get_shader_params_bw(
     } else if (kind == "normal") {
         throw new Error("BW not supported for normal")
     } else {
-        const dmin = mapTriple(
-            (x) => -Math.log10(x / 2 ** 14) + settings.bw.blackpoint_shift,
-            settings.bw.blackpoint
-        )
-        console.log("dmin", dmin)
-        const m = 1 / (settings.bw.gamma * Math.log10(2))
-        console.log("m", m)
-        const d = settings.bw.toe_width
-        console.log("d", d)
-
-        const neutralDensity = dmin[1] + 0.82
-        const b = settings.bw.exposure - m * neutralDensity
-        console.log("exposure", settings.bw.exposure)
-        console.log("b", b)
+        const { m, b, d, dmin } = getConversionValuesBw(settings)
         return [
             {
                 name: "density",
@@ -965,9 +1104,9 @@ function test_prepare_image(im: Uint16Array): Uint16Array {
         // const c = mapTriple((x) => x / 16384, color)
         // const out: Triple = [r, g, b]
         const out: Triple = mapTriple((x) => x / 16384, color)
-        img[i] = processColorValue(out, "R", 1, [0, 0, 0], [0, 0, 0])
-        img[i + 1] = processColorValue(out, "G", 1, [0, 0, 0], [0, 0, 0])
-        img[i + 2] = processColorValue(out, "B", 1, [0, 0, 0], [0, 0, 0])
+        img[i] = procesValueColor(out, "R", 1, [0, 0, 0], [0, 0, 0])
+        img[i + 1] = procesValueColor(out, "G", 1, [0, 0, 0], [0, 0, 0])
+        img[i + 2] = procesValueColor(out, "B", 1, [0, 0, 0], [0, 0, 0])
     }
     return img
 }

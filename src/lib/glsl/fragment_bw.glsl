@@ -13,21 +13,18 @@ uniform vec3 dmin;
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
-float m1 = 0.96833651793f;
-float b1 = 1.47773013576f;
-float x1 = -4.51966835185f;
-float x2 = 1.46756795411f;
-float a = -0.0808667362074f;
-float b2 = 0.237354861223f;
-float c = -0.174167194041f;
+float x1 = -4.921148056598055f;
+float me = 0.608682015834621f;
+float qe = 0.04002475383287418f;
+float ae = -0.013676963037982022f;
+float be = 0.47406929568556366f;
+float ce = 0.5058620370593871f;
 
 float ets_curve(float x) {
   if(x < x1) {
-    return b1 + m1 * x;
-  } else if(x < x2) {
-    return a * x * x + b2 * x + c;
+    return me * x + qe;
   } else {
-    return 0.0f;
+    return ae * x * x + be * x + ce;
   }
 }
 
@@ -59,8 +56,8 @@ void main() {
 
   if(density) {
     color = -log(color) / log(vec3(10.0f)); // Density
-    if (toe) {
-    color = paper_to_exp(color); // Paper
+    if(toe) {
+      color = paper_to_exp(color); // Paper
     } else {
       color = vec3(m) * color + vec3(b); // Linear
     }
