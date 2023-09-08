@@ -33,7 +33,7 @@ export function toTriple(x: number[]): Triple {
     return [x[0], x[1], x[2]]
 }
 
-export function number_of_workers(nFiles: number): number {
+export function numberOfWorkers(nFiles: number): number {
     const nthreads = navigator.hardwareConcurrency
     let maxWorkers = 1
     if (nthreads % 2 == 0 && nthreads != 2) maxWorkers = nthreads - 2

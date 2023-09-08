@@ -19,7 +19,7 @@ interface WebGLArgument<T extends unknown[]> {
     data: T
 }
 
-function webglDraw(
+function webGlDraw(
     gl: WebGL2RenderingContext,
     img: Uint16Array,
     w: number,
@@ -104,7 +104,7 @@ function webglDraw(
     gl.drawArrays(gl.TRIANGLES, 0, 6) // execute program
 }
 
-function get_shader_params_color(
+function getShaderParamsColor(
     gl: WebGL2RenderingContext,
     settings: AdvancedSettings,
     kind: "normal" | "trichrome" | "density"
@@ -139,7 +139,7 @@ function get_shader_params_color(
     return parameters
 }
 
-function get_shader_params_bw(
+function getShaderParamsBw(
     gl: WebGL2RenderingContext,
     settings: BWSettings,
     kind: "normal" | "trichrome" | "density"
@@ -187,8 +187,8 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const shader = mode == "bw" ? fragment_bw : fragment_color
     const fragment_parameters =
         mode == "bw"
-            ? get_shader_params_bw(gl, image.settings.bw, image.kind)
-            : get_shader_params_color(gl, image.settings.advanced, image.kind)
+            ? getShaderParamsBw(gl, image.settings.bw, image.kind)
+            : getShaderParamsColor(gl, image.settings.advanced, image.kind)
 
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
@@ -197,5 +197,5 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
         ...fragment_parameters,
     ]
 
-    webglDraw(gl, img, w, h, shader, parameters)
+    webGlDraw(gl, img, w, h, shader, parameters)
 }

@@ -313,7 +313,7 @@ function getColorValueTrich(
     return { main, color }
 }
 
-export function convertTrichrome(
+export function loadTrichrome(
     trichImages: Trich<ProcessedSingle>
 ): ProcessedTrichrome {
     const N = trichImages.R.image.length / 4
@@ -361,7 +361,7 @@ export function convertTrichrome(
     }
 }
 
-export function convertWithBackground(
+export function loadWithBackground(
     background: ProcessedSingle,
     image: ProcessedSingle
 ): ProcessedDensity {

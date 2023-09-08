@@ -5,7 +5,7 @@
     import { images, index } from "./stores"
     import Presets from "./lib/Presets.svelte"
     import Settings from "./lib/Settings/Settings.svelte"
-    import { number_of_workers } from "./lib/utils"
+    import { numberOfWorkers } from "./lib/utils"
 
     let showImages = false
 
@@ -47,7 +47,7 @@
                 download(url, filename)
             }
         } else {
-            const nWorkers = number_of_workers($images.length)
+            const nWorkers = numberOfWorkers($images.length)
             const imagesPerWorker = Math.floor($images.length / nWorkers)
             const remainder = $images.length % nWorkers
 

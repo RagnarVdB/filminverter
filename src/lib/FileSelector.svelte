@@ -6,19 +6,19 @@
     import {
         TRICHNAMES,
         TrichNameMap,
-        convertTrichrome,
-        convertWithBackground,
+        loadTrichrome,
+        loadWithBackground,
         isTrichName,
         trichNotNull,
     } from "./RawImage"
-    import { number_of_workers, partition } from "./utils"
+    import { numberOfWorkers, partition } from "./utils"
     const dispatch = createEventDispatcher()
 
     function decoder(
         files: [number, File][],
         callback: (n: number, im: ProcessedSingle) => void
     ) {
-        const nWorkers = number_of_workers(files.length)
+        const nWorkers = numberOfWorkers(files.length)
         const filesPerWorker = Math.floor(files.length / nWorkers)
         const remainder = files.length % nWorkers
         for (let i = 0; i < nWorkers; i++) {
@@ -64,7 +64,7 @@
         const backgroundIndex = backgroundFile[0]
         decoder([backgroundFile], (_, background) => {
             decoder(imageFiles, (i, image) => {
-                const densityImage = convertWithBackground(background, image)
+                const densityImage = loadWithBackground(background, image)
                 const index = i < backgroundIndex ? i : i - 1
                 dispatch("image", {
                     index,
@@ -93,7 +93,7 @@
             if (trichNotNull(trichImages)) {
                 dispatch("image", {
                     index: 0,
-                    image: convertTrichrome(trichImages),
+                    image: loadTrichrome(trichImages),
                 })
             }
         })

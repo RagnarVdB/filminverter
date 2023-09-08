@@ -43,7 +43,7 @@ const lutSets: [LutSets, LutSets, LutSets] = [
     [-7.7641792146902739, -11.103306662255587, 0.2, -0.88572369488605363],
 ]
 
-function pte_curve(x: number, sets: LutSets): number {
+function pteCurve(x: number, sets: LutSets): number {
     const [m, b, d, x1] = sets
     const x0 = x1 + d
     if (x >= x0) {
@@ -55,11 +55,11 @@ function pte_curve(x: number, sets: LutSets): number {
     }
 }
 
-function paper_to_exp(color: Triple): Triple {
+function paperToExp(color: Triple): Triple {
     return [
-        pte_curve(color[0], lutSets[0]),
-        pte_curve(color[1], lutSets[1]),
-        pte_curve(color[2], lutSets[2]),
+        pteCurve(color[0], lutSets[0]),
+        pteCurve(color[1], lutSets[1]),
+        pteCurve(color[2], lutSets[2]),
     ]
 }
 
@@ -148,7 +148,7 @@ function procesValueColor(
 
     const cam_log = mapTriple(Math.log10, color)
     const APD = applyCMV(cam_to_APD2, cam_log)
-    const exp = paper_to_exp(APD)
+    const exp = paperToExp(APD)
     const inv = mapTriple((x) => 0.2823561717 * 2 ** x, exp)
     const out = applyCMV(sRGB_to_cam, inv)[j] / mult
     // const out = inv[colorOrder[main]]
@@ -234,7 +234,7 @@ function processColorValueBw(
 ): number {
     const { m, b, d, dmin, wb_coeff } = conversionValues
     const density = -Math.log10(colorValue)
-    const exp = pte_curve(density, [m, b, d, dmin])
+    const exp = pteCurve(density, [m, b, d, dmin])
     const rawValue = 2 ** exp / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
