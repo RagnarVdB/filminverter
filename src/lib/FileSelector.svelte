@@ -1,6 +1,5 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
-    // @ts-ignore
     import Dropzone from "svelte-file-dropzone"
     import type { ProcessedSingle, Trich } from "./RawImage"
     import {
@@ -129,7 +128,8 @@
 
 <div class="fileSelector">
     <h1>Select File</h1>
-    <Dropzone on:drop={handleFilesSelect} accept=".RAF" />
+    
+    <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement=null />
 </div>
 
 <style>

@@ -1,4 +1,4 @@
-import { Writable, writable } from "svelte/store"
+import { type Writable, writable } from "svelte/store"
 import type { ProcessedImage } from "./lib/RawImage"
 
 export const images: Writable<ProcessedImage[]> = writable([])
