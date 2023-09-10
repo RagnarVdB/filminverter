@@ -46,7 +46,7 @@ onmessage = async function (e) {
             const [decoded, old] = await getRawImage(image.file)
             const [_, old_bg] = await getRawImage(image.bg_file)
             const newArr = invertRaw(
-                { image: old, background: old_bg },
+                { image: old, background: old_bg, expfac: image.expfac },
                 image.settings
             )
             newImage = decoded.encode(newArr)

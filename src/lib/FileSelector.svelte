@@ -63,7 +63,11 @@
         const backgroundIndex = backgroundFile[0]
         decoder([backgroundFile], (_, background) => {
             decoder(imageFiles, (i, image) => {
-                const densityImage = loadWithBackground(background, image)
+                const densityImage = loadWithBackground({
+                    background,
+                    image,
+                    expfac: 180 / 15,
+                })
                 const index = i < backgroundIndex ? i : i - 1
                 dispatch("image", {
                     index,
@@ -128,8 +132,8 @@
 
 <div class="fileSelector">
     <h1>Select File</h1>
-    
-    <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement=null />
+
+    <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement="null" />
 </div>
 
 <style>

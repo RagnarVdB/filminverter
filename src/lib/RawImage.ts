@@ -30,6 +30,7 @@ export const TrichNameMap: { [Key in TrichName]: Primary | BgPrimary } = {
 export interface Bg<T> {
     image: T
     background: T
+    expfac: number
 }
 
 export interface Trich<T> {
@@ -57,7 +58,6 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
 }
 
 const EXPFAC: Triple = [30 / 4, 30 / 4, 13 * 0.6]
-const EXPFACSINGLE = 180 / 15
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -100,6 +100,7 @@ export interface ProcessedDensity extends _ProcessedInfo {
     file: File
     bg_filename: string
     bg_file: File
+    expfac: number
     kind: "density"
 }
 
@@ -238,7 +239,7 @@ export function getTransmittanceBg(
     return (
         ((images.image.image[x + y * w] - BLACK) /
             (images.background.image[x + y * w] - BLACK) /
-            EXPFACSINGLE) *
+            images.expfac) *
         wb_factor[color_index]
     )
 }
@@ -366,10 +367,9 @@ export function loadTrichrome(
     }
 }
 
-export function loadWithBackground(
-    background: ProcessedSingle,
-    image: ProcessedSingle
+export function loadWithBackground(images: Bg<ProcessedSingle>
 ): ProcessedDensity {
+    const { image, background, expfac } = images
     const wbb = background.wb_coeffs
     const wbi = image.wb_coeffs
     const wb_factor = [wbi[0] / wbb[0], wbi[1] / wbb[1], wbi[2] / wbb[2]]
@@ -380,21 +380,21 @@ export function loadWithBackground(
     for (let i = 0; i < N; i += 4) {
         out[i + 0] = clamp(
             (((image.image[i + 0] / background.image[i + 0]) * wb_factor[0]) /
-                EXPFACSINGLE) *
+                expfac) *
                 max,
             0,
             max
         )
         out[i + 1] = clamp(
             (((image.image[i + 1] / background.image[i + 1]) * wb_factor[1]) /
-                EXPFACSINGLE) *
+                expfac) *
                 max,
             0,
             max
         )
         out[i + 2] = clamp(
             (((image.image[i + 2] / background.image[i + 2]) * wb_factor[2]) /
-                EXPFACSINGLE) *
+                expfac) *
                 max,
             0,
             max
@@ -408,6 +408,7 @@ export function loadWithBackground(
         file: image.file,
         bg_filename: background.filename,
         bg_file: background.file,
+        expfac,
         kind: "density",
     }
 }
