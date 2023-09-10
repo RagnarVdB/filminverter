@@ -215,8 +215,8 @@ export function getConversionValuesBw(
     const d = settings.toe_width
     console.log("d", d)
 
-    const neutralDensity = dmin[1] + 0.82
-    const b = settings.exposure - m * neutralDensity
+    const maxDensity = dmin[1] + 1.2
+    const b = settings.exposure - m * maxDensity
     console.log("exposure", settings.exposure)
     console.log("b", b)
     return { m, b, d, dmin }
