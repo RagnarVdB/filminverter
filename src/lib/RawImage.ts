@@ -153,7 +153,7 @@ export interface BWSettings {
 }
 
 export const defaultSettings: Settings = {
-    mode: "advanced",
+    mode: "bw",
     rotation: 0,
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
