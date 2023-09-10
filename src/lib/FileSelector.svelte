@@ -13,6 +13,8 @@
     import { numberOfWorkers, partition } from "./utils"
     const dispatch = createEventDispatcher()
 
+    let expfac = 180 / 15
+
     function decoder(
         files: [number, File][],
         callback: (n: number, im: ProcessedSingle) => void
@@ -66,7 +68,7 @@
                 const densityImage = loadWithBackground({
                     background,
                     image,
-                    expfac: 180 / 15,
+                    expfac,
                 })
                 const index = i < backgroundIndex ? i : i - 1
                 dispatch("image", {
@@ -134,6 +136,9 @@
     <h1>Select File</h1>
 
     <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement="null" />
+
+    <p>Background image exposure compensation:</p>
+    <input type="number" bind:value={expfac} />
 </div>
 
 <style>
