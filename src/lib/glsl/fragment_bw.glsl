@@ -63,7 +63,8 @@ void main() {
     }
     color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
   } else {
-    color = color;
+    color = log(color) / log(vec3(2.0f));
+    color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);
 }

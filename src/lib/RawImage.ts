@@ -177,7 +177,6 @@ export const defaultSettings: Settings = {
     },
 }
 
-
 export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
     // Getransponeerde CFA
     let color: Primary
@@ -226,48 +225,54 @@ function getColorValueSingle(
 }
 
 export function getTransmittanceBg(
-    image: Bg<RawImage>,
+    images: Bg<LoadedImage>,
+    primary: Primary,
     x: number,
     y: number
 ): number {
-    const w = image.image.width
+    const w = images.image.width
+    const wbb = images.background.wb_coeffs
+    const wbi = images.image.wb_coeffs
+    const wb_factor = [wbi[0] / wbb[0], wbi[1] / wbb[1], wbi[2] / wbb[2]]
+    const color_index = colorOrder[primary]
     return (
-        (image.image.image[x + y * w] - BLACK) /
-        (image.background.image[x + y * w] - BLACK) /
-        EXPFACSINGLE
+        ((images.image.image[x + y * w] - BLACK) /
+            (images.background.image[x + y * w] - BLACK) /
+            EXPFACSINGLE) *
+        wb_factor[color_index]
     )
 }
 
-function getColorValueBg(
-    image: Bg<RawImage>,
-    cfa: CFA,
-    x: number,
-    y: number
-): { main: Primary; color: Triple } {
-    const w = image.image.width,
-        h = image.image.height
-    let color: Triple = [0, 0, 0]
-    let pixelCounts: Triple = [0, 0, 0]
-    const main = getCFAValue(cfa, x, y)
-    color[colorOrder[main]] = getTransmittanceBg(image, x, y)
-    pixelCounts[colorOrder[main]] = 1
-    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
-        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
-            const c = getCFAValue(cfa, i, j)
-            if (c !== main) {
-                color[colorOrder[c]] += getTransmittanceBg(image, i, j)
-                pixelCounts[colorOrder[c]]++
-            }
-        }
-    }
-    color[0] /= pixelCounts[0]
-    color[1] /= pixelCounts[1]
-    color[2] /= pixelCounts[2]
-    return {
-        main,
-        color,
-    }
-}
+// function getColorValueBg(
+//     image: Bg<LoadedImage>,
+//     cfa: CFA,
+//     x: number,
+//     y: number
+// ): { main: Primary; color: Triple } {
+//     const w = image.image.width,
+//         h = image.image.height
+//     let color: Triple = [0, 0, 0]
+//     let pixelCounts: Triple = [0, 0, 0]
+//     const main = getCFAValue(cfa, x, y)
+//     color[colorOrder[main]] = getTransmittanceBg(image, x, y)
+//     pixelCounts[colorOrder[main]] = 1
+//     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+//         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
+//             const c = getCFAValue(cfa, i, j)
+//             if (c !== main) {
+//                 color[colorOrder[c]] += getTransmittanceBg(image, i, j)
+//                 pixelCounts[colorOrder[c]]++
+//             }
+//         }
+//     }
+//     color[0] /= pixelCounts[0]
+//     color[1] /= pixelCounts[1]
+//     color[2] /= pixelCounts[2]
+//     return {
+//         main,
+//         color,
+//     }
+// }
 
 function getTransmittanceTrich(
     images: Trich<RawImage>,
@@ -365,32 +370,36 @@ export function loadWithBackground(
     background: ProcessedSingle,
     image: ProcessedSingle
 ): ProcessedDensity {
-    const N = image.image.length / 4
-    const out = new Uint16Array(N * 4)
+    const wbb = background.wb_coeffs
+    const wbi = image.wb_coeffs
+    const wb_factor = [wbi[0] / wbb[0], wbi[1] / wbb[1], wbi[2] / wbb[2]]
+
+    const N = image.image.length
+    const out = new Uint16Array(N)
     const max = 2 ** 14
-    for (let i = 0; i < N; i++) {
-        out[i * 4 + 0] = clamp(
-            (image.image[i * 4 + 0] /
-                (background.image[i * 4 + 0] * EXPFACSINGLE)) *
+    for (let i = 0; i < N; i += 4) {
+        out[i + 0] = clamp(
+            (((image.image[i + 0] / background.image[i + 0]) * wb_factor[0]) /
+                EXPFACSINGLE) *
                 max,
             0,
             max
         )
-        out[i * 4 + 1] = clamp(
-            (image.image[i * 4 + 1] /
-                (background.image[i * 4 + 1] * EXPFACSINGLE)) *
+        out[i + 1] = clamp(
+            (((image.image[i + 1] / background.image[i + 1]) * wb_factor[1]) /
+                EXPFACSINGLE) *
                 max,
             0,
             max
         )
-        out[i * 4 + 2] = clamp(
-            (image.image[i * 4 + 2] /
-                (background.image[i * 4 + 2] * EXPFACSINGLE)) *
+        out[i + 2] = clamp(
+            (((image.image[i + 2] / background.image[i + 2]) * wb_factor[2]) /
+                EXPFACSINGLE) *
                 max,
             0,
             max
         )
-        out[i * 4 + 3] = 65535
+        out[i + 3] = 65535
     }
     return {
         ...image,
@@ -411,9 +420,9 @@ export function getColorValue(
     if ("R" in image) {
         return getColorValueTrich(image, image.R.cfa, x, y)
     } else if ("background" in image) {
-        return getColorValueBg(image, image.image.cfa, x, y)
+    //     return getColorValueBg(image, image.image.cfa, x, y)
+        throw new Error("Not implemented")
     } else {
         return getColorValueSingle(image, image.cfa, x, y)
     }
 }
-

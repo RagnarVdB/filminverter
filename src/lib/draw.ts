@@ -6,11 +6,7 @@ import fragment_color from "./glsl/fragment_color.glsl"
 import fragment_bw from "./glsl/fragment_bw.glsl"
 import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
 import { cam_to_APD2, cam_to_sRGB, sRGB_to_cam } from "./matrices"
-import type {
-    AdvancedSettings,
-    BWSettings,
-    ProcessedImage
-} from "./RawImage"
+import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
 import { transpose } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
@@ -175,9 +171,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
 
     const w = image.width
     const h = image.height
-    // const img = image.image
     const im = image.image
-    // const img = test_prepare_image(im)
     const img = im
 
     const rot = image.settings.rotationMatrix.matrix

@@ -222,6 +222,26 @@ export function getConversionValuesBw(
     return { m, b, d, dmin }
 }
 
+export function invertJS(
+    im: Uint16Array,
+    conversionValues: ConversionValuesBw
+): Uint16Array {
+    const { m, b, d, dmin } = conversionValues
+    const out = new Uint16Array(im.length)
+    for (let i = 0; i < im.length; i += 4) {
+        const densityR = -Math.log10(im[i] / 16384)
+        const densityG = -Math.log10(im[i + 1] / 16384)
+        const densityB = -Math.log10(im[i + 2] / 16384)
+        const expR = pteCurve(densityR, [m, b, d, dmin[0]])
+        const expG = pteCurve(densityG, [m, b, d, dmin[1]])
+        const expB = pteCurve(densityB, [m, b, d, dmin[2]])
+        out[i] = 2 ** expR * 16384
+        out[i + 1] = 2 ** expG * 16384
+        out[i + 2] = 2 ** expB * 16384
+    }
+    return out
+}
+
 function processColorValueBw(
     colorValue: number,
     conversionValues: {
@@ -236,6 +256,7 @@ function processColorValueBw(
     const density = -Math.log10(colorValue)
     const exp = pteCurve(density, [m, b, d, dmin])
     const rawValue = 2 ** exp / wb_coeff
+    // const rawValue = 0.3 / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
@@ -257,16 +278,15 @@ function invertRawBW(
     console.log("wb2", wb)
     const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const out = new Uint16Array(w * h)
+    console.log("values", m, b, d, dmin, white_balance)
     for (let j = 0; j < h; j++) {
         for (let i = 0; i < w; i++) {
             const primary = getCFAValue(cfa, i, j)
             const colorIndex = colorOrder[primary]
             const color_value = withBackground
-                ? getTransmittanceBg(image, i, j)
+                ? getTransmittanceBg(image, primary, i, j)
                 : image.image[i + j * w]
-            // out[i + j * w] = (cmap2(i) / white_balance[colorIndex]) + BLACK
 
-            out[i + j * w] = 3000
             out[i + j * w] = processColorValueBw(color_value, {
                 m,
                 b,
