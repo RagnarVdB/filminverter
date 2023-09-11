@@ -13,12 +13,12 @@ uniform vec3 dmin;
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
-float x1 = -4.921148056598055f;
-float me = 0.608682015834621f;
-float qe = 0.04002475383287418f;
-float ae = -0.013676963037982022f;
-float be = 0.47406929568556366f;
-float ce = 0.5058620370593871f;
+float x1 = -5.375717008844633f;
+float me = 0.9624795323710955f;
+float qe = 2.5637804040044925f;
+float ae = -0.090848876839316f;
+float be = -0.014276172547989074f;
+float ce = -0.06160072420528406f;
 
 float ets_curve(float x) {
   if(x < x1) {
