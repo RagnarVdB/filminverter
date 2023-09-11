@@ -367,35 +367,27 @@ export function loadTrichrome(
     }
 }
 
-export function loadWithBackground(images: Bg<ProcessedSingle>
+export function loadWithBackground(
+    images: Bg<ProcessedSingle>
 ): ProcessedDensity {
     const { image, background, expfac } = images
-    const wbb = background.wb_coeffs
-    const wbi = image.wb_coeffs
-    const wb_factor = [wbi[0] / wbb[0], wbi[1] / wbb[1], wbi[2] / wbb[2]]
 
     const N = image.image.length
     const out = new Uint16Array(N)
     const max = 2 ** 14
     for (let i = 0; i < N; i += 4) {
         out[i + 0] = clamp(
-            (((image.image[i + 0] / background.image[i + 0]) * wb_factor[0]) /
-                expfac) *
-                max,
+            (image.image[i + 0] / background.image[i + 0] / expfac) * max,
             0,
             max
         )
         out[i + 1] = clamp(
-            (((image.image[i + 1] / background.image[i + 1]) * wb_factor[1]) /
-                expfac) *
-                max,
+            (image.image[i + 1] / background.image[i + 1] / expfac) * max,
             0,
             max
         )
         out[i + 2] = clamp(
-            (((image.image[i + 2] / background.image[i + 2]) * wb_factor[2]) /
-                expfac) *
-                max,
+            (image.image[i + 2] / background.image[i + 2] / expfac) * max,
             0,
             max
         )
@@ -421,7 +413,7 @@ export function getColorValue(
     if ("R" in image) {
         return getColorValueTrich(image, image.R.cfa, x, y)
     } else if ("background" in image) {
-    //     return getColorValueBg(image, image.image.cfa, x, y)
+        //     return getColorValueBg(image, image.image.cfa, x, y)
         throw new Error("Not implemented")
     } else {
         return getColorValueSingle(image, image.cfa, x, y)

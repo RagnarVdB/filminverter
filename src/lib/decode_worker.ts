@@ -3,15 +3,19 @@ import { defaultSettings } from "./RawImage"
 import { deBayer, deMosaicFuji } from "./deMosaic"
 import type { RawImage, ProcessedSingle, LoadedImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
+import type { Triple } from "./utils.js"
 
 function getDeMosaiced(im: LoadedImage): RawImage {
     if (im.make == "FUJIFILM") {
         console.log("FUJI")
-        return deMosaicFuji(im, im.cfa.offset, [
-            im.blacks[0],
-            im.blacks[1],
-            im.blacks[2],
-        ])
+        const wb = im.wb_coeffs
+        const wb_coeffs: Triple = [wb[0] / wb[1], 1, wb[2] / wb[1]]
+        return deMosaicFuji(
+            im,
+            im.cfa.offset,
+            [im.blacks[0], im.blacks[1], im.blacks[2]],
+            wb_coeffs
+        )
     } else {
         return deBayer(im, im.cfa, [im.blacks[0], im.blacks[1], im.blacks[2]])
     }

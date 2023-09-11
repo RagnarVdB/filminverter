@@ -73,7 +73,8 @@ export function deBayer(image: RawImage, cfa: CFA, black: Triple): RawImage {
 export function deMosaicFuji(
     image: RawImage,
     offset: [number, number],
-    black: Triple
+    black: Triple,
+    wb_coeffs: Triple
 ): RawImage {
     const cfa1 = "GRGBGBGRG"
     const cfa2 = "GBGRGRGBG"
@@ -119,9 +120,9 @@ export function deMosaicFuji(
                     }
                 }
             }
-            im[(n * j + i) * 4] = red / nR - black[0]
-            im[(n * j + i) * 4 + 1] = green / nG - black[1]
-            im[(n * j + i) * 4 + 2] = blue / nB - black[2]
+            im[(n * j + i) * 4] = (red / nR - black[0]) * wb_coeffs[0]
+            im[(n * j + i) * 4 + 1] = (green / nG - black[1]) * wb_coeffs[1]
+            im[(n * j + i) * 4 + 2] = (blue / nB - black[2]) * wb_coeffs[2]
             im[(n * j + i) * 4 + 3] = 65535
         }
     }
