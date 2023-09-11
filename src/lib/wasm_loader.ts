@@ -1,5 +1,6 @@
 import type { Image as WasmImage } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import type { CFA, LoadedImage, Matrix } from "./RawImage"
+import type { CFA, LoadedImage } from "./RawImage"
+import type { Matrix } from "./utils"
 
 export async function read_file(file: File): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
@@ -46,7 +47,6 @@ export function loadImage(wasmIm: WasmImage): LoadedImage {
     if (wasmIm.get_model() == "X-E4") {
         blacks = [1016, 1016, 1016, 1016]
     }
-    console.log(cam_to_xyz.matrix.map((x) => x * 2 ** 14))
     return {
         image: wasmIm.get_data(),
         width: wasmIm.get_width(),
