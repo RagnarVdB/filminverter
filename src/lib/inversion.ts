@@ -11,6 +11,7 @@ import {
     getCFAValue,
     getColorValue,
     getTransmittanceBg,
+    getTransmittanceNormal,
 } from "./RawImage"
 import {
     cam_to_APD,
@@ -285,7 +286,7 @@ function invertRawBW(
             const colorIndex = colorOrder[primary]
             const color_value = withBackground
                 ? getTransmittanceBg(image, primary, i, j)
-                : image.image[i + j * w]
+                : getTransmittanceNormal(image, primary, i, j)
 
             out[i + j * w] = processColorValueBw(color_value, {
                 m,

@@ -231,6 +231,19 @@ function getColorValueSingle(
     }
 }
 
+export function getTransmittanceNormal(
+    image: LoadedImage,
+    primary: Primary,
+    x: number,
+    y: number
+) {
+    const w = image.width
+    const wb_coeffs = image.wb_coeffs
+    const wb = [wb_coeffs[0] / wb_coeffs[1], 1, wb_coeffs[2] / wb_coeffs[1]]
+    const color_index = colorOrder[primary]
+    return (image.image[x + y * w] - BLACK) * wb[color_index] / 2**14
+}
+    
 export function getTransmittanceBg(
     images: Bg<LoadedImage>,
     primary: Primary,
