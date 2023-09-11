@@ -111,8 +111,7 @@ function getShaderParamsColor(
         transpose(sRGB_to_cam),
     ]
 
-    const { factor, exponent, dmin } = getConversionValuesColor(settings, kind)
-    console.log(factor, exponent, dmin)
+    const { m, b, d, dmin } = getConversionValuesColor(settings, kind)
 
     const parameters: WebGLArgument<any[]>[] = [
         {
@@ -121,15 +120,15 @@ function getShaderParamsColor(
             data: [settings.toe === true ? 1 : 0],
         },
         {
-            name: "matrix1",
+            name: "cam_to_apd",
             f: gl.uniformMatrix3fv,
-            data: [false, matr1.matrix],
+            data: [false, transpose(cam_to_APD2).matrix],
         },
-        {
-            name: "matrix2",
-            f: gl.uniformMatrix3fv,
-            data: [false, matr2.matrix],
-        },
+        { name: "m", f: gl.uniform3f, data: [m] },
+        { name: "b", f: gl.uniform3f, data: [b] },
+        { name: "d", f: gl.uniform3f, data: [d] },
+        { name: "dmin", f: gl.uniform3f, data: dmin },
+
         // {
     ]
     return parameters

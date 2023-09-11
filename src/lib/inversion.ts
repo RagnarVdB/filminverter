@@ -30,6 +30,13 @@ import {
 } from "./utils"
 
 import type { Primary, Triple } from "./utils"
+
+interface ConversionValuesColor {
+    m: Triple
+    b: Triple
+    d: Triple
+    dmin: Triple
+}
 interface ConversionValuesBw {
     m: number
     b: number
@@ -67,11 +74,7 @@ function paperToExp(color: Triple): Triple {
 export function getConversionValuesColor(
     settings: AdvancedSettings,
     kind: "normal" | "trichrome" | "density"
-): {
-    factor: Triple
-    exponent: Triple
-    dmin: Triple
-} {
+): ConversionValuesColor {
     const gamma = [
         settings.gamma,
         settings.gamma * settings.facG,
