@@ -143,15 +143,13 @@ function getShaderParamsBw(
     console.log("kind", kind)
     if (kind == "trichrome") {
         throw new Error("BW not supported for trichrome")
-    } else if (kind == "normal") {
-        throw new Error("BW not supported for normal")
     } else {
         const { m, b, d, dmin } = getConversionValuesBw(settings)
         return [
             {
                 name: "density",
                 f: gl.uniform1i,
-                data: [1],
+                data: [kind == "density" ? 1 : 0],
             },
             {
                 name: "toe",
