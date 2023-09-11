@@ -17,17 +17,30 @@
     let toe_width: [number, number] = [0.2, 0]
     let blackpoint_shift: [number, number] = [0.5, 0]
 
+    let show_clipping = false
+    let show_negative = false
+
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     export let settings: Settings
 
-
     $: {
         updateSliders(settings)
     }
     $: {
-        updateSettings(toe, blackpoint, exposure, gamma, toe_width, blackpoint_shift, rotation, zoom)
+        updateSettings(
+            toe,
+            blackpoint,
+            exposure,
+            gamma,
+            toe_width,
+            blackpoint_shift,
+            show_clipping,
+            show_negative,
+            rotation,
+            zoom
+        )
     }
 
     function updateSettings(
@@ -37,6 +50,8 @@
         gamma: [number, number],
         toe_width: [number, number],
         blackpoint_shift: [number, number],
+        show_clipping: boolean,
+        show_negative: boolean,
         rotation: number,
         zoom: [number, number, number, number]
     ) {
@@ -49,6 +64,8 @@
                 toe_width: toe_width[0],
                 blackpoint_shift: blackpoint_shift[0] - 0.5,
             }
+            settings.show_clipping = show_clipping
+            settings.show_negative = show_negative
             settings.rotation = rotation
             settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
@@ -63,6 +80,8 @@
             gamma[0] = sets.bw.gamma
             toe_width[0] = sets.bw.toe_width
             blackpoint_shift[0] = sets.bw.blackpoint_shift + 0.5
+            show_clipping = sets.show_clipping
+            show_negative = sets.show_negative
             rotation = sets.rotation
             blackpoint = sets.bw.blackpoint
             zoom = sets.zoom
@@ -86,9 +105,15 @@
     toe width: {Math.round(toe_width[0] * 100) / 100}
     <Slider bind:value={toe_width} min="0" max="0.5" step="0.01" />
 
-    blackpoint shift: {Math.round((blackpoint_shift[0]-0.5) * 100) / 100}
+    blackpoint shift: {Math.round((blackpoint_shift[0] - 0.5) * 100) / 100}
     <Slider bind:value={blackpoint_shift} min="0" max="1" step="0.01" />
 
+    Show clipping:
+    <input type="checkbox" bind:checked={show_clipping} />
+    <br />
+    Show negative:
+    <input type="checkbox" bind:checked={show_negative} />
+    <br />
     <button
         on:click={() => {
             rotation = (rotation + 1) % 4

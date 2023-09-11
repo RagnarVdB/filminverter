@@ -127,6 +127,8 @@ export interface Settings {
     rotation: number
     rotationMatrix: Matrix
     zoom: [number, number, number, number]
+    show_clipping: boolean
+    show_negative: boolean
     advanced: AdvancedSettings
     bw: BWSettings
 }
@@ -157,6 +159,8 @@ export const defaultSettings: Settings = {
     rotation: 0,
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
+    show_clipping: false,
+    show_negative: false,
     advanced: {
         toe: false,
         dmin: [7662, 2939, 1711],

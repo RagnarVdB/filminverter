@@ -147,14 +147,9 @@ function getShaderParamsBw(
         const { m, b, d, dmin } = getConversionValuesBw(settings)
         return [
             {
-                name: "density",
-                f: gl.uniform1i,
-                data: [kind == "density" ? 1 : 0],
-            },
-            {
                 name: "toe",
                 f: gl.uniform1i,
-                data: [settings.toe === true ? 1 : 0],
+                data: [settings.toe ? 1 : 0],
             },
             { name: "m", f: gl.uniform1f, data: [m] },
             { name: "b", f: gl.uniform1f, data: [b] },
@@ -175,6 +170,9 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
 
+    const show_clipping = image.settings.show_clipping
+    const show_negative = image.settings.show_negative
+
     const mode = image.settings.mode
     const shader = mode == "bw" ? fragment_bw : fragment_color
     const fragment_parameters =
@@ -186,6 +184,16 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
+        {
+            name: "show_clipping",
+            f: gl.uniform1i,
+            data: [show_clipping ? 1 : 0],
+        },
+        {
+            name: "show_negative",
+            f: gl.uniform1i,
+            data: [show_negative ? 1 : 0],
+        },
         ...fragment_parameters,
     ]
 
