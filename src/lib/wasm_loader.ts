@@ -25,7 +25,7 @@ function getCFA(decoded: WasmImage): CFA {
             offset = [0, 0]
             break
         case "X-E4":
-            offset = [2, 0]
+            offset = [-2, 1]
             break
     }
     const cfa: CFA = {

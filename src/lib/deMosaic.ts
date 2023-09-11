@@ -1,15 +1,8 @@
-import type {
-    RawImage,
-    CFA,
-} from "./RawImage"
+import type { RawImage, CFA } from "./RawImage"
 
 type Triple = [number, number, number]
 
-export function deBayer(
-    image: RawImage,
-    cfa: CFA,
-    black: Triple
-): RawImage {
+export function deBayer(image: RawImage, cfa: CFA, black: Triple): RawImage {
     // Tel voorkomen in cfa
     const R = cfa.str.match(/R/g)
     const G = cfa.str.match(/G/g)
@@ -82,8 +75,8 @@ export function deMosaicFuji(
     offset: [number, number],
     black: Triple
 ): RawImage {
-    const cfa1 = "GBGRGRGBG"
-    const cfa2 = "GRGBGBGRG"
+    const cfa1 = "GRGBGBGRG"
+    const cfa2 = "GBGRGRGBG"
 
     const nR = 2
     const nG = 5
