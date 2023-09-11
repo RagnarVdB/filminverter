@@ -181,10 +181,12 @@ export const defaultSettings: Settings = {
 export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
     // Getransponeerde CFA
     let color: Primary
+    // Ad hoc fix omdat deMosaic andere offset gebruikt
+    const offset = [cfa.offset[0] + 4, cfa.offset[1] - 1]
     const c =
         cfa.str[
-            ((y + 6 - cfa.offset[1]) % cfa.width) +
-                ((x + 6 - cfa.offset[0]) % cfa.height) * cfa.width
+            ((y + 6 - offset[1]) % cfa.width) +
+                ((x + 6 - offset[0]) % cfa.height) * cfa.width
         ]
     if (c == "R" || c == "G" || c == "B") {
         color = c
