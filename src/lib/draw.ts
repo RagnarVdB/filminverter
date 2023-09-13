@@ -5,7 +5,7 @@ import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
 import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
-import { cam_to_APD2, cam_to_sRGB, sRGB_to_cam } from "./matrices"
+import { cam_to_APD2, cam_to_sRGB, cam_to_sRGB2, sRGB_to_cam } from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
 import { transpose } from "./utils"
 
@@ -124,9 +124,14 @@ function getShaderParamsColor(
             f: gl.uniformMatrix3fv,
             data: [false, transpose(cam_to_APD2).matrix],
         },
-        { name: "m", f: gl.uniform3f, data: [m] },
-        { name: "b", f: gl.uniform3f, data: [b] },
-        { name: "d", f: gl.uniform3f, data: [d] },
+        {
+            name: "cam_to_sRGB",
+            f: gl.uniformMatrix3fv,
+            data: [false, transpose(cam_to_sRGB2).matrix],
+        },
+        { name: "m", f: gl.uniform3f, data: m },
+        { name: "b", f: gl.uniform3f, data: b },
+        { name: "d", f: gl.uniform3f, data: d },
         { name: "dmin", f: gl.uniform3f, data: dmin },
 
         // {

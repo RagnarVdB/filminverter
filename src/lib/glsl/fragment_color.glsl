@@ -7,6 +7,7 @@ uniform bool show_clipping;
 uniform bool show_negative;
 
 uniform mat3 cam_to_apd;
+uniform mat3 cam_to_sRGB;
 
 uniform vec3 m;
 uniform vec3 b;
@@ -82,6 +83,7 @@ void main() {
     color = clip(color, clip_color);
     color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
   } else {
+    color = cam_to_sRGB * color;
     color = log(color) / log(vec3(2.0f));
     color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
   }
