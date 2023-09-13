@@ -143,6 +143,7 @@ export interface AdvancedSettings {
     gamma: number
     facG: number
     facB: number
+    toe_width: number
 }
 
 export interface BWSettings {
@@ -171,6 +172,7 @@ export const defaultSettings: Settings = {
         gamma: 55 / 100,
         facB: 1 / 0.95,
         facG: 1 / 0.92,
+        toe_width: 0.2,
     },
     bw: {
         toe: true,

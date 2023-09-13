@@ -75,86 +75,67 @@ export function getConversionValuesColor(
     settings: AdvancedSettings,
     kind: "normal" | "trichrome" | "density"
 ): ConversionValuesColor {
-    const gamma = [
+    const gamma: Triple = [
         settings.gamma,
         settings.gamma * settings.facG,
         settings.gamma * settings.facB,
     ]
-    const exponent: Triple = [
-        1 / (gamma[0] * 1.818181),
-        1 / (gamma[1] * 1.818181),
-        1 / (gamma[2] * 1.818181),
-    ]
+    const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
 
-    const dminCam: Triple = [
-        settings.dmin[0] / 2 ** 14,
-        settings.dmin[1] / 2 ** 14,
-        settings.dmin[2] / 2 ** 14,
-    ]
-    const dminAPD = toTriple(applyMatrixVector(dminCam, cam_to_APD))
+    const dminCam: Triple = mapTriple((x) => x / 2 ** 14, settings.dmin)
+    const dminAPD = applyCMV(cam_to_APD, dminCam)
 
-    const neutralTargetsRGB = [
-        0.5 * 2 ** settings.exposure,
-        0.5 * 2 ** settings.exposure * settings.green,
-        0.5 * 2 ** settings.exposure * settings.blue,
+    const d: Triple = [
+        settings.toe_width,
+        settings.toe_width,
+        settings.toe_width,
     ]
-    console.log("neutralTargetsRGB", neutralTargetsRGB)
-    const neutralTargetLogE = [
-        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[0]),
-        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[1]),
-        Math.log10(applyMatrixVector(neutralTargetsRGB, sRGB_to_EXP)[2]),
+    console.log(settings.blue, settings.green)
+    const target_neutral_APD: Triple = [
+        -3 + settings.exposure,
+        (-3 + settings.exposure)/settings.green,
+        (-3 + settings.exposure)/settings.blue,
     ]
-    const selectedNeutralCam: Triple = [
-        settings.neutral[0] / 2 ** 14,
-        settings.neutral[1] / 2 ** 14,
-        settings.neutral[2] / 2 ** 14,
-    ]
-    const selectedNeutralAPD = applyMatrixVector(selectedNeutralCam, cam_to_APD)
-    const selectedNeutralDensD = [
-        -Math.log10(selectedNeutralAPD[0] / dminAPD[0]),
-        -Math.log10(selectedNeutralAPD[1] / dminAPD[1]),
-        -Math.log10(selectedNeutralAPD[2] / dminAPD[2]),
-    ]
-    const selectedNeutralDensI = applyMatrixVector(
-        selectedNeutralDensD,
-        cdd_to_cid
+    const selected_neutral_cam = settings.neutral
+    console.log(
+        "selected_neutral_cam",
+        mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
     )
-
-    console.log("selectedNeutralCam", selectedNeutralCam)
-    console.log("dminCam", dminCam)
-    console.log("selectedNeutralDensD", selectedNeutralDensD)
-    console.log("selectedNeutralDensI", selectedNeutralDensI)
-
-    const selectedNeutralLogE = [
-        exponent[0] * (1.818181 * selectedNeutralDensI[0] - 2.0174547676239),
-        exponent[1] * (1.818181 * selectedNeutralDensI[1] - 2.0174547676239),
-        exponent[2] * (1.818181 * selectedNeutralDensI[2] - 2.0174547676239),
+    const selected_neutral_APD = applyCMV(
+        cam_to_APD2,
+        mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
+    )
+    console.log("selected_neutral_APD", selected_neutral_APD)
+    // ms+b=t
+    // b = t - ms
+    const b: Triple = [
+        target_neutral_APD[0] - m[0] * selected_neutral_APD[0],
+        target_neutral_APD[1] - m[1] * selected_neutral_APD[1],
+        target_neutral_APD[2] - m[2] * selected_neutral_APD[2],
     ]
-
-    const factor: Triple = [
-        neutralTargetLogE[0] - selectedNeutralLogE[0],
-        neutralTargetLogE[1] - selectedNeutralLogE[1],
-        neutralTargetLogE[2] - selectedNeutralLogE[2],
-    ]
-    console.log({ exponent: exponent, factor: factor, dmin: dminAPD })
-    return { exponent: exponent, factor: factor, dmin: dminAPD }
+    console.log("x0", [dminAPD[0] + d[0], dminAPD[1] + d[1], dminAPD[2] + d[2]])
+    console.log({ m, b, d, dmin: dminAPD })
+    return {
+        m,
+        b,
+        d,
+        dmin: dminAPD,
+    }
 }
 
 function procesValueColor(
-    color: Triple,
+    colorValue: Triple,
     primary: Primary,
-    mult: number,
-    factor: Triple,
-    exponent: Triple
+    conversionValues: ConversionValuesColor
 ): number {
     // Camera raw to output (sRGB)
     const j = colorOrder[primary]
 
-    const cam_log = mapTriple(Math.log10, color)
+    const cam_log = mapTriple(Math.log10, colorValue)
     const APD = applyCMV(cam_to_APD2, cam_log)
     const exp = paperToExp(APD)
     const inv = mapTriple((x) => 0.2823561717 * 2 ** x, exp)
-    const out = applyCMV(sRGB_to_cam, inv)[j] / mult
+    const out = applyCMV(sRGB_to_cam, inv)[j]
     // const out = inv[colorOrder[main]]
     // return clamp(Math.round(out * 16384 + BLACK), 0, 16383)
     return clamp(out, 0, 1) * 16384
@@ -170,37 +151,20 @@ function invertRawColor(
         // Trichrome
         w = image.R.width
         h = image.R.height
-        wb_coeffs = image.R.wb_coeffs
     } else if ("background" in image) {
         w = image.image.width
         h = image.image.height
-        wb_coeffs = image.image.wb_coeffs
     } else {
         w = image.width
         h = image.height
-        wb_coeffs = image.wb_coeffs
     }
-
-    const wb: Triple = [
-        wb_coeffs[0] / wb_coeffs[1] / 2,
-        1,
-        wb_coeffs[2] / wb_coeffs[1] / 2,
-    ]
-    console.log("wb", wb)
-    const { factor, exponent } = getConversionValuesColor(settings, "normal")
+    const conversion_values = getConversionValuesColor(settings, "normal")
     let out = new Uint16Array(w * h)
 
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, i, j)
-            const mult = wb[colorOrder[main]]
-            out[i + j * w] = procesValueColor(
-                color,
-                main,
-                mult,
-                factor,
-                exponent
-            )
+            out[i + j * w] = procesValueColor(color, main, conversion_values)
         }
     }
     return out
@@ -213,16 +177,12 @@ export function getConversionValuesBw(
         (x) => -Math.log10(x / 2 ** 14) + settings.blackpoint_shift,
         settings.blackpoint
     )
-    console.log("dmin", dmin)
     const m = 1 / (settings.gamma * Math.log10(2))
-    console.log("m", m)
     const d = settings.toe_width
-    console.log("d", d)
 
     const maxDensity = dmin[1] + 1.2
     const b = settings.exposure - m * maxDensity
-    console.log("exposure", settings.exposure)
-    console.log("b", b)
+    console.log({ m, b, d, dmin })
     return { m, b, d, dmin }
 }
 
@@ -298,6 +258,12 @@ function invertRawBW(
                 dmin: dmin[colorIndex],
                 wb_coeff: white_balance[colorIndex],
             })
+            // if (primary == "B") {
+            //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
+            // } else {
+            //     out[i + j * w] = 1016
+            // }
+            // out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
         }
     }
 

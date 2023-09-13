@@ -19,6 +19,11 @@
     let gamma: [number, number] = [0.5, 0]
     let facB: [number, number] = [5, 0]
     let facG: [number, number] = [5, 0]
+    let toe_width: [number, number] = [0.2, 0]
+
+    let show_clipping = false
+    let show_negative = false
+
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
@@ -41,6 +46,9 @@
             gamma,
             facB,
             facG,
+            toe_width,
+            show_clipping,
+            show_negative,
             rotation,
             zoom
         )
@@ -56,6 +64,9 @@
         gamma: [number, number],
         facB: [number, number],
         facG: [number, number],
+        toe_width: [number, number],
+        show_clipping: boolean,
+        show_negative: boolean,
         rotation: number,
         zoom: [number, number, number, number]
     ) {
@@ -70,7 +81,10 @@
                 gamma: gamma[0],
                 facB: m * facB[0] - 5 * m + 1,
                 facG: m * facG[0] - 5 * m + 1,
+                toe_width: toe_width[0],
             }
+            settings.show_clipping = show_clipping
+            settings.show_negative = show_negative
             settings.rotation = rotation
             settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
@@ -87,9 +101,12 @@
             gamma[0] = sets.advanced.gamma
             facG[0] = (sets.advanced.facG - 1 + 5 * m) / m
             facB[0] = (sets.advanced.facB - 1 + 5 * m) / m
+            toe_width[0] = sets.advanced.toe_width
             rotation = sets.rotation
             dmin = sets.advanced.dmin
             neutral = sets.advanced.neutral
+            show_clipping = sets.show_clipping
+            show_negative = sets.show_negative
             zoom = sets.zoom
         }
     }
@@ -122,6 +139,16 @@
 
     factor green: {Math.round((facG[0] - 5) * 100) / 100}
     <Slider bind:value={facG} min="0" max="10" step="0.05" />
+
+    toe width: {Math.round(toe_width[0] * 100) / 100}
+    <Slider bind:value={toe_width} min="0" max="0.5" step="0.01" />
+
+    Show clipping:
+    <input type="checkbox" bind:checked={show_clipping} />
+    <br />
+    Show negative:
+    <input type="checkbox" bind:checked={show_negative} />
+    <br />
 
     <button
         on:click={() => {
