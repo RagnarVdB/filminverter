@@ -93,8 +93,8 @@ export function getConversionValuesColor(
     console.log(settings.blue, settings.green)
     const target_neutral_APD: Triple = [
         -3 + settings.exposure,
-        (-3 + settings.exposure)/settings.green,
-        (-3 + settings.exposure)/settings.blue,
+        (-3 + settings.exposure) / settings.green,
+        (-3 + settings.exposure) / settings.blue,
     ]
     const selected_neutral_cam = settings.neutral
     console.log(
@@ -126,19 +126,24 @@ export function getConversionValuesColor(
 function procesValueColor(
     colorValue: Triple,
     primary: Primary,
-    conversionValues: ConversionValuesColor
+    conversionValues: ConversionValuesColor,
+    wb_coeff: number
 ): number {
     // Camera raw to output (sRGB)
-    const j = colorOrder[primary]
-
-    const cam_log = mapTriple(Math.log10, colorValue)
-    const APD = applyCMV(cam_to_APD2, cam_log)
-    const exp = paperToExp(APD)
-    const inv = mapTriple((x) => 0.2823561717 * 2 ** x, exp)
-    const out = applyCMV(sRGB_to_cam, inv)[j]
-    // const out = inv[colorOrder[main]]
-    // return clamp(Math.round(out * 16384 + BLACK), 0, 16383)
-    return clamp(out, 0, 1) * 16384
+    const i = colorOrder[primary]
+    const { m, b, d, dmin } = conversionValues
+    const APD = applyCMV(
+        cam_to_APD2,
+        mapTriple((x) => -Math.log10(x), colorValue)
+    )
+    const exp: Triple = [
+        pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
+        pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
+        pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
+    ]
+    const rawValue = 2 ** exp[i] / wb_coeff
+    // const rawValue = 0.3 / wb_coeff
+    return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
 function invertRawColor(
@@ -146,25 +151,34 @@ function invertRawColor(
     settings: AdvancedSettings
 ): Uint16Array {
     let w: number, h: number
-    let wb_coeffs: number[]
+    let wb
     if ("R" in image) {
         // Trichrome
         w = image.R.width
         h = image.R.height
+        wb = image.R.wb_coeffs
     } else if ("background" in image) {
         w = image.image.width
         h = image.image.height
+        wb = image.image.wb_coeffs
     } else {
         w = image.width
         h = image.height
+        wb = image.wb_coeffs
     }
+    const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const conversion_values = getConversionValuesColor(settings, "normal")
     let out = new Uint16Array(w * h)
 
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, i, j)
-            out[i + j * w] = procesValueColor(color, main, conversion_values)
+            out[i + j * w] = procesValueColor(
+                color,
+                main,
+                conversion_values,
+                wb_coeffs[colorOrder[main]]
+            )
         }
     }
     return out
