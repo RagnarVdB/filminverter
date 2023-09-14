@@ -36,12 +36,14 @@ interface ConversionValuesColor {
     b: Triple
     d: Triple
     dmin: Triple
+    invert_toe: boolean
 }
 interface ConversionValuesBw {
     m: number
     b: number
     d: number
     dmin: Triple
+    invert_toe: boolean
 }
 
 type LutSets = [number, number, number, number]
@@ -120,6 +122,7 @@ export function getConversionValuesColor(
         b,
         d,
         dmin: dminAPD,
+        invert_toe: settings.toe,
     }
 }
 
@@ -131,18 +134,22 @@ function procesValueColor(
 ): number {
     // Camera raw to output (sRGB)
     const i = colorOrder[primary]
-    const { m, b, d, dmin } = conversionValues
+    const { m, b, d, dmin, invert_toe } = conversionValues
     const APD = applyCMV(
         cam_to_APD2,
         mapTriple((x) => -Math.log10(x), colorValue)
     )
-    const exp: Triple = [
-        pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
-        pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
-        pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
-    ]
+    let exp: Triple
+    if (invert_toe) {
+        exp = [
+            pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
+            pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
+            pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
+        ]
+    } else {
+        exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
+    }
     const rawValue = 2 ** exp[i] / wb_coeff
-    // const rawValue = 0.3 / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
@@ -196,8 +203,9 @@ export function getConversionValuesBw(
 
     const maxDensity = dmin[1] + 1.2
     const b = settings.exposure - m * maxDensity
+    const invert_toe = settings.toe
     console.log({ m, b, d, dmin })
-    return { m, b, d, dmin }
+    return { m, b, d, dmin, invert_toe }
 }
 
 export function invertJS(
@@ -227,14 +235,16 @@ function processColorValueBw(
         b: number
         d: number
         dmin: number
-        wb_coeff: number
-    }
+        invert_toe: boolean
+    },
+    wb_coeff: number
 ): number {
-    const { m, b, d, dmin, wb_coeff } = conversionValues
+    const { m, b, d, dmin, invert_toe } = conversionValues
     const density = -Math.log10(colorValue)
-    const exp = pteCurve(density, [m, b, d, dmin])
+    const exp = invert_toe
+        ? pteCurve(density, [m, b, d, dmin])
+        : m * density + b
     const rawValue = 2 ** exp / wb_coeff
-    // const rawValue = 0.3 / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
@@ -251,7 +261,7 @@ function invertRawBW(
         : [image.width, image.height]
     const cfa = withBackground ? image.image.cfa : image.cfa
 
-    const { m, b, d, dmin } = getConversionValuesBw(settings)
+    const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings)
     let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
     console.log("wb2", wb)
     const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
@@ -265,13 +275,17 @@ function invertRawBW(
                 ? getTransmittanceBg(image, primary, i, j)
                 : getTransmittanceNormal(image, primary, i, j)
 
-            out[i + j * w] = processColorValueBw(color_value, {
-                m,
-                b,
-                d,
-                dmin: dmin[colorIndex],
-                wb_coeff: white_balance[colorIndex],
-            })
+            out[i + j * w] = processColorValueBw(
+                color_value,
+                {
+                    m,
+                    b,
+                    d,
+                    dmin: dmin[colorIndex],
+                    invert_toe,
+                },
+                white_balance[colorIndex]
+            )
             // if (primary == "B") {
             //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
             // } else {
