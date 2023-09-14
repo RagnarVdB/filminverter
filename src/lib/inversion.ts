@@ -84,8 +84,10 @@ export function getConversionValuesColor(
     ]
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
 
-    const dminCam: Triple = mapTriple((x) => x / 2 ** 14, settings.dmin)
-    const dminAPD = applyCMV(cam_to_APD, dminCam)
+    const dminAPD = applyCMV(
+        cam_to_APD2,
+        mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
+    )
 
     const d: Triple = [
         settings.toe_width,
