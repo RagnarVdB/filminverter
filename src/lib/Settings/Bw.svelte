@@ -100,7 +100,7 @@
     <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
     gamma: {Math.round(gamma[0] * 100) / 100}
-    <Slider bind:value={gamma} min="0" max="1" step="0.01" />
+    <Slider bind:value={gamma} min="0" max="1.3" step="0.01" />
 
     toe width: {Math.round(toe_width[0] * 100) / 100}
     <Slider bind:value={toe_width} min="0" max="0.5" step="0.01" />
