@@ -74,8 +74,7 @@ function paperToExp(color: Triple): Triple {
 }
 
 export function getConversionValuesColor(
-    settings: AdvancedSettings,
-    kind: "normal" | "trichrome" | "density"
+    settings: AdvancedSettings
 ): ConversionValuesColor {
     const gamma: Triple = [
         settings.gamma,
@@ -176,7 +175,7 @@ function invertRawColor(
         wb = image.wb_coeffs
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const conversion_values = getConversionValuesColor(settings, "normal")
+    const conversion_values = getConversionValuesColor(settings)
     let out = new Uint16Array(w * h)
 
     for (let i = 0; i < w; i++) {
@@ -251,12 +250,9 @@ function processColorValueBw(
 }
 
 function invertRawBW(
-    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    image: LoadedImage | Bg<LoadedImage>,
     settings: BWSettings
 ): Uint16Array {
-    if ("R" in image) {
-        throw new Error("BW not implemented for trichrome")
-    }
     const withBackground = "background" in image
     const [w, h] = withBackground
         ? [image.image.width, image.image.height]
@@ -305,6 +301,9 @@ export function invertRaw(
     settings: Settings
 ): Uint16Array {
     if (settings.mode == "bw") {
+        if ("R" in image) {
+            throw new Error("BW not supported for trichrome")
+        }
         return invertRawBW(image, settings.bw)
     } else {
         return invertRawColor(image, settings.advanced)

@@ -111,7 +111,7 @@ function getShaderParamsColor(
         transpose(sRGB_to_cam),
     ]
 
-    const { m, b, d, dmin } = getConversionValuesColor(settings, kind)
+    const { m, b, d, dmin } = getConversionValuesColor(settings)
 
     const parameters: WebGLArgument<any[]>[] = [
         {
