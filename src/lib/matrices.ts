@@ -139,7 +139,18 @@ export const cam_to_sRGB: ColorMatrix = multiplyColorMatrices(
 )
 
 export const cam_to_sRGB2: ColorMatrix = {
-    matrix: [0.97672423, 0, 0.02327577, 0, 1, 0, 0.05195731, 0, 0.94804269],
+    matrix: [
+        0.78757494, 0.20892112, 0.00350394, 0, 1, 0, 0.09893997, 0, 0.90106003,
+    ],
+    n: 3,
+    m: 3,
+}
+
+export const sRGB_to_cam2: ColorMatrix = {
+    matrix: [
+        1.27034103, -0.26540106, -0.00493996, 0, 1, 0, -0.13948849, 0.02914209,
+        1.1103464,
+    ],
     n: 3,
     m: 3,
 }

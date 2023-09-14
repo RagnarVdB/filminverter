@@ -19,6 +19,7 @@ import {
     cdd_to_cid,
     sRGB_to_EXP,
     sRGB_to_cam,
+    sRGB_to_cam2,
 } from "./matrices"
 import {
     applyCMV,
@@ -150,7 +151,8 @@ function procesValueColor(
     } else {
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
-    const rawValue = 2 ** exp[i] / wb_coeff
+    const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
+    const rawValue = applyCMV(sRGB_to_cam2, rawValuesRGB)[i] / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
