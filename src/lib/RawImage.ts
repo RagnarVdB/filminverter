@@ -156,14 +156,14 @@ export interface BWSettings {
 }
 
 export const defaultSettings: Settings = {
-    mode: "bw",
+    mode: "advanced",
     rotation: 0,
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
     show_clipping: false,
     show_negative: false,
     advanced: {
-        toe: false,
+        toe: true,
         dmin: [7662, 2939, 1711],
         neutral: [3300, 730, 320],
         exposure: 0,
