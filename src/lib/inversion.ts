@@ -138,7 +138,7 @@ function procesValueColor(
     }
     const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
     const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
-    return clamp(rawValue * 16384 + BLACK, 0, 16384)
+    return clamp(rawValue * 16384 + BLACK, 1016, 16384)
 }
 
 function invertRawColor(
@@ -175,6 +175,39 @@ function invertRawColor(
                 wb_coeffs[colorOrder[main]]
             )
         }
+    }
+    return out
+}
+
+export function invertJSColor(
+    im: Uint16Array,
+    conversion_values: ConversionValuesColor
+): Uint16Array {
+    const { m, b, d, dmin, invert_toe } = conversion_values
+    const out = new Uint16Array(im.length)
+    for (let i = 0; i < im.length; i += 4) {
+        const colorValue: Triple = [im[i]/2**14, im[i + 1]/2**14, im[i + 2]/2**14]
+        const APD = applyCMV(
+            cam_to_APD,
+            mapTriple((x) => -Math.log10(x), colorValue)
+        )
+        let exp: Triple
+        if (invert_toe) {
+            exp = [
+                pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
+                pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
+                pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
+            ]
+        } else {
+            exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
+        }
+        const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
+        const rawValue = applyCMV(sRGB_to_cam, rawValuesRGB)
+        out[i] = rawValue[0] * 16384
+        out[i + 1] = rawValue[1] * 16384
+        out[i + 2] = rawValue[2] * 16384
+        out[i + 3] = 2**16-1
+
     }
     return out
 }
@@ -233,7 +266,7 @@ function processColorValueBw(
         ? pteCurve(density, [m, b, d, dmin])
         : m * density + b
     const rawValue = 2 ** exp / wb_coeff
-    return clamp(rawValue * 16384 + BLACK, 0, 16384)
+    return clamp(rawValue * 16384 + BLACK, BLACK, 16384)
 }
 
 function invertRawBW(
