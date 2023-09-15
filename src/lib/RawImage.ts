@@ -334,7 +334,7 @@ function getColorValueTrich(
     const w = images.R.width,
         h = images.G.height
     let color: Triple = [0, 0, 0]
-    let pixelCounts: Triple = [1, 1, 1]
+    let pixelCounts: Triple = [0, 0, 0] // !!!!
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = getTransmittanceTrich(images, main, x, y)
     pixelCounts[colorOrder[main]] = 1
