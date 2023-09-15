@@ -309,23 +309,26 @@ export function getTransmittanceBg(
 // }
 
 function getTransmittanceTrich(
-    images: Trich<RawImage>,
+    images: Trich<LoadedImage>,
     color: Primary,
     x: number,
     y: number
 ): number {
     const w = images.R.width
     const im = images[color].image
+    const wbim = images[color].wb_coeffs[colorOrder[color]]
     const bg = images[bgMap[color]].image
+    const wbbg = images[bgMap[color]].wb_coeffs[colorOrder[color]]
+
+    const expf = EXPFAC[colorOrder[color]]
     return (
-        (im[x + y * w] - BLACK) /
-        (bg[x + y * w] - BLACK) /
-        EXPFAC[colorOrder[color]]
+        ((im[x + y * w] - BLACK) * wbim) /
+        ((bg[x + y * w] - BLACK) * wbbg * expf)
     )
 }
 
 function getColorValueTrich(
-    images: Trich<RawImage>,
+    images: Trich<LoadedImage>,
     cfa: CFA,
     x: number,
     y: number
