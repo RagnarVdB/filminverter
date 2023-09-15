@@ -1,5 +1,5 @@
 import type { BgPrimary, Matrix, Primary, Triple } from "./utils"
-import { applyMatrixVector, bgMap, clamp, colorOrder } from "./utils"
+import { bgMap, clamp, colorOrder } from "./utils"
 
 export const BLACK = 1016
 
@@ -162,16 +162,28 @@ export const defaultSettings: Settings = {
     zoom: [1, 1, 0, 0],
     show_clipping: false,
     show_negative: false,
+    // advanced: {
+    //     toe: true,
+    //     dmin: [7662, 2939, 1711],
+    //     neutral: [3300, 730, 320],
+    //     exposure: 0,
+    //     blue: 1,
+    //     green: 1,
+    //     gamma: 55 / 100,
+    //     facB: 1 / 0.95,
+    //     facG: 1 / 0.92,
+    //     toe_width: 0.2,
+    // },
     advanced: {
         toe: true,
-        dmin: [7662, 2939, 1711],
-        neutral: [3300, 730, 320],
+        dmin: [8095.31544484, 3665.59541026, 1374.89984444],
+        neutral: [3056.71285224, 803.6156655, 306.00721302],
         exposure: 0,
         blue: 1,
         green: 1,
-        gamma: 55 / 100,
-        facB: 1 / 0.95,
-        facG: 1 / 0.92,
+        gamma: 0.32205979551619918,
+        facB: 1.3271265740337725,
+        facG: 1.8006974576362722,
         toe_width: 0.2,
     },
     bw: {
@@ -243,9 +255,9 @@ export function getTransmittanceNormal(
     const wb_coeffs = image.wb_coeffs
     const wb = [wb_coeffs[0] / wb_coeffs[1], 1, wb_coeffs[2] / wb_coeffs[1]]
     const color_index = colorOrder[primary]
-    return (image.image[x + y * w] - BLACK) * wb[color_index] / 2**14
+    return ((image.image[x + y * w] - BLACK) * wb[color_index]) / 2 ** 14
 }
-    
+
 export function getTransmittanceBg(
     images: Bg<LoadedImage>,
     primary: Primary,

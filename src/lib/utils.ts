@@ -7,7 +7,7 @@ export interface Matrix {
     n: number // naar
     m: number // van
 }
-export interface ColorMatrix{
+export interface ColorMatrix {
     matrix: number[]
     n: 3 // naar
     m: 3 // van
@@ -23,7 +23,6 @@ export const bgMap: { [Key in Primary]: BgPrimary } = {
     G: "BG",
     B: "BB",
 }
-
 
 export function mapTriple(f: (x: number) => number, x: Triple): Triple {
     return [f(x[0]), f(x[1]), f(x[2])]
@@ -153,6 +152,19 @@ export function applyCMV(matrix: ColorMatrix, vec: Triple): Triple {
             vec
         ).reduce((acc, val) => acc + val[0] * val[1], 0)
     }
+    return result
+}
+
+export function applyCMVRow(
+    matrix: ColorMatrix,
+    vec: Triple,
+    primary: Primary
+): number {
+    const i = colorOrder[primary]
+    const result = zip(
+        Array.from(matrix.matrix).slice(i * 3, (i + 1) * 3),
+        vec
+    ).reduce((acc, val) => acc + val[0] * val[1], 0)
     return result
 }
 

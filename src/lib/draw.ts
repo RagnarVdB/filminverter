@@ -5,7 +5,7 @@ import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
 import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
-import { cam_to_APD2, cam_to_sRGB, cam_to_sRGB2, sRGB_to_cam } from "./matrices"
+import { cam_to_APD, cam_to_sRGB } from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
 import { transpose } from "./utils"
 
@@ -105,12 +105,6 @@ function getShaderParamsColor(
     settings: AdvancedSettings,
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    const [matr1, matr2, matr3] = [
-        transpose(cam_to_APD2),
-        transpose(cam_to_sRGB),
-        transpose(sRGB_to_cam),
-    ]
-
     const { m, b, d, dmin } = getConversionValuesColor(settings)
 
     const parameters: WebGLArgument<any[]>[] = [
@@ -122,12 +116,12 @@ function getShaderParamsColor(
         {
             name: "cam_to_apd",
             f: gl.uniformMatrix3fv,
-            data: [false, transpose(cam_to_APD2).matrix],
+            data: [false, transpose(cam_to_APD).matrix],
         },
         {
             name: "cam_to_sRGB",
             f: gl.uniformMatrix3fv,
-            data: [false, transpose(cam_to_sRGB2).matrix],
+            data: [false, transpose(cam_to_sRGB).matrix],
         },
         { name: "m", f: gl.uniform3f, data: m },
         { name: "b", f: gl.uniform3f, data: b },

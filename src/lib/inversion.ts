@@ -13,22 +13,8 @@ import {
     getTransmittanceBg,
     getTransmittanceNormal,
 } from "./RawImage"
-import {
-    cam_to_APD,
-    cam_to_APD2,
-    cdd_to_cid,
-    sRGB_to_EXP,
-    sRGB_to_cam,
-    sRGB_to_cam2,
-} from "./matrices"
-import {
-    applyCMV,
-    applyMatrixVector,
-    clamp,
-    colorOrder,
-    mapTriple,
-    toTriple,
-} from "./utils"
+import { cam_to_APD, sRGB_to_cam } from "./matrices"
+import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
 
 import type { Primary, Triple } from "./utils"
 
@@ -85,7 +71,7 @@ export function getConversionValuesColor(
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
 
     const dminAPD = applyCMV(
-        cam_to_APD2,
+        cam_to_APD,
         mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
     )
 
@@ -106,7 +92,7 @@ export function getConversionValuesColor(
         mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
     )
     const selected_neutral_APD = applyCMV(
-        cam_to_APD2,
+        cam_to_APD,
         mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
     )
     console.log("selected_neutral_APD", selected_neutral_APD)
@@ -135,10 +121,9 @@ function procesValueColor(
     wb_coeff: number
 ): number {
     // Camera raw to output (sRGB)
-    const i = colorOrder[primary]
     const { m, b, d, dmin, invert_toe } = conversionValues
     const APD = applyCMV(
-        cam_to_APD2,
+        cam_to_APD,
         mapTriple((x) => -Math.log10(x), colorValue)
     )
     let exp: Triple
@@ -152,7 +137,7 @@ function procesValueColor(
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
     const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
-    const rawValue = applyCMV(sRGB_to_cam2, rawValuesRGB)[i] / wb_coeff
+    const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 0, 16384)
 }
 
