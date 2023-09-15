@@ -215,7 +215,7 @@ export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
 }
 
 function getColorValueSingle(
-    image: RawImage,
+    image: LoadedImage,
     cfa: CFA,
     x: number,
     y: number
@@ -226,23 +226,21 @@ function getColorValueSingle(
     let pixelCounts: Triple = [0, 0, 0]
     const main = getCFAValue(cfa, x, y)
     color[colorOrder[main]] = image.image[x + y * w]
+    color[colorOrder[main]] = getTransmittanceNormal(image, main, x, y)
     pixelCounts[colorOrder[main]] = 1
     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
             const c = getCFAValue(cfa, i, j)
             if (c !== main) {
-                color[colorOrder[c]] +=
-                    image.image[i + j * w] - pixelCounts[colorOrder[c]]++
+                color[colorOrder[c]] += getTransmittanceNormal(image, c, i, j)
+                pixelCounts[colorOrder[c]]++
             }
         }
     }
     color[0] /= pixelCounts[0]
     color[1] /= pixelCounts[1]
     color[2] /= pixelCounts[2]
-    return {
-        main,
-        color,
-    }
+    return { main, color }
 }
 
 export function getTransmittanceNormal(
@@ -264,16 +262,16 @@ export function getTransmittanceBg(
     x: number,
     y: number
 ): number {
-    const w = images.image.width
-    const wbb = images.background.wb_coeffs
-    const wbi = images.image.wb_coeffs
-    const wb_factor = [wbi[0] / wbb[0], wbi[1] / wbb[1], wbi[2] / wbb[2]]
     const color_index = colorOrder[primary]
+    const w = images.image.width
+    const wbb = images.background.wb_coeffs[color_index]
+    const wbi = images.image.wb_coeffs[color_index]
+    const wb_factor = wbi / wbb
     return (
         ((images.image.image[x + y * w] - BLACK) /
             (images.background.image[x + y * w] - BLACK) /
             images.expfac) *
-        wb_factor[color_index]
+        wb_factor
     )
 }
 
