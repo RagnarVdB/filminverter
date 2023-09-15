@@ -30,7 +30,6 @@
     export let settings: Settings
 
     const m = 1 / 5
-    const m2 = 1 / 3
 
     $: {
         updateSliders(settings)
@@ -76,13 +75,14 @@
                 dmin: dmin,
                 neutral: neutral,
                 exposure: exposure[0] - 5,
-                blue: m2 * blue[0] - 5 * m2 + 1,
-                green: m2 * green[0] - 5 * m2 + 1,
+                blue: blue[0] - 2,
+                green: green[0] - 2,
                 gamma: gamma[0],
                 facB: m * facB[0] - 5 * m + 1,
                 facG: m * facG[0] - 5 * m + 1,
                 toe_width: toe_width[0],
             }
+            console.log("settings", settings.advanced)
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.rotation = rotation
@@ -96,8 +96,8 @@
         if (sets.rotation != rotation || sets.zoom != zoom) {
             toe = sets.advanced.toe
             exposure[0] = sets.advanced.exposure + 5
-            blue[0] = (sets.advanced.blue - 1 + 5 * m2) / m2
-            green[0] = (sets.advanced.green - 1 + 5 * m2) / m2
+            blue[0] = sets.advanced.blue + 2
+            green[0] = sets.advanced.green + 2
             gamma[0] = sets.advanced.gamma
             facG[0] = (sets.advanced.facG - 1 + 5 * m) / m
             facB[0] = (sets.advanced.facB - 1 + 5 * m) / m
@@ -125,11 +125,11 @@
     exposure: {Math.round((exposure[0] - 5) * 100) / 100}
     <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
-    blue: {Math.round((blue[0] - 5) * 100) / 100}
-    <Slider bind:value={blue} min="0" max="10" step="0.05" />
+    blue: {Math.round((blue[0] - 2) * 100) / 100}
+    <Slider bind:value={blue} min="0" max="4" step="0.05" />
 
-    green: {Math.round((green[0] - 5) * 100) / 100}
-    <Slider bind:value={green} min="0" max="10" step="0.05" />
+    green: {Math.round((green[0] - 2) * 100) / 100}
+    <Slider bind:value={green} min="0" max="4" step="0.05" />
 
     gamma: {Math.round(gamma[0] * 100) / 100}
     <Slider bind:value={gamma} min="0" max="1" step="0.01" />

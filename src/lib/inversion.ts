@@ -83,8 +83,8 @@ export function getConversionValuesColor(
     console.log(settings.blue, settings.green)
     const target_neutral_APD: Triple = [
         -3 + settings.exposure,
-        (-3 + settings.exposure) / settings.green,
-        (-3 + settings.exposure) / settings.blue,
+        -3 + settings.exposure + settings.green,
+        -3 + settings.exposure + settings.blue,
     ]
     const selected_neutral_cam = settings.neutral
     console.log(
@@ -196,7 +196,7 @@ export function getConversionValuesBw(
     return { m, b, d, dmin, invert_toe }
 }
 
-export function invertJS(
+export function invertJSBW(
     im: Uint16Array,
     conversionValues: ConversionValuesBw
 ): Uint16Array {
