@@ -359,31 +359,13 @@ export function loadTrichrome(
     const out = new Uint16Array(N * 4)
     const max = 2 ** 14
     for (let i = 0; i < N; i++) {
-        const r =
-            trichImages.R.image[i * 4] +
-            trichImages.R.image[i * 4 + 1] +
-            trichImages.R.image[i * 4 + 2]
-        const g =
-            trichImages.G.image[i * 4] +
-            trichImages.G.image[i * 4 + 1] +
-            trichImages.G.image[i * 4 + 2]
-        const b =
-            trichImages.B.image[i * 4] +
-            trichImages.B.image[i * 4 + 1] +
-            trichImages.B.image[i * 4 + 2]
+        const r = trichImages.R.image[i * 4]
+        const g = trichImages.G.image[i * 4 + 1]
+        const b = trichImages.B.image[i * 4 + 2]
 
-        const br =
-            trichImages.BR.image[i * 4] +
-            trichImages.BR.image[i * 4 + 1] +
-            trichImages.BR.image[i * 4 + 2]
-        const bg =
-            trichImages.BG.image[i * 4] +
-            trichImages.BG.image[i * 4 + 1] +
-            trichImages.BG.image[i * 4 + 2]
-        const bb =
-            trichImages.BB.image[i * 4] +
-            trichImages.BB.image[i * 4 + 1] +
-            trichImages.BB.image[i * 4 + 2]
+        const br = trichImages.BR.image[i * 4]
+        const bg = trichImages.BG.image[i * 4 + 1]
+        const bb = trichImages.BB.image[i * 4 + 2]
 
         out[i * 4 + 0] = clamp((r / (br * EXPFAC[0])) * max, 0, max)
         out[i * 4 + 1] = clamp((g / (bg * EXPFAC[1])) * max, 0, max)
