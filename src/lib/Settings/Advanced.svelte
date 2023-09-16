@@ -78,8 +78,8 @@
                 blue: blue[0] - 2,
                 green: green[0] - 2,
                 gamma: gamma[0],
-                facB: m * facB[0] - 5 * m + 1,
-                facG: m * facG[0] - 5 * m + 1,
+                facB: m * facB[0] - 4 * m + 1,
+                facG: m * facG[0] - 3 * m + 1,
                 toe_width: toe_width[0],
             }
             console.log("settings", settings.advanced)
@@ -99,8 +99,8 @@
             blue[0] = sets.advanced.blue + 2
             green[0] = sets.advanced.green + 2
             gamma[0] = sets.advanced.gamma
-            facG[0] = (sets.advanced.facG - 1 + 5 * m) / m
-            facB[0] = (sets.advanced.facB - 1 + 5 * m) / m
+            facB[0] = (sets.advanced.facB - 1 + 4 * m) / m
+            facG[0] = (sets.advanced.facG - 1 + 3 * m) / m
             toe_width[0] = sets.advanced.toe_width
             rotation = sets.rotation
             dmin = sets.advanced.dmin
@@ -126,18 +126,18 @@
     <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
     blue: {Math.round((blue[0] - 2) * 100) / 100}
-    <Slider bind:value={blue} min="0" max="4" step="0.05" />
+    <Slider bind:value={blue} min="0" max="4" step="0.01" />
 
     green: {Math.round((green[0] - 2) * 100) / 100}
-    <Slider bind:value={green} min="0" max="4" step="0.05" />
+    <Slider bind:value={green} min="0" max="4" step="0.01" />
 
     gamma: {Math.round(gamma[0] * 100) / 100}
     <Slider bind:value={gamma} min="0" max="1" step="0.01" />
 
-    factor blue: {Math.round((facB[0] - 5) * 100) / 100}
+    factor blue: {Math.round((facB[0] - 4) * 100) / 100}
     <Slider bind:value={facB} min="0" max="10" step="0.05" />
 
-    factor green: {Math.round((facG[0] - 5) * 100) / 100}
+    factor green: {Math.round((facG[0] - 3) * 100) / 100}
     <Slider bind:value={facG} min="0" max="10" step="0.05" />
 
     toe width: {Math.round(toe_width[0] * 100) / 100}
