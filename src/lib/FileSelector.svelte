@@ -144,7 +144,7 @@
     <p>Background image exposure compensation:</p>
     <input type="number" bind:value={expfac} />
 
-    <p>Trichrome image exposure compensation</p>
+    <p>Trichrome image exposure compensation:</p>
     <input type="number" bind:value={expfac_trich_R}>
     <input type="number" bind:value={expfac_trich_G}>
     <input type="number" bind:value={expfac_trich_B}>
