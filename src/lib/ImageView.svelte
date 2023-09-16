@@ -30,21 +30,30 @@
 
     function setSize(image: ProcessedImage) {
         if (!canvas) return
+        const dpr = window.devicePixelRatio || 1
         let imRatio =
             (image.width * image.settings.zoom[0]) /
             (image.height * image.settings.zoom[1])
         if (image.settings.rotation == 1 || image.settings.rotation == 3) {
             imRatio = 1 / imRatio
         }
-        const wrapperRatio = wrapper.clientWidth / wrapper.clientHeight
+        const { width, height } = wrapper.getBoundingClientRect()
+        const wrapperRatio = width / height
         console.log(imRatio, wrapperRatio)
         if (imRatio > wrapperRatio) {
-            canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientWidth / imRatio
+            canvas.width = Math.round(width * dpr)
+            canvas.style.width = width + "px"
+            canvas.height = Math.round((width / imRatio) * dpr)
+            canvas.style.height = width / imRatio + "px"
         } else {
-            canvas.height = wrapper.clientHeight
-            canvas.width = wrapper.clientHeight * imRatio
+            canvas.height = Math.round(height * dpr)
+            canvas.style.height = height + "px"
+            canvas.width = Math.round(height * imRatio * dpr)
+            canvas.style.width = height * imRatio + "px"
         }
+        // const ct = canvas.getContext("webgl2")
+        // if (!ct) throw new Error("WebGL2 not supported")
+        // ct.scale()
     }
 
     function rotateHandle(image: ProcessedImage) {
@@ -134,5 +143,7 @@
         margin: auto;
         padding: none;
         flex-grow: 0;
+        /* width: 100%;
+        height: 100%; */
     }
 </style>

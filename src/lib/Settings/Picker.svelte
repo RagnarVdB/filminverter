@@ -16,8 +16,9 @@
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
         console.log("mouse", mouseX, mouseY)
-        const x_canvas = mouseX / $canvas.width
-        const y_canvas = mouseY / $canvas.height
+        const dpr = window.devicePixelRatio || 1
+        const x_canvas = mouseX / Math.round(($canvas.width / dpr))
+        const y_canvas = mouseY / Math.round(($canvas.height / dpr))
 
         const [x_im, y_im] = applyRotationAndZoom(
             x_canvas,
