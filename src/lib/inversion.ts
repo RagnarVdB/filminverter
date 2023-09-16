@@ -61,8 +61,10 @@ function paperToExp(color: Triple): Triple {
 }
 
 export function getConversionValuesColor(
-    settings: AdvancedSettings
+    settings: AdvancedSettings,
+    kind: "normal" | "trichrome" | "density"
 ): ConversionValuesColor {
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
     const gamma: Triple = [
         settings.gamma,
         settings.gamma * settings.facG,
@@ -71,7 +73,7 @@ export function getConversionValuesColor(
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
 
     const dminAPD = applyCMV(
-        trich_to_APD,
+        APD_matrix,
         mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
     )
 
@@ -92,7 +94,7 @@ export function getConversionValuesColor(
         mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
     )
     const selected_neutral_APD = applyCMV(
-        trich_to_APD,
+        APD_matrix,
         mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
     )
     console.log("selected_neutral_APD", selected_neutral_APD)
@@ -169,7 +171,7 @@ function invertRawColor(
         kind = "normal"
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const conversion_values = getConversionValuesColor(settings)
+    const conversion_values = getConversionValuesColor(settings, kind)
     let out = new Uint16Array(w * h)
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {

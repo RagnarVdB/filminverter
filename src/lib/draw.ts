@@ -105,7 +105,7 @@ function getShaderParamsColor(
     settings: AdvancedSettings,
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    const { m, b, d, dmin } = getConversionValuesColor(settings)
+    const { m, b, d, dmin } = getConversionValuesColor(settings, kind)
 
     const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
 
