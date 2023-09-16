@@ -8,6 +8,8 @@ uniform bool show_negative;
 
 uniform mat3 cam_to_apd;
 uniform mat3 cam_to_sRGB;
+// uniform mat3 cdd_to_cid;
+// uniform mat3 exp_to_sRGBMatrix;
 
 uniform vec3 m;
 uniform vec3 b;
@@ -75,6 +77,7 @@ void main() {
 
   if(!show_negative) {
     color = - cam_to_apd * log(color) / log(vec3(10.0f)); // Density
+    // color = cdd_to_cid * color;
     if(toe) {
       color = paper_to_exp(color); // Paper
     } else {
@@ -82,7 +85,10 @@ void main() {
     }
     color = clip(color, clip_color);
     color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
+    // color = exp_to_sRGBMatrix * color;
   } else {
+    // color = cdd_to_cid * color;
+    // color = exp_to_sRGBMatrix * color;
     color = cam_to_sRGB * color;
     color = log(color) / log(vec3(2.0f));
     color = clip(color, clip_color);
