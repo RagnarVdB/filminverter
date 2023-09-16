@@ -59,6 +59,14 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
     }
 }
 
+export async function allPromisesTrich<T>(
+    o: Trich<Promise<T>>
+): Promise<Trich<T>> {
+    const { expfac: _, ...rest } = o
+    const resolved = await allPromises(rest)
+    return { ...resolved, expfac: o.expfac }
+}
+
 export interface RawImage {
     image: Uint16Array // RAW
     width: number

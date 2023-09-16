@@ -2,10 +2,9 @@ import init, {
     decode_image,
     Image as WasmImage,
 } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { mapTrich } from "./RawImage"
+import { allPromisesTrich, mapTrich } from "./RawImage"
 import { invertRaw } from "./inversion"
 import type { ProcessedImage, LoadedImage } from "./RawImage"
-import { allPromises } from "./utils.js"
 import { read_file, loadImage } from "./wasm_loader.js"
 
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
@@ -34,7 +33,7 @@ onmessage = async function (e) {
             filename = image.filename
         } else if (image.kind == "trichrome") {
             const xs = mapTrich(getRawImage, image.files)
-            const raws = await allPromises(xs)
+            const raws = await allPromisesTrich(xs)
             const newArr = invertRaw(
                 mapTrich((raw) => raw[1], raws),
                 image.settings
