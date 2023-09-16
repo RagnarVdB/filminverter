@@ -1,5 +1,5 @@
 import type { BgPrimary, Matrix, Primary, Triple } from "./utils"
-import { bgMap, clamp, colorOrder } from "./utils"
+import { allPromises, bgMap, clamp, colorOrder } from "./utils"
 
 export const BLACK = 1016
 
@@ -307,36 +307,36 @@ export function getTransmittanceBg(
     )
 }
 
-// function getColorValueBg(
-//     image: Bg<LoadedImage>,
-//     cfa: CFA,
-//     x: number,
-//     y: number
-// ): { main: Primary; color: Triple } {
-//     const w = image.image.width,
-//         h = image.image.height
-//     let color: Triple = [0, 0, 0]
-//     let pixelCounts: Triple = [0, 0, 0]
-//     const main = getCFAValue(cfa, x, y)
-//     color[colorOrder[main]] = getTransmittanceBg(image, x, y)
-//     pixelCounts[colorOrder[main]] = 1
-//     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
-//         for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
-//             const c = getCFAValue(cfa, i, j)
-//             if (c !== main) {
-//                 color[colorOrder[c]] += getTransmittanceBg(image, i, j)
-//                 pixelCounts[colorOrder[c]]++
-//             }
-//         }
-//     }
-//     color[0] /= pixelCounts[0]
-//     color[1] /= pixelCounts[1]
-//     color[2] /= pixelCounts[2]
-//     return {
-//         main,
-//         color,
-//     }
-// }
+function getColorValueBg(
+    image: Bg<LoadedImage>,
+    cfa: CFA,
+    x: number,
+    y: number
+): { main: Primary; color: Triple } {
+    const w = image.image.width,
+        h = image.image.height
+    let color: Triple = [0, 0, 0]
+    let pixelCounts: Triple = [0, 0, 0]
+    const main = getCFAValue(cfa, x, y)
+    color[colorOrder[main]] = getTransmittanceBg(image, main, x, y)
+    pixelCounts[colorOrder[main]] = 1
+    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
+            const c = getCFAValue(cfa, i, j)
+            if (c !== main) {
+                color[colorOrder[c]] += getTransmittanceBg(image, c, i, j)
+                pixelCounts[colorOrder[c]]++
+            }
+        }
+    }
+    color[0] /= pixelCounts[0]
+    color[1] /= pixelCounts[1]
+    color[2] /= pixelCounts[2]
+    return {
+        main,
+        color,
+    }
+}
 
 function getTransmittanceTrich(
     images: Trich<LoadedImage>,
@@ -462,7 +462,7 @@ export function getColorValue(
         return getColorValueTrich(image, image.R.cfa, x, y)
     } else if ("background" in image) {
         //     return getColorValueBg(image, image.image.cfa, x, y)
-        throw new Error("Not implemented")
+        return getColorValueBg(image, image.image.cfa, x, y)
     } else {
         return getColorValueSingle(image, image.cfa, x, y)
     }

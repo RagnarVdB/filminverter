@@ -13,7 +13,7 @@ import {
     getTransmittanceBg,
     getTransmittanceNormal,
 } from "./RawImage"
-import { cam_to_APD, sRGB_to_cam } from "./matrices"
+import { trich_to_APD, sRGB_to_cam, single_to_APD } from "./matrices"
 import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
 
 import type { Primary, Triple } from "./utils"
@@ -71,7 +71,7 @@ export function getConversionValuesColor(
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
 
     const dminAPD = applyCMV(
-        cam_to_APD,
+        trich_to_APD,
         mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
     )
 
@@ -92,7 +92,7 @@ export function getConversionValuesColor(
         mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
     )
     const selected_neutral_APD = applyCMV(
-        cam_to_APD,
+        trich_to_APD,
         mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
     )
     console.log("selected_neutral_APD", selected_neutral_APD)
@@ -118,12 +118,14 @@ function procesValueColor(
     colorValue: Triple,
     primary: Primary,
     conversionValues: ConversionValuesColor,
-    wb_coeff: number
+    wb_coeff: number,
+    kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
     const { m, b, d, dmin, invert_toe } = conversionValues
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
     const APD = applyCMV(
-        cam_to_APD,
+        APD_matrix,
         mapTriple((x) => -Math.log10(x), colorValue)
     )
     let exp: Triple
@@ -145,26 +147,30 @@ function invertRawColor(
     image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
     settings: AdvancedSettings
 ): Uint16Array {
+    console.log("invertRawColor")
     let w: number, h: number
     let wb
+    let kind: "normal" | "trichrome" | "density"
     if ("R" in image) {
         // Trichrome
         w = image.R.width
         h = image.R.height
         wb = image.R.wb_coeffs
+        kind = "trichrome"
     } else if ("background" in image) {
         w = image.image.width
         h = image.image.height
         wb = image.image.wb_coeffs
+        kind = "density"
     } else {
         w = image.width
         h = image.height
         wb = image.wb_coeffs
+        kind = "normal"
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const conversion_values = getConversionValuesColor(settings)
     let out = new Uint16Array(w * h)
-
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
             const { main, color } = getColorValue(image, i, j)
@@ -172,7 +178,8 @@ function invertRawColor(
                 color,
                 main,
                 conversion_values,
-                wb_coeffs[colorOrder[main]]
+                wb_coeffs[colorOrder[main]],
+                kind
             )
         }
     }
@@ -188,7 +195,7 @@ export function invertJSColor(
     for (let i = 0; i < im.length; i += 4) {
         const colorValue: Triple = [im[i]/2**14, im[i + 1]/2**14, im[i + 2]/2**14]
         const APD = applyCMV(
-            cam_to_APD,
+            trich_to_APD,
             mapTriple((x) => -Math.log10(x), colorValue)
         )
         let exp: Triple

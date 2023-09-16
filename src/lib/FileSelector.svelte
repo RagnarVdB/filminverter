@@ -13,7 +13,7 @@
     import { numberOfWorkers, partition } from "./utils"
     const dispatch = createEventDispatcher()
 
-    let expfac = 180 / 15
+    let expfac = 125/15
     let expfac_trich_R = 30 / 4
     let expfac_trich_G = 30 / 4
     let expfac_trich_B = 13 * 0.6

@@ -5,7 +5,7 @@ import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
 import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
-import { cam_to_APD, cam_to_sRGB, cdd_to_cid, exp_to_sRGB } from "./matrices"
+import { trich_to_APD, cam_to_sRGB, cdd_to_cid, exp_to_sRGB, single_to_APD } from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
 import { transpose } from "./utils"
 
@@ -107,6 +107,8 @@ function getShaderParamsColor(
 ): WebGLArgument<any[]>[] {
     const { m, b, d, dmin } = getConversionValuesColor(settings)
 
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
@@ -116,7 +118,7 @@ function getShaderParamsColor(
         {
             name: "cam_to_apd",
             f: gl.uniformMatrix3fv,
-            data: [false, transpose(cam_to_APD).matrix],
+            data: [false, transpose(APD_matrix).matrix],
         },
         {
             name: "cam_to_sRGB",
