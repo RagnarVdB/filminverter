@@ -14,6 +14,9 @@
     const dispatch = createEventDispatcher()
 
     let expfac = 180 / 15
+    let expfac_trich_R = 30 / 4
+    let expfac_trich_G = 30 / 4
+    let expfac_trich_B = 13 * 0.6
 
     function decoder(
         files: [number, File][],
@@ -87,6 +90,7 @@
             BR: null,
             BG: null,
             BB: null,
+            expfac: [expfac_trich_R, expfac_trich_G, expfac_trich_B],
         }
         decoder(files, (_, image) => {
             const name = image.filename.split(".")[0]
@@ -139,6 +143,11 @@
 
     <p>Background image exposure compensation:</p>
     <input type="number" bind:value={expfac} />
+
+    <p>Trichrome image exposure compensation</p>
+    <input type="number" bind:value={expfac_trich_R}>
+    <input type="number" bind:value={expfac_trich_G}>
+    <input type="number" bind:value={expfac_trich_B}>
 </div>
 
 <style>

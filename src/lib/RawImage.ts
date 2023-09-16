@@ -40,6 +40,7 @@ export interface Trich<T> {
     BR: T
     BG: T
     BB: T
+    expfac: Triple
 }
 
 export function trichNotNull<T>(xs: Trich<T | null>): xs is Trich<T> {
@@ -54,10 +55,9 @@ export function mapTrich<T, U>(f: (x: T) => U, x: Trich<T>): Trich<U> {
         BR: f(x.BR),
         BG: f(x.BG),
         BB: f(x.BB),
+        expfac: x.expfac,
     }
 }
-
-const EXPFAC: Triple = [30 / 4, 30 / 4, 13 * 0.6]
 
 export interface RawImage {
     image: Uint16Array // RAW
@@ -342,7 +342,7 @@ function getTransmittanceTrich(
     const bg = images[bgMap[color]].image
     const wbbg = images[bgMap[color]].wb_coeffs[colorOrder[color]]
 
-    const expf = EXPFAC[colorOrder[color]]
+    const expf = images.expfac[colorOrder[color]]
     return (
         ((im[x + y * w] - BLACK) * wbim) /
         ((bg[x + y * w] - BLACK) * wbbg * expf)
@@ -392,9 +392,9 @@ export function loadTrichrome(
         const bg = trichImages.BG.image[i * 4 + 1]
         const bb = trichImages.BB.image[i * 4 + 2]
 
-        out[i * 4 + 0] = clamp((r / (br * EXPFAC[0])) * max, 0, max)
-        out[i * 4 + 1] = clamp((g / (bg * EXPFAC[1])) * max, 0, max)
-        out[i * 4 + 2] = clamp((b / (bb * EXPFAC[2])) * max, 0, max)
+        out[i * 4 + 0] = clamp((r / (br * trichImages.expfac[0])) * max, 0, max)
+        out[i * 4 + 1] = clamp((g / (bg * trichImages.expfac[1])) * max, 0, max)
+        out[i * 4 + 2] = clamp((b / (bb * trichImages.expfac[2])) * max, 0, max)
         out[i * 4 + 3] = 65535
     }
     return {
