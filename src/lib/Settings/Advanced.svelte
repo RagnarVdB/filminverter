@@ -113,11 +113,9 @@
 </script>
 
 <div class="advanced">
-    film border:
-    <Picker bind:color={dmin} />
-
-    neutral:
-    <Picker bind:color={neutral} />
+    <Picker name="film border" bind:color={dmin} />
+    
+    <Picker name="neutral" bind:color={neutral} />
 
     invert toe:
     <input type="checkbox" bind:checked={toe} />

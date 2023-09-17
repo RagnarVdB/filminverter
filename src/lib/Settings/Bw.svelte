@@ -90,8 +90,7 @@
 </script>
 
 <div class="bw">
-    film border:
-    <Picker bind:color={blackpoint} />
+    <Picker name="film border" bind:color={blackpoint} />
 
     invert toe:
     <input type="checkbox" bind:checked={toe} />

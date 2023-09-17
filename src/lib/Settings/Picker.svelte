@@ -1,9 +1,10 @@
 <script lang="ts">
     import { images, index, mainCanvas as canvas } from "../../stores"
     import { applyRotationAndZoom } from "../rotation"
+    import colorPickIcon from "/src/assets/color-picker-svgrepo-com.svg"
 
+    export let name: string = ""
     export let color: [number, number, number] = [0, 0, 0]
-    $: cssColor = ((x) => `rgb(${x[0]}, ${x[1]}, ${x[2]})`)(to8bit(color))
     $: image = $images[$index]
 
     function detectColor(e: MouseEvent) {
@@ -52,41 +53,46 @@
         $canvas.addEventListener("click", detectColor)
     }
 
-    function to8bit(color: [number, number, number]): [number, number, number] {
-        if (image)
-            return [
-                Math.round(
-                    ((color[0] * image.wb_coeffs[0]) /
-                        (100 * image.wb_coeffs[1])) *
-                        2
-                ),
-                Math.round(color[1] / 100),
-                Math.round(
-                    ((color[2] * image.wb_coeffs[2]) /
-                        (100 * image.wb_coeffs[1])) *
-                        2
-                ),
-            ]
-        else return [0, 0, 0]
-    }
 </script>
 
-<div class="advanced">
-    <div
-        id="colorSquare"
-        style="--css-color: {cssColor}"
-        on:click={startPicking}
-    />
+<div class="picker">
+    <div class="title">
+        <p>{name}: </p>
+        <img
+            src={colorPickIcon}
+            on:click={startPicking}
+        />
+    </div>
     <input type="number" bind:value={color[0]} />
     <input type="number" bind:value={color[1]} />
     <input type="number" bind:value={color[2]} />
 </div>
 
 <style>
-    #colorSquare {
-        width: 20px;
-        height: 20px;
-        border: 1px solid black;
-        background-color: var(--css-color);
+
+    .picker {
+        display: flex;
+        flex-direction: column;
+        align-items: left;
+    }
+
+    .title {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .title img {
+        width: 25px;
+        height: 25px;
+        /* border: 1px solid black; */
+        margin-bottom: 5px;
+        margin-top: 10px;
+        margin-left: 10px;
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+        border-radius: 10%;
+        cursor: pointer;
+    }
+    .title img:hover {
+        background-color: rgb(224, 224, 224);
     }
 </style>
