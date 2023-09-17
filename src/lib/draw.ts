@@ -5,9 +5,15 @@ import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
 import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
-import { trich_to_APD, cam_to_sRGB, cdd_to_cid, exp_to_sRGB, single_to_APD } from "./matrices"
+import {
+    trich_to_APD,
+    cam_to_sRGB,
+    cdd_to_cid,
+    exp_to_sRGB,
+    single_to_APD,
+} from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
-import { transpose } from "./utils"
+import { transpose, type Triple } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
     name: string
@@ -106,9 +112,7 @@ function getShaderParamsColor(
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
     const { m, b, d, dmin } = getConversionValuesColor(settings, kind)
-
     const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
-
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
@@ -190,6 +194,10 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             ? getShaderParamsBw(gl, image.settings.bw, image.kind)
             : getShaderParamsColor(gl, image.settings.advanced, image.kind)
 
+    const wb = image.wb_coeffs
+    const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
+    const clip_values = wb_coeffs.map((x) => Math.log2(x * image.DR))
+
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
@@ -203,6 +211,11 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             name: "show_negative",
             f: gl.uniform1i,
             data: [show_negative ? 1 : 0],
+        },
+        {
+            name: "clip_values",
+            f: gl.uniform3f,
+            data: clip_values,
         },
         ...fragment_parameters,
     ]

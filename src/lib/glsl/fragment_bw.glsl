@@ -6,6 +6,8 @@ uniform bool toe;
 uniform bool show_clipping;
 uniform bool show_negative;
 
+uniform vec3 clip_values;
+
 uniform float m;
 uniform float b;
 uniform float d;
@@ -50,9 +52,17 @@ vec3 paper_to_exp(vec3 color) {
   return vec3(pte_curve(color[0], m, b, d, dmin[0]), pte_curve(color[1], m, b, d, dmin[1]), pte_curve(color[2], m, b, d, dmin[2]));
 }
 
-vec3 clip(vec3 color, vec3 clip_color) {
+vec3 clip_red(vec3 color) {
+  if(color[0] > clip_values[0] || color[1] > clip_values[1] || color[2] > clip_values[2]) {
+    return vec3(0.0f, -10.0f, -10.0f);
+  } else {
+    return color;
+  }
+}
+
+vec3 clip_white(vec3 color) {
   if(color[0] > 0.0f || color[1] > 0.0f || color[2] > 0.0f) {
-    return clip_color;
+    return vec3(0.0f);
   } else {
     return color;
   }
@@ -63,13 +73,6 @@ void main() {
   vec3 floatValues0To65535 = vec3(unsignedIntValues);
   vec3 color = floatValues0To65535 / vec3(16384.0f);
 
-  vec3 clip_color;
-  if(show_clipping) {
-    clip_color = vec3(0.0f, -10.0f, -10.0f);
-  } else {
-    clip_color = vec3(0.0f);
-  }
-
   if(!show_negative) {
     color = -log(color) / log(vec3(10.0f)); // Density
     if(toe) {
@@ -77,7 +80,11 @@ void main() {
     } else {
       color = vec3(m) * color + vec3(b); // Linear
     }
-    color = clip(color, clip_color);
+    if(show_clipping) {
+      color = clip_red(color);
+    } else {
+      color = clip_white(color);
+    }
     color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
   } else {
     color = log(color) / log(vec3(2.0f));
