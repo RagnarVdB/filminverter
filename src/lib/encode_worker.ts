@@ -28,7 +28,7 @@ onmessage = async function (e) {
     for (const image of images) {
         if (image.kind == "normal") {
             const [decoded, old] = await getRawImage(image.file)
-            const newArr = invertRaw(old, image.settings)
+            const newArr = invertRaw(old, image.settings, image.DR)
             newImage = decoded.encode(newArr)
             filename = image.filename
         } else if (image.kind == "trichrome") {
@@ -36,7 +36,8 @@ onmessage = async function (e) {
             const raws = await allPromisesTrich(xs)
             const newArr = invertRaw(
                 mapTrich((raw) => raw[1], raws),
-                image.settings
+                image.settings,
+                image.DR
             )
             // Gebruik eerste raw (Red image) om naar te schrijven
             newImage = raws.R[0].encode(newArr)
@@ -46,7 +47,8 @@ onmessage = async function (e) {
             const [_, old_bg] = await getRawImage(image.bg_file)
             const newArr = invertRaw(
                 { image: old, background: old_bg, expfac: image.expfac },
-                image.settings
+                image.settings,
+                image.DR
             )
             newImage = decoded.encode(newArr)
             filename = image.filename

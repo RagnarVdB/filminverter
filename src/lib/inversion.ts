@@ -121,6 +121,7 @@ function procesValueColor(
     primary: Primary,
     conversionValues: ConversionValuesColor,
     wb_coeff: number,
+    DR: number,
     kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
@@ -141,13 +142,15 @@ function procesValueColor(
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
     const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
-    const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
+    const rawValue =
+        applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff / DR
     return clamp(rawValue * 16384 + BLACK, 1016, 16384)
 }
 
 function invertRawColor(
     image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
-    settings: AdvancedSettings
+    settings: AdvancedSettings,
+    DR: number
 ): Uint16Array {
     console.log("invertRawColor")
     let w: number, h: number
@@ -181,6 +184,7 @@ function invertRawColor(
                 main,
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
+                DR,
                 kind
             )
         }
@@ -274,20 +278,22 @@ function processColorValueBw(
         dmin: number
         invert_toe: boolean
     },
-    wb_coeff: number
+    wb_coeff: number,
+    DR: number
 ): number {
     const { m, b, d, dmin, invert_toe } = conversionValues
     const density = -Math.log10(colorValue)
     const exp = invert_toe
         ? pteCurve(density, [m, b, d, dmin])
         : m * density + b
-    const rawValue = 2 ** exp / wb_coeff
+    const rawValue = 2 ** exp / wb_coeff / DR
     return clamp(rawValue * 16384 + BLACK, BLACK, 16384)
 }
 
 function invertRawBW(
     image: LoadedImage | Bg<LoadedImage>,
-    settings: BWSettings
+    settings: BWSettings,
+    DR: number
 ): Uint16Array {
     const withBackground = "background" in image
     const [w, h] = withBackground
@@ -318,7 +324,8 @@ function invertRawBW(
                     dmin: dmin[colorIndex],
                     invert_toe,
                 },
-                white_balance[colorIndex]
+                white_balance[colorIndex],
+                DR
             )
             // if (primary == "B") {
             //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
@@ -334,14 +341,15 @@ function invertRawBW(
 
 export function invertRaw(
     image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
-    settings: Settings
+    settings: Settings,
+    DR: number
 ): Uint16Array {
     if (settings.mode == "bw") {
         if ("R" in image) {
             throw new Error("BW not supported for trichrome")
         }
-        return invertRawBW(image, settings.bw)
+        return invertRawBW(image, settings.bw, DR)
     } else {
-        return invertRawColor(image, settings.advanced)
+        return invertRawColor(image, settings.advanced, DR)
     }
 }
