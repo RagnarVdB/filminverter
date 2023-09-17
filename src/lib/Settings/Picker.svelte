@@ -17,8 +17,8 @@
         const mouseY = e.clientY - rect.top
         console.log("mouse", mouseX, mouseY)
         const dpr = window.devicePixelRatio || 1
-        const x_canvas = mouseX / Math.round(($canvas.width / dpr))
-        const y_canvas = mouseY / Math.round(($canvas.height / dpr))
+        const x_canvas = mouseX / Math.round($canvas.width / dpr)
+        const y_canvas = mouseY / Math.round($canvas.height / dpr)
 
         const [x_im, y_im] = applyRotationAndZoom(
             x_canvas,
@@ -32,18 +32,18 @@
 
         console.log(x_canvas, y_canvas, x_im, y_im, x, y)
 
-        // Average of 9 pixels
+        // Average of 25 pixels
         let pickedColor: [number, number, number] = [0, 0, 0]
-        for (let i of [x - 1, x, x + 1]) {
-            for (let j of [y - 1, y, y + 1]) {
-                pickedColor[0] += image.image[(j * w + i) * 4]
-                pickedColor[1] += image.image[(j * w + i) * 4 + 1]
-                pickedColor[2] += image.image[(j * w + i) * 4 + 2]
+        for (let i = -2; i < 3; i++) {
+            for (let j = -2; j < 3; j++) {
+                pickedColor[0] += image.image[((y + j) * w + (x + i)) * 4]
+                pickedColor[1] += image.image[((y + j) * w + (x + i)) * 4 + 1]
+                pickedColor[2] += image.image[((y + j) * w + (x + i)) * 4 + 2]
             }
         }
-        color[0] = Math.round(pickedColor[0] / 9)
-        color[1] = Math.round(pickedColor[1] / 9)
-        color[2] = Math.round(pickedColor[2] / 9)
+        color[0] = Math.round(pickedColor[0] / 25)
+        color[1] = Math.round(pickedColor[1] / 25)
+        color[2] = Math.round(pickedColor[2] / 25)
         $canvas.removeEventListener("click", detectColor)
     }
 
