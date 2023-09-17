@@ -195,7 +195,11 @@ export function invertJSColor(
     const { m, b, d, dmin, invert_toe } = conversion_values
     const out = new Uint16Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
-        const colorValue: Triple = [im[i]/2**14, im[i + 1]/2**14, im[i + 2]/2**14]
+        const colorValue: Triple = [
+            im[i] / 2 ** 14,
+            im[i + 1] / 2 ** 14,
+            im[i + 2] / 2 ** 14,
+        ]
         const APD = applyCMV(
             trich_to_APD,
             mapTriple((x) => -Math.log10(x), colorValue)
@@ -208,15 +212,18 @@ export function invertJSColor(
                 pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
             ]
         } else {
-            exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
+            exp = [
+                m[0] * APD[0] + b[0],
+                m[1] * APD[1] + b[1],
+                m[2] * APD[2] + b[2],
+            ]
         }
         const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
         const rawValue = applyCMV(sRGB_to_cam, rawValuesRGB)
         out[i] = rawValue[0] * 16384
         out[i + 1] = rawValue[1] * 16384
         out[i + 2] = rawValue[2] * 16384
-        out[i + 3] = 2**16-1
-
+        out[i + 3] = 2 ** 16 - 1
     }
     return out
 }
