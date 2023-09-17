@@ -6,6 +6,7 @@
     import Zoom from "./Zoom.svelte"
     import type { Settings } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
+    import { download } from "../utils"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
@@ -93,7 +94,6 @@
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-        if (sets.rotation != rotation || sets.zoom != zoom) {
             toe = sets.advanced.toe
             exposure[0] = sets.advanced.exposure + 5
             blue[0] = sets.advanced.blue + 2
@@ -108,13 +108,46 @@
             show_clipping = sets.show_clipping
             show_negative = sets.show_negative
             zoom = sets.zoom
-        }
+    }
+
+    async function saveSettings() {
+        const settings_json = JSON.stringify(settings.advanced)
+        const blob = new Blob([settings_json], { type: "application/json" })
+        const url = URL.createObjectURL(blob)
+        download(url, "settings.json")
+    }
+
+    function loadSettings() {
+        const input = document.createElement("input")
+        input.type = "file"
+        console.log("loading settings")
+        input.addEventListener("change", (e) => {
+            console.log("reading files")
+            const files = input.files
+            console.log(files)
+            if (!files || files.length != 1) {
+                return
+            }
+            console.log("file read")
+            const file = files[0]
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const settings_json = reader.result as string
+                const loaded_settings = JSON.parse(settings_json)
+                console.log("loaded json", loaded_settings)
+                settings.advanced = loaded_settings
+                updateSliders(settings)
+            }
+            reader.readAsText(file)
+        })
+
+        input.click()
     }
 </script>
 
 <div class="advanced">
     <Picker name="film border" bind:color={dmin} />
-    
+
     <Picker name="neutral" bind:color={neutral} />
 
     invert toe:
@@ -157,6 +190,8 @@
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
     <Zoom bind:zoom />
+    <button on:click={saveSettings}>Save settings</button>
+    <button on:click={loadSettings}>Load settings</button>
 </div>
 
 <style>
