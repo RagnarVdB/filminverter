@@ -17,6 +17,7 @@
     let expfac_trich_R = 30 / 4
     let expfac_trich_G = 30 / 4
     let expfac_trich_B = 13 * 0.6
+    let DR: number
 
     function decoder(
         files: [number, File][],
@@ -42,7 +43,9 @@
                     : files.slice(i * filesPerWorker, (i + 1) * filesPerWorker)
             worker.postMessage(workerFiles)
             worker.onmessage = (message) => {
-                const [n, im] = message.data
+                const [n, im]: [number, ProcessedSingle] = message.data
+                im.DR = DR
+                console.log(im)
                 callback(n, im)
             }
         }
@@ -148,6 +151,13 @@
     <input type="number" bind:value={expfac_trich_R}>
     <input type="number" bind:value={expfac_trich_G}>
     <input type="number" bind:value={expfac_trich_B}>
+
+    <p>Dynamic Range Setting</p>
+    <select name="DR" id="DR" bind:value={DR}>
+        <option value=100 selected>DR100</option>
+        <option value=200>DR200</option>
+        <option value=400>DR400</option>
+    </select>
 </div>
 
 <style>

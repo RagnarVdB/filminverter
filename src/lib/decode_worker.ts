@@ -40,6 +40,7 @@ onmessage = async function (e: MessageEvent) {
             settings: defaultSettings,
             iter: 0,
             filename: file[1].name,
+            DR: 100
         }
         console.log("wb", processed.wb_coeffs)
         postMessage([file[0], processed])

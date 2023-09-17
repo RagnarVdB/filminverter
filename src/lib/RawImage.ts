@@ -93,6 +93,7 @@ export interface _ProcessedInfo {
     cam_to_xyz: Matrix
     wb_coeffs: number[]
     blacks: number[]
+    DR: number
     orientation: string
     settings: Settings
     iter: number
