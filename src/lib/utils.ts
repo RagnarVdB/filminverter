@@ -238,3 +238,15 @@ export function omap<T, U, O extends { [key: string]: T }>(
         Object.entries(o).map(([key, value]) => [key, f(value)])
     ) as { [Key in keyof O]: U }
 }
+
+export function download(url: string, filename: string) {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(function () {
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+    }, 0)
+}

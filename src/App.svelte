@@ -3,9 +3,9 @@
     import ImageArea from "./lib/ImageArea.svelte"
     import type { ProcessedImage } from "./lib/RawImage"
     import { images, index } from "./stores"
-    import Presets from "./lib/Presets.svelte"
     import Settings from "./lib/Settings/Settings.svelte"
     import { numberOfWorkers } from "./lib/utils"
+    import { download } from "./lib/utils"
 
     let showImages = false
 
@@ -19,18 +19,6 @@
 
     function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
         return URL.createObjectURL(new Blob([arr.buffer], { type: mimeType }))
-    }
-
-    function download(url: string, filename: string) {
-        const a = document.createElement("a")
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        setTimeout(function () {
-            document.body.removeChild(a)
-            window.URL.revokeObjectURL(url)
-        }, 0)
     }
 
     function save(e: CustomEvent<{ all: boolean }>) {
