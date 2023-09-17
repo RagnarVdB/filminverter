@@ -61,7 +61,7 @@ vec3 clip_red(vec3 color) {
 }
 
 vec3 clip_white(vec3 color) {
-  if(color[0] > 0.0f || color[1] > 0.0f || color[2] > 0.0f) {
+  if(color[0] > clip_values[0] || color[1] > clip_values[1] || color[2] > clip_values[2]) {
     return vec3(0.0f);
   } else {
     return color;
