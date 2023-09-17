@@ -154,8 +154,8 @@
 
     <p>Dynamic Range Setting</p>
     <select name="DR" id="DR" bind:value={DR}>
-        <option value=1 selected>DR100</option>
-        <option value=2>DR200</option>
+        <option value=1>DR100</option>
+        <option value=2 selected>DR200</option>
         <option value=4>DR400</option>
     </select>
 </div>
