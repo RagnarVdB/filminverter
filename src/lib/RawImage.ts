@@ -84,11 +84,16 @@ export interface LoadedImage extends RawImage {
 
 export interface LoadedSingleImage extends LoadedImage {
     bg_value: Triple
+    DR: number
 }
 
-export type LoadedDensity = Bg<LoadedImage>
+export interface LoadedDensity extends Bg<LoadedImage> {
+    DR: number
+}
 
-export type LoadedTrichrome = Trich<LoadedImage>
+export interface LoadedTrichrome extends Trich<LoadedImage> {
+    DR: number
+}
 
 export interface _ProcessedInfo {
     // Abstract

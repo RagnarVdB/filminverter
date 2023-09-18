@@ -148,7 +148,6 @@ function procesValueColor(
 function invertRawColor(
     image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
     settings: AdvancedSettings,
-    DR: number
 ): Uint16Array {
     let w: number, h: number
     let wb
@@ -181,7 +180,7 @@ function invertRawColor(
                 main,
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
-                DR,
+                image.DR,
                 kind
             )
         }
@@ -290,7 +289,6 @@ function processColorValueBw(
 function invertRawBW(
     image: LoadedSingleImage | LoadedDensity,
     settings: BWSettings,
-    DR: number
 ): Uint16Array {
     const withBackground = "background" in image
     const [w, h] = withBackground
@@ -325,7 +323,7 @@ function invertRawBW(
                     invert_toe,
                 },
                 white_balance[colorIndex],
-                DR
+                image.DR
             )
             // if (primary == "B") {
             //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
@@ -342,14 +340,13 @@ function invertRawBW(
 export function invertRaw(
     image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
     settings: Settings,
-    DR: number
 ): Uint16Array {
     if (settings.mode == "bw") {
         if ("R" in image) {
             throw new Error("BW not supported for trichrome")
         }
-        return invertRawBW(image, settings.bw, DR)
+        return invertRawBW(image, settings.bw)
     } else {
-        return invertRawColor(image, settings.advanced, DR)
+        return invertRawColor(image, settings.advanced)
     }
 }

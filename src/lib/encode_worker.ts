@@ -29,9 +29,8 @@ onmessage = async function (e) {
         if (image.kind == "normal") {
             const [decoded, old] = await getRawImage(image.file)
             const newArr = invertRaw(
-                { ...old, bg_value: image.bg_value },
+                { ...old, bg_value: image.bg_value, DR: image.DR },
                 image.settings,
-                image.DR
             )
             newImage = decoded.encode(newArr)
             filename = image.filename
@@ -39,9 +38,8 @@ onmessage = async function (e) {
             const xs = mapTrich(getRawImage, image.files)
             const raws = await allPromisesTrich(xs)
             const newArr = invertRaw(
-                mapTrich((raw) => raw[1], raws),
+                { ...mapTrich((raw) => raw[1], raws), DR: image.DR },
                 image.settings,
-                image.DR
             )
             // Gebruik eerste raw (Red image) om naar te schrijven
             newImage = raws.R[0].encode(newArr)
@@ -50,9 +48,13 @@ onmessage = async function (e) {
             const [decoded, old] = await getRawImage(image.file)
             const [_, old_bg] = await getRawImage(image.bg_file)
             const newArr = invertRaw(
-                { image: old, background: old_bg, expfac: image.expfac },
+                {
+                    image: old,
+                    background: old_bg,
+                    expfac: image.expfac,
+                    DR: image.DR,
+                },
                 image.settings,
-                image.DR
             )
             newImage = decoded.encode(newArr)
             filename = image.filename
