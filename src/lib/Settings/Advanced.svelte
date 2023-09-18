@@ -83,7 +83,6 @@
                 facG: m * facG[0] - 3 * m + 1,
                 toe_width: toe_width[0],
             }
-            console.log("settings", settings.advanced)
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.rotation = rotation
@@ -120,21 +119,16 @@
     function loadSettings() {
         const input = document.createElement("input")
         input.type = "file"
-        console.log("loading settings")
         input.addEventListener("change", (e) => {
-            console.log("reading files")
             const files = input.files
-            console.log(files)
             if (!files || files.length != 1) {
                 return
             }
-            console.log("file read")
             const file = files[0]
             const reader = new FileReader()
             reader.onload = (e) => {
                 const settings_json = reader.result as string
                 const loaded_settings = JSON.parse(settings_json)
-                console.log("loaded json", loaded_settings)
                 settings.advanced = loaded_settings
                 updateSliders(settings)
             }

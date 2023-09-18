@@ -45,7 +45,6 @@
             worker.onmessage = (message) => {
                 const [n, im]: [number, ProcessedSingle] = message.data
                 im.DR = DR
-                console.log(im)
                 callback(n, im)
             }
         }

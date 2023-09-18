@@ -39,7 +39,6 @@
         }
         const { width, height } = wrapper.getBoundingClientRect()
         const wrapperRatio = width / height
-        console.log(imRatio, wrapperRatio)
         if (imRatio > wrapperRatio) {
             canvas.width = Math.round(width * dpr)
             canvas.style.width = width + "px"
@@ -119,7 +118,6 @@
             }
         } else {
             console.log("Updating nonexisting image", image, wrapper)
-            console.log($images.length, $index, $images)
         }
     }
 </script>

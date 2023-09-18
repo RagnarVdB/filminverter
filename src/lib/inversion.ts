@@ -82,22 +82,17 @@ export function getConversionValuesColor(
         settings.toe_width,
         settings.toe_width,
     ]
-    console.log(settings.blue, settings.green)
     const target_neutral_APD: Triple = [
         -3 + settings.exposure,
         -3 + settings.exposure + settings.green,
         -3 + settings.exposure + settings.blue,
     ]
     const selected_neutral_cam = settings.neutral
-    console.log(
-        "selected_neutral_cam",
-        mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
-    )
+
     const selected_neutral_APD = applyCMV(
         APD_matrix,
         mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
     )
-    console.log("selected_neutral_APD", selected_neutral_APD)
     // ms+b=t
     // b = t - ms
     const b: Triple = [
@@ -105,7 +100,6 @@ export function getConversionValuesColor(
         target_neutral_APD[1] - m[1] * selected_neutral_APD[1],
         target_neutral_APD[2] - m[2] * selected_neutral_APD[2],
     ]
-    console.log("x0", [dminAPD[0] + d[0], dminAPD[1] + d[1], dminAPD[2] + d[2]])
     console.log({ m, b, d, dmin: dminAPD })
     return {
         m,
@@ -152,7 +146,6 @@ function invertRawColor(
     settings: AdvancedSettings,
     DR: number
 ): Uint16Array {
-    console.log("invertRawColor")
     let w: number, h: number
     let wb
     let kind: "normal" | "trichrome" | "density"
@@ -303,10 +296,8 @@ function invertRawBW(
 
     const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings)
     let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
-    console.log("wb2", wb)
     const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const out = new Uint16Array(w * h)
-    console.log("values", m, b, d, dmin, white_balance)
     for (let j = 0; j < h; j++) {
         for (let i = 0; i < w; i++) {
             const primary = getCFAValue(cfa, i, j)

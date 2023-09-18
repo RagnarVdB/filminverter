@@ -32,8 +32,6 @@
         const x = Math.round(x_im * w)
         const y = Math.round(y_im * h)
 
-        console.log(x_canvas, y_canvas, x_im, y_im, x, y)
-
         // Average of 25 pixels
         let pickedColor: [number, number, number] = [0, 0, 0]
         for (let i = -2; i < 3; i++) {

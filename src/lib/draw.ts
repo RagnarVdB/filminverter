@@ -154,7 +154,6 @@ function getShaderParamsBw(
     settings: BWSettings,
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    console.log("kind", kind)
     if (kind == "trichrome") {
         throw new Error("BW not supported for trichrome")
     } else {
