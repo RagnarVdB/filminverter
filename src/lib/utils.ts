@@ -45,15 +45,6 @@ export function zip<T, Y>(l1: T[], l2: Y[]): [T, Y][] {
     return l1.map((x, i) => [x, l2[i]])
 }
 
-export function partition<T>(
-    array: T[],
-    filter: (x: T) => boolean
-): [T[], T[]] {
-    let pass: T[] = [],
-        fail: T[] = []
-    array.forEach((e) => (filter(e) ? pass : fail).push(e))
-    return [pass, fail]
-}
 
 function matmul(
     M1: number[],
