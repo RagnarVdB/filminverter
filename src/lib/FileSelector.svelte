@@ -199,7 +199,7 @@
     </select>
     <br>
     <br>
-    <a href="{dcp_profile}" download>Download Lightroom Profile</a>
+    <a href="{dcp_profile}" download="Provia_no_huesatmap_no_look.dcp">Download Lightroom Profile</a>
 </div>
 
 <style>
