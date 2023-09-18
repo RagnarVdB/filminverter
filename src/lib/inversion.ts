@@ -2,7 +2,10 @@ import type {
     AdvancedSettings,
     BWSettings,
     Bg,
+    LoadedDensity,
     LoadedImage,
+    LoadedSingleImage,
+    LoadedTrichrome,
     Settings,
     Trich,
 } from "./RawImage"
@@ -143,7 +146,7 @@ function procesValueColor(
 }
 
 function invertRawColor(
-    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
     settings: AdvancedSettings,
     DR: number
 ): Uint16Array {
@@ -285,7 +288,7 @@ function processColorValueBw(
 }
 
 function invertRawBW(
-    image: LoadedImage | Bg<LoadedImage>,
+    image: LoadedSingleImage | LoadedDensity,
     settings: BWSettings,
     DR: number
 ): Uint16Array {
@@ -305,7 +308,12 @@ function invertRawBW(
             const colorIndex = colorOrder[primary]
             const color_value = withBackground
                 ? getTransmittanceBg(image, primary, i, j)
-                : getTransmittanceNormal(image, primary, i, j)
+                : getTransmittanceNormal(
+                      image,
+                      primary,
+                      i,
+                      j
+                  )
 
             out[i + j * w] = processColorValueBw(
                 color_value,
@@ -332,7 +340,7 @@ function invertRawBW(
 }
 
 export function invertRaw(
-    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
     settings: Settings,
     DR: number
 ): Uint16Array {

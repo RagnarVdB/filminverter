@@ -28,7 +28,11 @@ onmessage = async function (e) {
     for (const image of images) {
         if (image.kind == "normal") {
             const [decoded, old] = await getRawImage(image.file)
-            const newArr = invertRaw(old, image.settings, image.DR)
+            const newArr = invertRaw(
+                { ...old, bg_value: image.bg_value },
+                image.settings,
+                image.DR
+            )
             newImage = decoded.encode(newArr)
             filename = image.filename
         } else if (image.kind == "trichrome") {

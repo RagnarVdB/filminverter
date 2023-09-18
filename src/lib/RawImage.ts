@@ -82,6 +82,14 @@ export interface LoadedImage extends RawImage {
     blacks: number[]
 }
 
+export interface LoadedSingleImage extends LoadedImage {
+    bg_value: Triple
+}
+
+export type LoadedDensity = Bg<LoadedImage>
+
+export type LoadedTrichrome = Trich<LoadedImage>
+
 export interface _ProcessedInfo {
     // Abstract
     image: Uint16Array // RGBA 14bit
@@ -272,7 +280,7 @@ export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
 }
 
 function getColorValueSingle(
-    image: LoadedImage,
+    image: LoadedSingleImage,
     cfa: CFA,
     x: number,
     y: number
@@ -301,7 +309,7 @@ function getColorValueSingle(
 }
 
 export function getTransmittanceNormal(
-    image: LoadedImage,
+    image: LoadedSingleImage,
     primary: Primary,
     x: number,
     y: number
@@ -310,7 +318,10 @@ export function getTransmittanceNormal(
     const wb_coeffs = image.wb_coeffs
     const wb = [wb_coeffs[0] / wb_coeffs[1], 1, wb_coeffs[2] / wb_coeffs[1]]
     const color_index = colorOrder[primary]
-    return ((image.image[x + y * w] - BLACK) * wb[color_index]) / 2 ** 14
+    return (
+        ((image.image[x + y * w] - BLACK) * wb[color_index]) /
+        image.bg_value[color_index]
+    )
 }
 
 export function getTransmittanceBg(
@@ -497,7 +508,7 @@ export function loadWithBackground(
 }
 
 export function getColorValue(
-    image: LoadedImage | Bg<LoadedImage> | Trich<LoadedImage>,
+    image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
     x: number,
     y: number
 ): { main: Primary; color: Triple } {
