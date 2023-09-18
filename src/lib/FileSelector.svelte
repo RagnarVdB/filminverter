@@ -13,7 +13,7 @@
     } from "./RawImage"
     import { numberOfWorkers } from "./utils"
     // @ts-ignore
-    import dcp_profile from "/src/assets/adobe_standard_ref.dcp"
+    import dcp_profile from "/src/assets/Provia_no_huesatmap_no_look.dcp"
     const dispatch = createEventDispatcher()
 
     let bg_valueR =12929
