@@ -153,6 +153,8 @@ export interface AdvancedSettings {
     facG: number
     facB: number
     toe_width: number
+    toe_facG: number
+    toe_facB: number
 }
 
 export interface BWSettings {
@@ -171,17 +173,33 @@ export const defaultSettings: Settings = {
     zoom: [1, 1, 0, 0],
     show_clipping: false,
     show_negative: false,
+    // advanced: {
+    //     toe: true,
+    //     dmin: [6204, 2931, 1517],
+    //     neutral: [2390, 760, 346],
+    //     exposure: 0,
+    //     blue: 0,
+    //     green: 0,
+    //     gamma: 0.36,
+    //     facB: 1.33,
+    //     facG: 1.63,
+    //     toe_width: 0.2,
+    //     toe_facG: 1,
+    //     toe_facB: 1,
+    // },
     advanced: {
         toe: true,
-        dmin: [6204, 2931, 1517],
-        neutral: [2390, 760, 346],
+        dmin: [6624, 3054, 1546],
+        neutral: [2366, 749, 327],
         exposure: 0,
         blue: 0,
         green: 0,
-        gamma: 0.36,
-        facB: 1.33,
-        facG: 1.63,
-        toe_width: 0.2,
+        gamma: 0.312,
+        facB: 1.4649359387807215,
+        facG: 1.6522,
+        toe_width: 0.0521,
+        toe_facG: 1.786,
+        toe_facB: 1.462,
     },
     // advanced: {
     //     toe: true,

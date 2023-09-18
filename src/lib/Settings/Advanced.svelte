@@ -21,6 +21,8 @@
     let facB: [number, number] = [5, 0]
     let facG: [number, number] = [5, 0]
     let toe_width: [number, number] = [0.2, 0]
+    let toe_facG: [number, number] = [1, 0]
+    let toe_facB: [number, number] = [1, 0]
 
     let show_clipping = false
     let show_negative = false
@@ -47,6 +49,8 @@
             facB,
             facG,
             toe_width,
+            toe_facB,
+            toe_facG,
             show_clipping,
             show_negative,
             rotation,
@@ -65,6 +69,8 @@
         facB: [number, number],
         facG: [number, number],
         toe_width: [number, number],
+        toe_facB: [number, number],
+        toe_facG: [number, number],
         show_clipping: boolean,
         show_negative: boolean,
         rotation: number,
@@ -82,6 +88,8 @@
                 facB: m * facB[0] - 4 * m + 1,
                 facG: m * facG[0] - 3 * m + 1,
                 toe_width: toe_width[0],
+                toe_facB: toe_facB[0],
+                toe_facG: toe_facG[0],
             }
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
@@ -101,6 +109,8 @@
             facB[0] = (sets.advanced.facB - 1 + 4 * m) / m
             facG[0] = (sets.advanced.facG - 1 + 3 * m) / m
             toe_width[0] = sets.advanced.toe_width
+            toe_facB[0] = sets.advanced.toe_facB
+            toe_facG[0] = sets.advanced.toe_facG
             rotation = sets.rotation
             dmin = sets.advanced.dmin
             neutral = sets.advanced.neutral
@@ -166,7 +176,13 @@
     <Slider bind:value={facG} min="0" max="10" step="0.05" />
 
     toe width: {Math.round(toe_width[0] * 100) / 100}
-    <Slider bind:value={toe_width} min="0" max="0.5" step="0.01" />
+    <Slider bind:value={toe_width} min="0" max="0.3" step="0.01" />
+
+    toe factor blue: {Math.round(toe_facB[0] * 100) / 100}
+    <Slider bind:value={toe_facB} min=0 max=3 step=0.01 />
+
+    toe factor green: {Math.round(toe_facG[0] * 100) / 100}
+    <Slider bind:value={toe_facG} min=0 max=3 step=0.01 />
 
     Show clipping:
     <input type="checkbox" bind:checked={show_clipping} />

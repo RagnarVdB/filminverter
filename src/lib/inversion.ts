@@ -76,11 +76,12 @@ export function getConversionValuesColor(
         APD_matrix,
         mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
     )
+    console.log({ dminAPD })
 
     const d: Triple = [
         settings.toe_width,
-        settings.toe_width,
-        settings.toe_width,
+        settings.toe_width * settings.toe_facG,
+        settings.toe_width * settings.toe_facB,
     ]
     const target_neutral_APD: Triple = [
         -3 + settings.exposure,
