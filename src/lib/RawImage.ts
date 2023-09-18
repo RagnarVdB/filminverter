@@ -98,9 +98,15 @@ export interface _ProcessedInfo {
     settings: Settings
     iter: number
 }
+
+export interface DeBayeredImage extends _ProcessedInfo {
+    filename: string
+    file: File
+}
 export interface ProcessedSingle extends _ProcessedInfo {
     filename: string
     file: File
+    bg_value: Triple
     kind: "normal"
 }
 
@@ -404,8 +410,26 @@ function getColorValueTrich(
     return { main, color }
 }
 
+export function loadSingle(image: DeBayeredImage, bg_value: Triple) {
+    const N = image.image.length
+    const max = 2 ** 14
+    const out = new Uint16Array(N)
+    for (let i = 0; i < N; i += 4) {
+        out[i + 0] = clamp((image.image[i + 0] / bg_value[0]) * max, 0, max)
+        out[i + 1] = clamp((image.image[i + 1] / bg_value[1]) * max, 0, max)
+        out[i + 2] = clamp((image.image[i + 2] / bg_value[2]) * max, 0, max)
+        out[i + 3] = 65535
+    }
+    return {
+        ...image,
+        image: out,
+        bg_value,
+        kind: "normal",
+    }
+}
+
 export function loadTrichrome(
-    trichImages: Trich<ProcessedSingle>
+    trichImages: Trich<DeBayeredImage>
 ): ProcessedTrichrome {
     const N = trichImages.R.image.length / 4
     const out = new Uint16Array(N * 4)
@@ -435,7 +459,7 @@ export function loadTrichrome(
 }
 
 export function loadWithBackground(
-    images: Bg<ProcessedSingle>
+    images: Bg<DeBayeredImage>
 ): ProcessedDensity {
     const { image, background, expfac } = images
 

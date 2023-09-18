@@ -30,7 +30,13 @@ function webGlDraw(
     parameters: WebGLArgument<unknown[]>[]
 ) {
     // program
+    if (!gl) {
+        throw new Error("No gl")
+    }
     const program: any = gl.createProgram()
+    if (!program) {
+        throw new Error("No program")
+    }
     const ext = gl.getExtension("EXT_color_buffer_float")
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA16F, 256, 256)
 

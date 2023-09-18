@@ -1,7 +1,7 @@
 import init, { decode_image } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
 import { defaultSettings } from "./RawImage"
 import { deBayer, deMosaicFuji } from "./deMosaic"
-import type { RawImage, ProcessedSingle, LoadedImage } from "./RawImage"
+import type { RawImage, LoadedImage, DeBayeredImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
 import type { Triple } from "./utils.js"
 
@@ -31,10 +31,9 @@ onmessage = async function (e: MessageEvent) {
         const deBayered = getDeMosaiced(loadedImage)
 
         console.log(decoded.get_make())
-        const processed: ProcessedSingle = {
+        const processed: DeBayeredImage = {
             ...loadedImage,
             ...deBayered,
-            kind: "normal",
             file: file[1],
             orientation: decoded.get_orientation(),
             settings: defaultSettings,

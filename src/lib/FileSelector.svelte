@@ -1,11 +1,12 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
     import Dropzone from "svelte-file-dropzone"
-    import type { ProcessedSingle, Trich } from "./RawImage"
+    import type { Trich, DeBayeredImage } from "./RawImage"
     import {
         TRICHNAMES,
         TrichNameMap,
         isTrichName,
+        loadSingle,
         loadTrichrome,
         loadWithBackground,
         trichNotNull,
@@ -13,15 +14,18 @@
     import { numberOfWorkers } from "./utils"
     const dispatch = createEventDispatcher()
 
+    let bg_valueR =12929
+    let bg_valueG = 16247
+    let bg_valueB = 18516
     let expfac = 125 / 15
     let expfac_trich_R = 30 / 4
     let expfac_trich_G = 30 / 4
     let expfac_trich_B = 13 * 0.6
     let DR: number
 
-    function decoder(files: File[]): Promise<ProcessedSingle>[] {
-        let resolvers: ((value: ProcessedSingle) => void)[] = []
-        let promises: Promise<ProcessedSingle>[] = []
+    function decoder(files: File[]): Promise<DeBayeredImage>[] {
+        let resolvers: ((value: DeBayeredImage) => void)[] = []
+        let promises: Promise<DeBayeredImage>[] = []
 
         files.forEach((_, i) => {
             promises[i] = new Promise((resolve) => {
@@ -55,7 +59,7 @@
             let finishedImages = 0
             worker.onmessage = (message) => {
                 finishedImages++
-                const [j, image]: [number, ProcessedSingle] = message.data
+                const [j, image]: [number, DeBayeredImage] = message.data
                 image.DR = DR
                 console.log("resolving", j)
                 resolvers[j](image)
@@ -72,7 +76,7 @@
             promise.then((image) => {
                 dispatch("image", {
                     index: i,
-                    image,
+                    image: loadSingle(image, [bg_valueR, bg_valueG, bg_valueB]),
                 })
             })
         })
@@ -109,12 +113,10 @@
                 image: densityImage,
             })
         }
-
-
     }
 
     async function openTrichrome(files: File[]) {
-        const trichImages: Trich<ProcessedSingle | null> = {
+        const trichImages: Trich<DeBayeredImage | null> = {
             R: null,
             G: null,
             B: null,
@@ -173,6 +175,11 @@
     <h1>Select File</h1>
 
     <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement="null" />
+
+    <p>Background value</p>
+    <input type="number" bind:value={bg_valueR} />
+    <input type="number" bind:value={bg_valueG} />
+    <input type="number" bind:value={bg_valueB} />
 
     <p>Background image exposure compensation:</p>
     <input type="number" bind:value={expfac} />
