@@ -12,6 +12,8 @@
         trichNotNull,
     } from "./RawImage"
     import { numberOfWorkers } from "./utils"
+    // @ts-ignore
+    import dcp_profile from "/src/assets/adobe_standard_ref.dcp"
     const dispatch = createEventDispatcher()
 
     let bg_valueR =12929
@@ -195,6 +197,9 @@
         <option value="2" selected>DR200</option>
         <option value="4">DR400</option>
     </select>
+    <br>
+    <br>
+    <a href="{dcp_profile}" download>Download Lightroom Profile</a>
 </div>
 
 <style>
