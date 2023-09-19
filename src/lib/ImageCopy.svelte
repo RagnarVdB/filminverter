@@ -7,9 +7,11 @@
     
     export let image: ProcessedImage
     let url: string = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Wiki_Test_Image.jpg/800px-Wiki_Test_Image.jpg"
+    let iter: number = -1
 
     function getPreview(image: ProcessedImage): string {
         if (!image) throw new Error("No image")
+        console.log("Rendering preview")
         const conversion_values = getConversionValuesColor(image.settings.advanced, image.kind)
         const inverted = invertJSColor8bit(image.preview, conversion_values, image.kind)
         const png = UPNG.encode([inverted.buffer], image.preview_width, image.preview_height, 0)
@@ -19,10 +21,17 @@
         
     }
 
-    $: url = getPreview(image)
     onMount(() => {
         url = getPreview(image)
+        iter = 0
     })
+
+    $: {
+        if (image && image.iter != iter) {
+            url = getPreview(image)
+            iter = image.iter
+        }
+    }
 
 
 
