@@ -93,7 +93,6 @@
 
     main {
         display: grid;
-        /* grid-template-columns: 5fr 2fr 1fr; */
         grid-template-columns: 6fr 2fr;
         column-gap: 15px;
         height: calc(100vh - 30px);

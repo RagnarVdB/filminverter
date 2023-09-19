@@ -18,10 +18,7 @@
 </script>
 
 <div class="ImageArea">
-    <!-- <button on:click="{updateAll}">update</button> -->
-    <div id="main">
-        <ImageView image={$images[$currentIndex]} bind:canvas={$mainCanvas} />
-    </div>
+    <ImageView image={$images[$currentIndex]} bind:canvas={$mainCanvas} />
     <div id="strip">
         {#each $images as image, index}
             <div
@@ -30,7 +27,7 @@
                     $currentIndex = index
                 }}
             >
-                <ImagePreview image={image}/>
+                <ImagePreview {image} />
             </div>
         {/each}
     </div>
@@ -42,26 +39,29 @@
         box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.25);
         border-radius: 15px;
         display: grid;
-        grid-template-rows: 4fr 1fr;
+        grid-template-rows: 8fr 1fr;
+        grid-template-columns: 1fr;
         gap: 0px 0px;
         height: 100%;
         width: 100%;
+        min-height: 0;
+        min-width: 0;
     }
 
-    #main {
-        width: 100%;
-        height: 100%;
-    }
     #strip {
         display: flex;
         flex-direction: row;
         overflow-x: scroll;
         overflow-y: hidden;
-        width: 100%;
-        height: 100px;
+        min-height: 0;
+        min-width: 0;
+        height: 100%;
+        padding: 0px;
     }
 
     .preview {
         height: 100%;
+        margin-right: 3px;
+        padding: 0px;
     }
 </style>

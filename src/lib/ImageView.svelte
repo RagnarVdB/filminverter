@@ -135,8 +135,8 @@
 
 <style>
     .view {
-        width: 100%;
-        height: 100%;
+        /* width: 100%;
+        height: 100%; */
         padding: none;
         display: flex;
         justify-content: center;
