@@ -41,23 +41,13 @@
 
 
 </script>
-
-<div class="view">
     <img
         src={url}
         alt=""
     />
-</div>
-
 <style>
-    .view {
-        width: 100%;
-        height: 100%;
-        padding: none;
-    }
-
-    .view img {
-        width: 100%;
+    img {
+        /* width: 100%; */
         height: 100%;
         margin: none;
         padding: none;
