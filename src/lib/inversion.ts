@@ -54,13 +54,17 @@ function pteCurve(x: number, sets: LutSets): number {
         return -1000
     }
 }
-
-function paperToExp(color: Triple): Triple {
-    return [
-        pteCurve(color[0], lutSets[0]),
-        pteCurve(color[1], lutSets[1]),
-        pteCurve(color[2], lutSets[2]),
-    ]
+const ets_sets = [
+    -5.54519159776, 0.966354066548, 2.59594911446, -0.0844234434652,
+    0.0300657278329, 0.0,
+]
+function ets_curve(x: number): number {
+    const [x1, me, qe, ae, be, ce] = ets_sets
+    if (x < x1) {
+        return me * x + qe
+    } else {
+        return ae * x * x + be * x + ce
+    }
 }
 
 export function getConversionValuesColor(
@@ -147,7 +151,7 @@ function procesValueColor(
 
 function invertRawColor(
     image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
-    settings: AdvancedSettings,
+    settings: AdvancedSettings
 ): Uint16Array {
     let w: number, h: number
     let wb
@@ -188,12 +192,14 @@ function invertRawColor(
     return out
 }
 
-export function invertJSColor(
+export function invertJSColor8bit(
     im: Uint16Array,
-    conversion_values: ConversionValuesColor
-): Uint16Array {
+    conversion_values: ConversionValuesColor,
+    kind: "normal" | "density" | "trichrome"
+): Uint8Array {
     const { m, b, d, dmin, invert_toe } = conversion_values
-    const out = new Uint16Array(im.length)
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+    const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const colorValue: Triple = [
             im[i] / 2 ** 14,
@@ -201,7 +207,7 @@ export function invertJSColor(
             im[i + 2] / 2 ** 14,
         ]
         const APD = applyCMV(
-            trich_to_APD,
+            APD_matrix,
             mapTriple((x) => -Math.log10(x), colorValue)
         )
         let exp: Triple
@@ -218,12 +224,11 @@ export function invertJSColor(
                 m[2] * APD[2] + b[2],
             ]
         }
-        const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
-        const rawValue = applyCMV(sRGB_to_cam, rawValuesRGB)
-        out[i] = rawValue[0] * 16384
-        out[i + 1] = rawValue[1] * 16384
-        out[i + 2] = rawValue[2] * 16384
-        out[i + 3] = 2 ** 16 - 1
+        const sRGB = mapTriple((x) => 2 ** ets_curve(x), exp)
+        out[i] = sRGB[0] * 2 ** 8
+        out[i + 1] = sRGB[1] * 2 ** 8
+        out[i + 2] = sRGB[2] * 2 ** 8
+        out[i + 3] = 2 ** 8 - 1
     }
     return out
 }
@@ -288,7 +293,7 @@ function processColorValueBw(
 
 function invertRawBW(
     image: LoadedSingleImage | LoadedDensity,
-    settings: BWSettings,
+    settings: BWSettings
 ): Uint16Array {
     const withBackground = "background" in image
     const [w, h] = withBackground
@@ -306,12 +311,7 @@ function invertRawBW(
             const colorIndex = colorOrder[primary]
             const color_value = withBackground
                 ? getTransmittanceBg(image, primary, i, j)
-                : getTransmittanceNormal(
-                      image,
-                      primary,
-                      i,
-                      j
-                  )
+                : getTransmittanceNormal(image, primary, i, j)
 
             out[i + j * w] = processColorValueBw(
                 color_value,
@@ -339,7 +339,7 @@ function invertRawBW(
 
 export function invertRaw(
     image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
-    settings: Settings,
+    settings: Settings
 ): Uint16Array {
     if (settings.mode == "bw") {
         if ("R" in image) {

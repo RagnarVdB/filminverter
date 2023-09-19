@@ -4,7 +4,7 @@
     import { images, index as currentIndex, mainCanvas } from "../stores"
 
     import type { ProcessedImage } from "./RawImage"
-    import Settings from "./Settings/Settings.svelte"
+    import ImageCopy from "./ImageCopy.svelte"
 
     type cvsobj = {
         canvas: HTMLCanvasElement
@@ -30,7 +30,7 @@
                     $currentIndex = index
                 }}
             >
-                <ImageView {image} canvas={null}/>
+                <ImageCopy image={image}/>
             </div>
         {/each}
     </div>

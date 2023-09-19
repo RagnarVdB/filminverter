@@ -100,6 +100,9 @@ export interface _ProcessedInfo {
     image: Uint16Array // RGBA 14bit
     width: number
     height: number
+    preview: Uint16Array
+    preview_width: number
+    preview_height: number
     make: string
     bps: number
     cfa: CFA
@@ -214,6 +217,10 @@ export const defaultSettings: Settings = {
         toe_width: 0.2,
         blackpoint_shift: 0,
     },
+}
+
+export function buildPreview(image: RawImage): RawImage {
+    return image
 }
 
 export function getCFAValue(cfa: CFA, x: number, y: number): Primary {

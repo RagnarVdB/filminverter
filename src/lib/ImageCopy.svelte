@@ -1,50 +1,38 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    export let url: { url: string; width: number; height: number }
-    let canvas: HTMLCanvasElement
-    let ctx: CanvasRenderingContext2D | null
+    import type { ProcessedImage } from "./RawImage"
+    // @ts-ignore
+    import UPNG from "upng-js"
+    import { getConversionValuesColor, invertJSColor8bit } from "./inversion"
+    
+    export let image: ProcessedImage
+    let url: string = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Wiki_Test_Image.jpg/800px-Wiki_Test_Image.jpg"
 
-    let wrapper: HTMLDivElement
-
-    async function drawImage(image: {
-        url: string
-        width: number
-        height: number
-    }) {
-        if (image && image.url && canvas) {
-            canvas.width = wrapper.clientWidth
-            canvas.height = wrapper.clientHeight
-
-            const destinationImage = new Image()
-            destinationImage.onload = () => {
-                // ctx.drawImage(destinationImage, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
-                if (ctx != null) {
-                    ctx.drawImage(
-                        destinationImage,
-                        0,
-                        0,
-                        canvas.width,
-                        canvas.height
-                    )
-                }
-            }
-            destinationImage.src = image.url
-        } else {
-            console.log("cannot show yet", image, canvas)
-        }
+    function getPreview(image: ProcessedImage): string {
+        if (!image) throw new Error("No image")
+        const conversion_values = getConversionValuesColor(image.settings.advanced, image.kind)
+        const inverted = invertJSColor8bit(image.preview, conversion_values, image.kind)
+        const png = UPNG.encode([inverted.buffer], image.preview_width, image.preview_height, 0)
+        const blob = new Blob([png], { type: "image/png" })
+        const url = URL.createObjectURL(blob)
+        return url
+        
     }
 
+    // $: url = getPreview(image)
     onMount(() => {
-        ctx = canvas.getContext("2d")
-        drawImage(url)
+        url = getPreview(image)
     })
-    $: {
-        drawImage(url)
-    }
+
+
+
 </script>
 
-<div class="view" bind:this={wrapper}>
-    <canvas id="imagecanvas" bind:this={canvas} />
+<div class="view">
+    <img
+        src={url}
+        alt=""
+    />
 </div>
 
 <style>
@@ -54,7 +42,7 @@
         padding: none;
     }
 
-    #imagecanvas {
+    .view img {
         width: 100%;
         height: 100%;
         margin: none;

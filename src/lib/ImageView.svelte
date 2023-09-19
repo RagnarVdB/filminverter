@@ -1,8 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import { draw } from "./draw"
-    import type { ProcessedImage, Trich } from "./RawImage"
-    import { images, index } from "../stores"
+    import type { ProcessedImage } from "./RawImage"
 
     export let image: ProcessedImage
     let iter: number = -1
@@ -120,6 +119,12 @@
             console.log("Updating nonexisting image", image, wrapper)
         }
     }
+
+    canvas?.addEventListener("webglcontextlost", (e) => {
+        e.preventDefault()
+        console.log("WebGL context lost")
+    })
+
 </script>
 
 <div class="view" bind:this={wrapper}>

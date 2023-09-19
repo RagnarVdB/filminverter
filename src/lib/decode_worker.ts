@@ -1,5 +1,5 @@
 import init, { decode_image } from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { defaultSettings } from "./RawImage"
+import { buildPreview, defaultSettings } from "./RawImage"
 import { deBayer, deMosaicFuji } from "./deMosaic"
 import type { RawImage, LoadedImage, DeBayeredImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
@@ -29,11 +29,16 @@ onmessage = async function (e: MessageEvent) {
         const decoded = decode_image(arr)
         const loadedImage = loadImage(decoded)
         const deBayered = getDeMosaiced(loadedImage)
-
         console.log(decoded.get_make())
+    
+        const preview = buildPreview(deBayered)
+
         const processed: DeBayeredImage = {
             ...loadedImage,
             ...deBayered,
+            preview: preview.image,
+            preview_width: preview.width,
+            preview_height: preview.height,
             file: file[1],
             orientation: decoded.get_orientation(),
             settings: defaultSettings,
