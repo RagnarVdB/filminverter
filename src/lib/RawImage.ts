@@ -220,7 +220,31 @@ export const defaultSettings: Settings = {
 }
 
 export function buildPreview(image: RawImage): RawImage {
-    return image
+    const N = Math.floor(image.width / 8)
+    const M = Math.floor(image.height / 8)
+    const out = new Uint16Array(N*M*4)
+    for (let y=0; y<M-1; y++) {
+        for (let x=0; x<N-1; x++) {
+            let R = 0
+            let G = 0
+            let B = 0
+            for (let j=0; j<8; j++) {
+                for (let i=0; i<8; i++) {
+                    R += image.image[((y*8+j)*image.width+(x*8+i))*4+0]
+                    G += image.image[((y*8+j)*image.width+(x*8+i))*4+1]
+                    B += image.image[((y*8+j)*image.width+(x*8+i))*4+2]
+                }
+            }
+
+            out[(y*N+x)*4+0] = R/16
+            out[(y*N+x)*4+1] = G/16
+            out[(y*N+x)*4+2] = B/16
+            out[(y*N+x)*4+3] = 65535
+        }
+    }
+
+
+    return {image: out, width: N, height: M}
 }
 
 export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
