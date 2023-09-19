@@ -28,8 +28,13 @@
 
     $: {
         if (image && image.iter != iter) {
-            url = getPreview(image)
-            iter = image.iter
+            const new_iter = image.iter
+            setTimeout(() => {
+                if (image.iter == new_iter) {
+                    url = getPreview(image)
+                    iter = image.iter
+                }
+            }, 100)
         }
     }
 
