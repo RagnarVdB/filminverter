@@ -31,20 +31,14 @@ onmessage = async function (e: MessageEvent) {
         const deBayered = getDeMosaiced(loadedImage)
         console.log(decoded.get_make())
     
-        const preview = buildPreview(deBayered)
-
         const processed: DeBayeredImage = {
             ...loadedImage,
             ...deBayered,
-            preview: preview.image,
-            preview_width: preview.width,
-            preview_height: preview.height,
             file: file[1],
             orientation: decoded.get_orientation(),
             settings: defaultSettings,
             iter: 0,
             filename: file[1].name,
-            DR: 100
         }
         console.log("wb", processed.wb_coeffs)
         postMessage([file[0], processed])

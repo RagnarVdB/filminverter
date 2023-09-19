@@ -95,30 +95,35 @@ export interface LoadedTrichrome extends Trich<LoadedImage> {
     DR: number
 }
 
-export interface _ProcessedInfo {
+export interface _LoadedInfo {
     // Abstract
     image: Uint16Array // RGBA 14bit
     width: number
     height: number
-    preview: Uint16Array
-    preview_width: number
-    preview_height: number
     make: string
     bps: number
     cfa: CFA
     cam_to_xyz: Matrix
     wb_coeffs: number[]
     blacks: number[]
-    DR: number
     orientation: string
     settings: Settings
     iter: number
 }
 
-export interface DeBayeredImage extends _ProcessedInfo {
+export interface DeBayeredImage extends _LoadedInfo {
     filename: string
     file: File
 }
+
+export interface _ProcessedInfo extends _LoadedInfo {
+    // Abstract
+    preview: Uint16Array
+    preview_width: number
+    preview_height: number
+    DR: number
+}
+
 export interface ProcessedSingle extends _ProcessedInfo {
     filename: string
     file: File
@@ -219,32 +224,44 @@ export const defaultSettings: Settings = {
     },
 }
 
-export function buildPreview(image: RawImage): RawImage {
+export function buildPreview(image: RawImage): {
+    preview: Uint16Array
+    preview_width: number
+    preview_height: number
+} {
     const N = Math.floor(image.width / 8)
     const M = Math.floor(image.height / 8)
-    const out = new Uint16Array(N*M*4)
-    for (let y=0; y<M-1; y++) {
-        for (let x=0; x<N-1; x++) {
+    const out = new Uint16Array(N * M * 4)
+    for (let y = 0; y < M - 1; y++) {
+        for (let x = 0; x < N - 1; x++) {
             let R = 0
             let G = 0
             let B = 0
-            for (let j=0; j<8; j++) {
-                for (let i=0; i<8; i++) {
-                    R += image.image[((y*8+j)*image.width+(x*8+i))*4+0]
-                    G += image.image[((y*8+j)*image.width+(x*8+i))*4+1]
-                    B += image.image[((y*8+j)*image.width+(x*8+i))*4+2]
+            for (let j = 0; j < 8; j++) {
+                for (let i = 0; i < 8; i++) {
+                    R +=
+                        image.image[
+                            ((y * 8 + j) * image.width + (x * 8 + i)) * 4 + 0
+                        ]
+                    G +=
+                        image.image[
+                            ((y * 8 + j) * image.width + (x * 8 + i)) * 4 + 1
+                        ]
+                    B +=
+                        image.image[
+                            ((y * 8 + j) * image.width + (x * 8 + i)) * 4 + 2
+                        ]
                 }
             }
 
-            out[(y*N+x)*4+0] = R/64
-            out[(y*N+x)*4+1] = G/64
-            out[(y*N+x)*4+2] = B/64
-            out[(y*N+x)*4+3] = 65535
+            out[(y * N + x) * 4 + 0] = R / 64
+            out[(y * N + x) * 4 + 1] = G / 64
+            out[(y * N + x) * 4 + 2] = B / 64
+            out[(y * N + x) * 4 + 3] = 65535
         }
     }
 
-
-    return {image: out, width: N, height: M}
+    return { preview: out, preview_width: N, preview_height: M }
 }
 
 export function getCFAValue(cfa: CFA, x: number, y: number): Primary {
@@ -407,7 +424,11 @@ function getColorValueTrich(
     return { main, color }
 }
 
-export function loadSingle(image: DeBayeredImage, bg_value: Triple) {
+export function loadSingle(
+    image: DeBayeredImage,
+    bg_value: Triple,
+    DR: number
+): ProcessedSingle {
     const N = image.image.length
     const max = 2 ** 14
     const out = new Uint16Array(N)
@@ -417,8 +438,15 @@ export function loadSingle(image: DeBayeredImage, bg_value: Triple) {
         out[i + 2] = clamp((image.image[i + 2] / bg_value[2]) * max, 0, max)
         out[i + 3] = 65535
     }
+    const preview = buildPreview({
+        image: out,
+        width: image.width,
+        height: image.height,
+    })
     return {
         ...image,
+        ...preview,
+        DR: DR,
         image: out,
         bg_value,
         kind: "normal",
@@ -426,7 +454,8 @@ export function loadSingle(image: DeBayeredImage, bg_value: Triple) {
 }
 
 export function loadTrichrome(
-    trichImages: Trich<DeBayeredImage>
+    trichImages: Trich<DeBayeredImage>,
+    DR: number
 ): ProcessedTrichrome {
     const N = trichImages.R.image.length / 4
     const out = new Uint16Array(N * 4)
@@ -445,8 +474,17 @@ export function loadTrichrome(
         out[i * 4 + 2] = clamp((b / (bb * trichImages.expfac[2])) * max, 0, max)
         out[i * 4 + 3] = 65535
     }
+
+    const preview = buildPreview({
+        image: out,
+        width: trichImages.R.width,
+        height: trichImages.R.height,
+    })
+
     return {
         ...trichImages.R,
+        ...preview,
+        DR,
         filenames: mapTrich((x) => x.filename, trichImages),
         files: mapTrich((x) => x.file, trichImages),
         image: out,
@@ -456,7 +494,8 @@ export function loadTrichrome(
 }
 
 export function loadWithBackground(
-    images: Bg<DeBayeredImage>
+    images: Bg<DeBayeredImage>,
+    DR: number
 ): ProcessedDensity {
     const { image, background, expfac } = images
 
@@ -481,8 +520,15 @@ export function loadWithBackground(
         )
         out[i + 3] = 65535
     }
+    const preview = buildPreview({
+        image: out,
+        width: image.width,
+        height: image.height,
+    })
     return {
         ...image,
+        ...preview,
+        DR,
         image: out,
         filename: image.filename,
         file: image.file,

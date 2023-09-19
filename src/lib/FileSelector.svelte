@@ -16,7 +16,7 @@
     import dcp_profile from "/src/assets/Provia_no_huesatmap_no_look.dcp"
     const dispatch = createEventDispatcher()
 
-    let bg_valueR =12929
+    let bg_valueR = 12929
     let bg_valueG = 16247
     let bg_valueB = 18516
     let expfac = 125 / 15
@@ -62,7 +62,6 @@
             worker.onmessage = (message) => {
                 finishedImages++
                 const [j, image]: [number, DeBayeredImage] = message.data
-                image.DR = DR
                 console.log("resolving", j)
                 resolvers[j](image)
                 if (finishedImages == workerFiles.length) {
@@ -78,7 +77,11 @@
             promise.then((image) => {
                 dispatch("image", {
                     index: i,
-                    image: loadSingle(image, [bg_valueR, bg_valueG, bg_valueB]),
+                    image: loadSingle(
+                        image,
+                        [bg_valueR, bg_valueG, bg_valueB],
+                        DR
+                    ),
                 })
             })
         })
@@ -105,11 +108,14 @@
         const decodedImages = decoder(imageFiles)
         for (const [index, decodedImage] of decodedImages.entries()) {
             const image = await decodedImage
-            const densityImage = loadWithBackground({
-                background,
-                image,
-                expfac,
-            })
+            const densityImage = loadWithBackground(
+                {
+                    background,
+                    image,
+                    expfac,
+                },
+                DR
+            )
             dispatch("image", {
                 index,
                 image: densityImage,
@@ -142,7 +148,7 @@
         }
         dispatch("image", {
             index: 0,
-            image: loadTrichrome(trichImages),
+            image: loadTrichrome(trichImages, DR),
         })
     }
 
@@ -197,9 +203,9 @@
         <option value="2" selected>DR200</option>
         <option value="4">DR400</option>
     </select>
-    <br>
-    <br>
-    <a href="{dcp_profile}" download="Provia_no_huesatmap_no_look.dcp">Download Lightroom Profile</a>
+    <br />
+    <br />
+    <a href={dcp_profile} download="Provia_no_huesatmap_no_look.dcp">Download Lightroom Profile</a>
 </div>
 
 <style>
