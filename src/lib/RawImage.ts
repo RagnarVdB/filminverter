@@ -236,9 +236,9 @@ export function buildPreview(image: RawImage): RawImage {
                 }
             }
 
-            out[(y*N+x)*4+0] = R/16
-            out[(y*N+x)*4+1] = G/16
-            out[(y*N+x)*4+2] = B/16
+            out[(y*N+x)*4+0] = R/64
+            out[(y*N+x)*4+1] = G/64
+            out[(y*N+x)*4+2] = B/64
             out[(y*N+x)*4+3] = 65535
         }
     }
