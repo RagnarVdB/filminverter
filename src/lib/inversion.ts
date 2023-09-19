@@ -37,11 +37,6 @@ interface ConversionValuesBw {
 }
 
 type LutSets = [number, number, number, number]
-const lutSets: [LutSets, LutSets, LutSets] = [
-    [-10.531924030702566, -5.8404278002068075, 0.1, -0.23031522712591435],
-    [-5.58974329151427, -8.0595005202138381, 0.2, -0.74694390911064334],
-    [-7.7641792146902739, -11.103306662255587, 0.2, -0.88572369488605363],
-]
 
 function pteCurve(x: number, sets: LutSets): number {
     const [m, b, d, x1] = sets
