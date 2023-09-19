@@ -19,7 +19,7 @@
         
     }
 
-    // $: url = getPreview(image)
+    $: url = getPreview(image)
     onMount(() => {
         url = getPreview(image)
     })

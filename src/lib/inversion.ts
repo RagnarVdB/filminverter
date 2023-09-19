@@ -49,10 +49,12 @@ function pteCurve(x: number, sets: LutSets): number {
         return -1000
     }
 }
+
 const ets_sets = [
     -5.54519159776, 0.966354066548, 2.59594911446, -0.0844234434652,
     0.0300657278329, 0.0,
 ]
+
 function ets_curve(x: number): number {
     const [x1, me, qe, ae, be, ce] = ets_sets
     if (x < x1) {
@@ -220,9 +222,9 @@ export function invertJSColor8bit(
             ]
         }
         const sRGB = mapTriple((x) => 2 ** ets_curve(x), exp)
-        out[i] = sRGB[0] * 2 ** 8
-        out[i + 1] = sRGB[1] * 2 ** 8
-        out[i + 2] = sRGB[2] * 2 ** 8
+        out[i] = clamp(sRGB[0] * 2 ** 8, 0, 255)
+        out[i + 1] = clamp(sRGB[1] * 2 ** 8, 0, 255)
+        out[i + 2] = clamp(sRGB[2] * 2 ** 8, 0, 255)
         out[i + 3] = 2 ** 8 - 1
     }
     return out
