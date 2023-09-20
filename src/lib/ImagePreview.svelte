@@ -3,25 +3,40 @@
     import type { ProcessedImage } from "./RawImage"
     // @ts-ignore
     import UPNG from "upng-js"
-    import { getConversionValuesColor, invertJSColor8bit } from "./inversion"
+    import {
+        getConversionValuesBw,
+        getConversionValuesColor,
+        invertJSBW8bit,
+        invertJSColor8bit,
+    } from "./inversion"
 
     export let image: ProcessedImage
-    let url: string =
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Wiki_Test_Image.jpg/800px-Wiki_Test_Image.jpg"
+    let url: string = ""
     let iter: number = -1
 
     function getPreview(image: ProcessedImage): string {
-        if (!image) throw new Error("No image")
+        let inverted: Uint8Array
+        if (!image) {
+            console.log("No image")
+            return ""
+        }
         console.log("Rendering preview")
-        const conversion_values = getConversionValuesColor(
-            image.settings.advanced,
-            image.kind
-        )
-        const inverted = invertJSColor8bit(
-            image.preview,
-            conversion_values,
-            image.kind
-        )
+        if (image.settings.mode == "basic") {
+            throw new Error("Basic mode not supported")
+        } else if (image.settings.mode == "advanced") {
+            const conversion_values = getConversionValuesColor(
+                image.settings.advanced,
+                image.kind
+            )
+            inverted = invertJSColor8bit(
+                image.preview,
+                conversion_values,
+                image.kind
+            )
+        } else {
+            const conversion_values = getConversionValuesBw(image.settings.bw)
+            inverted = invertJSBW8bit(image.preview, conversion_values)
+        }
         const png = UPNG.encode(
             [inverted.buffer],
             image.preview_width,
@@ -51,7 +66,7 @@
     }
 </script>
 
-<img src={url} alt=""/>
+<img src={url} alt="" />
 
 <style>
     img {

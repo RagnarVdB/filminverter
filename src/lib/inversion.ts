@@ -225,7 +225,7 @@ export function invertJSColor8bit(
         out[i] = clamp(sRGB[0] * 2 ** 8, 0, 255)
         out[i + 1] = clamp(sRGB[1] * 2 ** 8, 0, 255)
         out[i + 2] = clamp(sRGB[2] * 2 ** 8, 0, 255)
-        out[i + 3] = 2 ** 8 - 1
+        out[i + 3] = 255
     }
     return out
 }
@@ -247,12 +247,12 @@ export function getConversionValuesBw(
     return { m, b, d, dmin, invert_toe }
 }
 
-export function invertJSBW(
+export function invertJSBW8bit(
     im: Uint16Array,
     conversionValues: ConversionValuesBw
-): Uint16Array {
+): Uint8Array {
     const { m, b, d, dmin } = conversionValues
-    const out = new Uint16Array(im.length)
+    const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const densityR = -Math.log10(im[i] / 16384)
         const densityG = -Math.log10(im[i + 1] / 16384)
@@ -260,9 +260,10 @@ export function invertJSBW(
         const expR = pteCurve(densityR, [m, b, d, dmin[0]])
         const expG = pteCurve(densityG, [m, b, d, dmin[1]])
         const expB = pteCurve(densityB, [m, b, d, dmin[2]])
-        out[i] = 2 ** expR * 16384
-        out[i + 1] = 2 ** expG * 16384
-        out[i + 2] = 2 ** expB * 16384
+        out[i] = clamp(2 ** ets_curve(expR) * 256, 0, 255)
+        out[i + 1] = clamp(2 ** ets_curve(expG) * 256, 0, 255)
+        out[i + 2] = clamp(2 ** ets_curve(expB) * 256, 0, 255)
+        out[i + 3] = 255
     }
     return out
 }
