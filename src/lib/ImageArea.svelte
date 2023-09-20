@@ -24,6 +24,7 @@
             {#if image}
             <div
                 class="preview"
+                class:selected={$currentIndex == index}
                 on:click={() => {
                     $currentIndex = index
                 }}
@@ -63,7 +64,10 @@
 
     .preview {
         height: 100%;
-        margin-right: 3px;
-        padding: 0px;
+        margin: 3px;
+    }
+    .preview.selected {
+        margin: 0px 0px 0px 0px;
+        border: 3px solid black;
     }
 </style>
