@@ -13,6 +13,8 @@
     export let image: ProcessedImage
     let url: string = ""
     let iter: number = -1
+    let rotation = -1
+    let img_element: HTMLImageElement
 
     function getPreview(image: ProcessedImage): string {
         let inverted: Uint8Array
@@ -48,6 +50,28 @@
         return url
     }
 
+    function rotate(rotation: number) {
+        if (!img_element) return
+        console.log("Rotating", rotation)
+        const strip_height = img_element.parentElement?.clientHeight
+        if (!strip_height) return
+        const ratio = image.preview_width / image.preview_height
+        console.log(strip_height, ratio)
+        if (rotation % 2 == 1) {
+            img_element.style.width = `${strip_height}px`
+            img_element.style.height = `${strip_height / ratio}px`
+            if (rotation == 1) {
+                img_element.style.transform = `rotate(${-rotation * 90}deg) translate(-17%, 0px)`
+            } else {
+                img_element.style.transform = `rotate(${-rotation * 90}deg) translate(17%, 0px)`
+            }
+        } else {
+            img_element.style.transform = `rotate(${-rotation * 90}deg)`
+            img_element.style.width = `${strip_height * ratio}px`
+            img_element.style.height = `${strip_height}px`
+        }
+    }
+
     onMount(() => {
         url = getPreview(image)
         iter = 0
@@ -64,9 +88,16 @@
             }, 100)
         }
     }
+
+    $: {
+        if (image && image.settings.rotation != rotation) {
+            rotation = image.settings.rotation
+            rotate(image.settings.rotation)
+        }
+    }
 </script>
 
-<img src={url} alt="" />
+<img class="normal" src={url} alt="" bind:this={img_element} />
 
 <style>
     img {
