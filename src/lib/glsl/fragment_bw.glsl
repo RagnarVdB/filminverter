@@ -9,7 +9,7 @@ uniform bool show_negative;
 uniform vec3 clip_values;
 
 uniform float m;
-uniform float b;
+uniform vec3 b;
 uniform float d;
 uniform vec3 dmin;
 
@@ -49,7 +49,7 @@ float pte_curve(float x, float m, float b, float d, float x1) {
 
 vec3 paper_to_exp(vec3 color) {
   // Log10 to Log2
-  return vec3(pte_curve(color[0], m, b, d, dmin[0]), pte_curve(color[1], m, b, d, dmin[1]), pte_curve(color[2], m, b, d, dmin[2]));
+  return vec3(pte_curve(color[0], m, b[0], d, dmin[0]), pte_curve(color[1], m, b[1], d, dmin[1]), pte_curve(color[2], m, b[2], d, dmin[2]));
 }
 
 vec3 clip_red(vec3 color) {

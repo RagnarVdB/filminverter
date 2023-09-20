@@ -171,7 +171,7 @@ function getShaderParamsBw(
                 data: [settings.toe ? 1 : 0],
             },
             { name: "m", f: gl.uniform1f, data: [m] },
-            { name: "b", f: gl.uniform1f, data: [b] },
+            { name: "b", f: gl.uniform3f, data: b },
             { name: "d", f: gl.uniform1f, data: [d] },
             { name: "dmin", f: gl.uniform3f, data: dmin },
         ]

@@ -30,7 +30,7 @@ interface ConversionValuesColor {
 }
 interface ConversionValuesBw {
     m: number
-    b: number
+    b: Triple
     d: number
     dmin: Triple
     invert_toe: boolean
@@ -240,8 +240,7 @@ export function getConversionValuesBw(
     const m = 1 / (settings.gamma * Math.log10(2))
     const d = settings.toe_width
 
-    const maxDensity = dmin[1] + 1.2
-    const b = settings.exposure - m * maxDensity
+    const b = mapTriple((x) => settings.exposure - m * (x + 1.2), dmin)
     const invert_toe = settings.toe
     console.log({ m, b, d, dmin })
     return { m, b, d, dmin, invert_toe }
@@ -257,9 +256,9 @@ export function invertJSBW8bit(
         const densityR = -Math.log10(im[i] / 16384)
         const densityG = -Math.log10(im[i + 1] / 16384)
         const densityB = -Math.log10(im[i + 2] / 16384)
-        const expR = pteCurve(densityR, [m, b, d, dmin[0]])
-        const expG = pteCurve(densityG, [m, b, d, dmin[1]])
-        const expB = pteCurve(densityB, [m, b, d, dmin[2]])
+        const expR = pteCurve(densityR, [m, b[0], d, dmin[0]])
+        const expG = pteCurve(densityG, [m, b[1], d, dmin[1]])
+        const expB = pteCurve(densityB, [m, b[2], d, dmin[2]])
         out[i] = clamp(2 ** ets_curve(expR) * 256, 0, 255)
         out[i + 1] = clamp(2 ** ets_curve(expG) * 256, 0, 255)
         out[i + 2] = clamp(2 ** ets_curve(expB) * 256, 0, 255)
@@ -315,7 +314,7 @@ function invertRawBW(
                 color_value,
                 {
                     m,
-                    b,
+                    b: b[colorIndex],
                     d,
                     dmin: dmin[colorIndex],
                     invert_toe,
