@@ -21,6 +21,7 @@
     <ImageView image={$images[$currentIndex]} bind:canvas={$mainCanvas} />
     <div id="strip">
         {#each $images as image, index}
+            {#if image}
             <div
                 class="preview"
                 on:click={() => {
@@ -29,6 +30,7 @@
             >
                 <ImagePreview {image} />
             </div>
+            {/if}
         {/each}
     </div>
 </div>
