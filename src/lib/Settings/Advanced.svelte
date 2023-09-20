@@ -4,7 +4,7 @@
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
-    import type { Settings } from "../RawImage"
+    import type { AdvancedSettings, Settings } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download } from "../utils"
 
@@ -29,6 +29,8 @@
 
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
+
+    let copied_settings: AdvancedSettings | null = null
 
     export let settings: Settings
 
@@ -147,6 +149,11 @@
 
         input.click()
     }
+
+    function onKeyDown(e: KeyboardEvent) {
+        console.log(e.key)
+    }
+
 </script>
 
 <div class="advanced">
@@ -200,9 +207,20 @@
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
     <Zoom bind:zoom />
+    <button on:click={() => copied_settings = settings.advanced}>Copy settings</button>
+    {#if (copied_settings != null)}
+        <button on:click={() => {
+            if (!copied_settings) return
+            settings.advanced = copied_settings
+            updateSliders(settings)
+        }}>Paste settings</button>
+    {/if}
+    
+    
     <button on:click={saveSettings}>Save settings</button>
     <button on:click={loadSettings}>Load settings</button>
 </div>
+
 
 <style>
 </style>
