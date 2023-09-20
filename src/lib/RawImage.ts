@@ -203,7 +203,7 @@ export const defaultSettings: Settings = {
     advanced: {
         toe: true,
         dmin: [6624, 3054, 1546],
-        neutral: [2366, 720, 327],
+        neutral: [2366, 720, 340],
         exposure: 0,
         blue: 0,
         green: 0,
