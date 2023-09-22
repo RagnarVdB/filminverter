@@ -57,7 +57,7 @@ export const tc_map: Record<
     { index: number; exp_shift: number; LUT: number[] }
 > = {
     Default: { index: 0, exp_shift: 0, LUT: luts.Default },
-    Filmic: { index: 1, exp_shift: 1, LUT: luts.Default },
+    Filmic: { index: 1, exp_shift: 1, LUT: luts.Filmic },
 }
 
 const ets_sets = [
