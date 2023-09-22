@@ -205,7 +205,8 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
 
     const wb = image.wb_coeffs
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const clip_values = wb_coeffs.map((x) => Math.log2(x * image.DR))
+    const tone_curve = tc_map[image.settings.tone_curve]
+    const clip_values = wb_coeffs.map((x) => Math.log2(x * image.DR) + tone_curve.exp_shift)
 
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
@@ -229,12 +230,12 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
         {
             name: "tone_curve",
             f: gl.uniform1fv,
-            data: [tc_map[image.settings.tone_curve].LUT],
+            data: [tone_curve.LUT],
         },
         {
             name: "tc_exp_shift",
             f: gl.uniform1f,
-            data: [tc_map[image.settings.tone_curve].exp_shift],
+            data: [tone_curve.exp_shift],
         },
         ...fragment_parameters,
     ]
