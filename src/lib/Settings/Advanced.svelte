@@ -4,14 +4,14 @@
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
-    import type { AdvancedSettings, Settings, TCIndex } from "../RawImage"
+    import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download } from "../utils"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
 
-    let tone_curve: TCIndex = 0
+    let tone_curve: TCName = "Default"
     let toe = true
     let dmin: Triple = [7662, 2939, 1711]
     let neutral: Triple = [3300, 730, 320]
@@ -63,7 +63,7 @@
     }
 
     function updateSettings(
-        tone_curve: TCIndex,
+        tone_curve: TCName,
         toe: boolean,
         dmin: Triple,
         neutral: Triple,
@@ -167,8 +167,8 @@
     <br />
     <label for="Tone Curve">Tone Curve</label>
     <select name="Tone Curve" bind:value={tone_curve}>
-        <option value="0" selected>Default</option>
-        <option value="1">Filmic</option>
+        <option value="Default" selected>Default</option>
+        <option value="Filmic">Filmic</option>
     </select>
 
     <br />
