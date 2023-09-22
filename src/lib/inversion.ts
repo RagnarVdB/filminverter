@@ -21,6 +21,7 @@ import { trich_to_APD, sRGB_to_cam, single_to_APD } from "./matrices"
 import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
 
 import type { Primary, Triple } from "./utils"
+import luts from "./luts"
 
 interface ConversionValuesColor {
     m: Triple
@@ -53,10 +54,10 @@ function pteCurve(x: number, sets: LutSets): number {
 
 export const tc_map: Record<
     TCName,
-    { index: number; exp_shift: number; f: (x: number) => number }
+    { index: number; exp_shift: number; LUT: number[] }
 > = {
-    Default: { index: 0, exp_shift: 0, f: ets_curve },
-    Filmic: { index: 1, exp_shift: 1, f: filmic_curve },
+    Default: { index: 0, exp_shift: 0, LUT: luts.Default },
+    Filmic: { index: 1, exp_shift: 1, LUT: luts.Default },
 }
 
 const ets_sets = [
@@ -71,10 +72,6 @@ function ets_curve(x: number): number {
     } else {
         return ae * x * x + be * x + ce
     }
-}
-
-function filmic_curve(x: number): number {
-    return 0
 }
 
 export function getConversionValuesColor(

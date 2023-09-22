@@ -227,9 +227,9 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             data: clip_values,
         },
         {
-            name: "tc_index",
-            f: gl.uniform1i,
-            data: [tc_map[image.settings.tone_curve].index],
+            name: "tone_curve",
+            f: gl.uniform1fv,
+            data: [tc_map[image.settings.tone_curve].LUT],
         },
         {
             name: "tc_exp_shift",
