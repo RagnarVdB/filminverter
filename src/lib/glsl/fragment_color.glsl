@@ -6,6 +6,9 @@ uniform bool toe;
 uniform bool show_clipping;
 uniform bool show_negative;
 
+uniform int tc_index;
+uniform float tc_exp_shift;
+
 uniform mat3 cam_to_apd;
 uniform mat3 cam_to_sRGB;
 // uniform mat3 cdd_to_cid;
@@ -38,7 +41,11 @@ float ets_curve(float x) {
 
 vec3 exp_to_sRGB(vec3 color) {
   // Log2 to Log2
-  return vec3(ets_curve(color[0]), ets_curve(color[1]), ets_curve(color[2]));
+  if(tc_index == 0) {
+    return vec3(ets_curve(color[0]), ets_curve(color[1]), ets_curve(color[2]));
+  } else {
+    return vec3(-3.0f);
+  }
 }
 
 float pte_curve(float x, float m, float b, float d, float x1) {
@@ -86,6 +93,7 @@ void main() {
     } else {
       color = vec3(m) * color + vec3(b); // Linear
     }
+    color = color - vec3(tc_exp_shift);
     if(show_clipping) {
       color = clip_red(color);
     } else {

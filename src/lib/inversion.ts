@@ -7,6 +7,7 @@ import type {
     LoadedSingleImage,
     LoadedTrichrome,
     Settings,
+    TCName,
     Trich,
 } from "./RawImage"
 import {
@@ -50,6 +51,14 @@ function pteCurve(x: number, sets: LutSets): number {
     }
 }
 
+export const tc_map: Record<
+    TCName,
+    { index: number; exp_shift: number; f: (x: number) => number }
+> = {
+    Default: { index: 0, exp_shift: 0, f: ets_curve },
+    Filmic: { index: 1, exp_shift: 1, f: filmic_curve },
+}
+
 const ets_sets = [
     -5.54519159776, 0.966354066548, 2.59594911446, -0.0844234434652,
     0.0300657278329, 0.0,
@@ -62,6 +71,10 @@ function ets_curve(x: number): number {
     } else {
         return ae * x * x + be * x + ce
     }
+}
+
+function filmic_curve(x: number): number {
+    return 0
 }
 
 export function getConversionValuesColor(

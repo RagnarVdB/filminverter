@@ -4,7 +4,11 @@ import vertex_shader from "./glsl/vertex_shader.glsl"
 import fragment_color from "./glsl/fragment_color.glsl"
 //@ts-ignore
 import fragment_bw from "./glsl/fragment_bw.glsl"
-import { getConversionValuesBw, getConversionValuesColor } from "./inversion"
+import {
+    getConversionValuesBw,
+    getConversionValuesColor,
+    tc_map,
+} from "./inversion"
 import {
     trich_to_APD,
     cam_to_sRGB,
@@ -221,6 +225,16 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             name: "clip_values",
             f: gl.uniform3f,
             data: clip_values,
+        },
+        {
+            name: "tc_index",
+            f: gl.uniform1i,
+            data: [tc_map[image.settings.tone_curve].index],
+        },
+        {
+            name: "tc_exp_shift",
+            f: gl.uniform1f,
+            data: [tc_map[image.settings.tone_curve].exp_shift],
         },
         ...fragment_parameters,
     ]
