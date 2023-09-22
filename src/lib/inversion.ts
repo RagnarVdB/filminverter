@@ -60,17 +60,16 @@ export const tc_map: Record<
     Filmic: { index: 1, exp_shift: 1, LUT: luts.Filmic },
 }
 
-const ets_sets = [
-    -5.54519159776, 0.966354066548, 2.59594911446, -0.0844234434652,
-    0.0300657278329, 0.0,
-]
+export function applyLUT(x: number, LUT: number[]): number {
+    const index = Math.floor(clamp(x, 0, 1) * 255)
+    return LUT[index]
+}
 
-function ets_curve(x: number): number {
-    const [x1, me, qe, ae, be, ce] = ets_sets
-    if (x < x1) {
-        return me * x + qe
+function sRGBGamma(x: number) {
+    if (x <= 0.0031308) {
+        return 12.92 * x
     } else {
-        return ae * x * x + be * x + ce
+        return 1.055 * x ** (1.0 / 2.4) - 0.055
     }
 }
 
@@ -151,8 +150,7 @@ function procesValueColor(
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
     const rawValuesRGB = mapTriple((x) => 2 ** (x - exp_shift), exp)
-    const rawValue =
-        applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
+    const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 1016, 16384)
 }
 
@@ -182,7 +180,8 @@ function invertRawColor(
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const conversion_values = getConversionValuesColor(settings.advanced, kind)
-    const exp_shift = Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
+    const exp_shift =
+        Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
 
     let out = new Uint16Array(w * h)
     for (let i = 0; i < w; i++) {
@@ -204,9 +203,11 @@ function invertRawColor(
 export function invertJSColor8bit(
     im: Uint16Array,
     conversion_values: ConversionValuesColor,
+    tone_curve: TCName,
     kind: "normal" | "density" | "trichrome"
 ): Uint8Array {
     const { m, b, d, dmin, invert_toe } = conversion_values
+    const { LUT, exp_shift } = tc_map[tone_curve]
     const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
     const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
@@ -233,10 +234,13 @@ export function invertJSColor8bit(
                 m[2] * APD[2] + b[2],
             ]
         }
-        const sRGB = mapTriple((x) => 2 ** ets_curve(x), exp)
-        out[i] = clamp(sRGB[0] * 2 ** 8, 0, 255)
-        out[i + 1] = clamp(sRGB[1] * 2 ** 8, 0, 255)
-        out[i + 2] = clamp(sRGB[2] * 2 ** 8, 0, 255)
+        const sRGB = mapTriple(
+            (x) => sRGBGamma(applyLUT(2 ** (x - exp_shift), LUT)),
+            exp
+        )
+        out[i] = sRGB[0] * 2 ** 8
+        out[i + 1] = sRGB[1] * 2 ** 8
+        out[i + 2] = sRGB[2] * 2 ** 8
         out[i + 3] = 255
     }
     return out
@@ -260,9 +264,11 @@ export function getConversionValuesBw(
 
 export function invertJSBW8bit(
     im: Uint16Array,
-    conversionValues: ConversionValuesBw
+    conversionValues: ConversionValuesBw,
+    tone_curve: TCName
 ): Uint8Array {
     const { m, b, d, dmin } = conversionValues
+    const { LUT, exp_shift } = tc_map[tone_curve]
     const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const densityR = -Math.log10(im[i] / 16384)
@@ -271,9 +277,9 @@ export function invertJSBW8bit(
         const expR = pteCurve(densityR, [m, b[0], d, dmin[0]])
         const expG = pteCurve(densityG, [m, b[1], d, dmin[1]])
         const expB = pteCurve(densityB, [m, b[2], d, dmin[2]])
-        out[i] = clamp(2 ** ets_curve(expR) * 256, 0, 255)
-        out[i + 1] = clamp(2 ** ets_curve(expG) * 256, 0, 255)
-        out[i + 2] = clamp(2 ** ets_curve(expB) * 256, 0, 255)
+        out[i] = sRGBGamma(applyLUT(2 ** (expR - exp_shift), LUT)) * 256
+        out[i + 1] = sRGBGamma(applyLUT(2 ** (expG - exp_shift), LUT)) * 256
+        out[i + 2] = sRGBGamma(applyLUT(2 ** (expB - exp_shift), LUT)) * 256
         out[i + 3] = 255
     }
     return out
@@ -313,8 +319,8 @@ function invertRawBW(
     const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings.bw)
     let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
     const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const exp_shift = Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
-
+    const exp_shift =
+        Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
 
     const out = new Uint16Array(w * h)
     for (let j = 0; j < h; j++) {

@@ -33,11 +33,12 @@
             inverted = invertJSColor8bit(
                 image.preview,
                 conversion_values,
+                image.settings.tone_curve,
                 image.kind
             )
         } else {
             const conversion_values = getConversionValuesBw(image.settings.bw)
-            inverted = invertJSBW8bit(image.preview, conversion_values)
+            inverted = invertJSBW8bit(image.preview, conversion_values, image.settings.tone_curve)
         }
         const png = UPNG.encode(
             [inverted.buffer],
