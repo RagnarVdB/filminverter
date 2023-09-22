@@ -130,7 +130,7 @@ function procesValueColor(
     primary: Primary,
     conversionValues: ConversionValuesColor,
     wb_coeff: number,
-    DR: number,
+    exp_shift: number,
     kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
@@ -150,15 +150,15 @@ function procesValueColor(
     } else {
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
-    const rawValuesRGB = mapTriple((x) => 2 ** x, exp)
+    const rawValuesRGB = mapTriple((x) => 2 ** (x - exp_shift), exp)
     const rawValue =
-        applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff / DR
+        applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
     return clamp(rawValue * 16384 + BLACK, 1016, 16384)
 }
 
 function invertRawColor(
     image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
-    settings: AdvancedSettings
+    settings: Settings
 ): Uint16Array {
     let w: number, h: number
     let wb
@@ -181,7 +181,9 @@ function invertRawColor(
         kind = "normal"
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const conversion_values = getConversionValuesColor(settings, kind)
+    const conversion_values = getConversionValuesColor(settings.advanced, kind)
+    const exp_shift = Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
+
     let out = new Uint16Array(w * h)
     for (let i = 0; i < w; i++) {
         for (let j = 0; j < h; j++) {
@@ -191,7 +193,7 @@ function invertRawColor(
                 main,
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
-                image.DR,
+                exp_shift,
                 kind
             )
         }
@@ -287,20 +289,20 @@ function processColorValueBw(
         invert_toe: boolean
     },
     wb_coeff: number,
-    DR: number
+    exp_shift: number
 ): number {
     const { m, b, d, dmin, invert_toe } = conversionValues
     const density = -Math.log10(colorValue)
     const exp = invert_toe
         ? pteCurve(density, [m, b, d, dmin])
         : m * density + b
-    const rawValue = 2 ** exp / wb_coeff / DR
+    const rawValue = 2 ** (exp - exp_shift) / wb_coeff
     return clamp(rawValue * 16384 + BLACK, BLACK, 16384)
 }
 
 function invertRawBW(
     image: LoadedSingleImage | LoadedDensity,
-    settings: BWSettings
+    settings: Settings
 ): Uint16Array {
     const withBackground = "background" in image
     const [w, h] = withBackground
@@ -308,9 +310,12 @@ function invertRawBW(
         : [image.width, image.height]
     const cfa = withBackground ? image.image.cfa : image.cfa
 
-    const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings)
+    const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings.bw)
     let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
     const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
+    const exp_shift = Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
+
+
     const out = new Uint16Array(w * h)
     for (let j = 0; j < h; j++) {
         for (let i = 0; i < w; i++) {
@@ -330,7 +335,7 @@ function invertRawBW(
                     invert_toe,
                 },
                 white_balance[colorIndex],
-                image.DR
+                exp_shift
             )
             // if (primary == "B") {
             //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
@@ -352,8 +357,8 @@ export function invertRaw(
         if ("R" in image) {
             throw new Error("BW not supported for trichrome")
         }
-        return invertRawBW(image, settings.bw)
+        return invertRawBW(image, settings)
     } else {
-        return invertRawColor(image, settings.advanced)
+        return invertRawColor(image, settings)
     }
 }
