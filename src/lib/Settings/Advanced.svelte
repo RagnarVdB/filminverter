@@ -229,7 +229,7 @@
         <button
             on:click={() => {
                 if (!copied_settings) return
-                settings.advanced = copied_settings
+                settings.advanced = JSON.parse(JSON.stringify(copied_settings))
                 updateSliders(settings)
             }}>Paste settings</button
         >
