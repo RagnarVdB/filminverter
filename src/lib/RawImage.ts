@@ -158,6 +158,8 @@ export interface CFA {
     offset: [number, number]
 }
 
+export type TCIndex = 0 | 1
+
 export interface Settings {
     mode: "advanced" | "basic" | "bw"
     rotation: number
@@ -165,6 +167,7 @@ export interface Settings {
     zoom: [number, number, number, number]
     show_clipping: boolean
     show_negative: boolean
+    tone_curve: TCIndex
     advanced: AdvancedSettings
     bw: BWSettings
 }
@@ -200,6 +203,7 @@ export const defaultSettings: Settings = {
     zoom: [1, 1, 0, 0],
     show_clipping: false,
     show_negative: false,
+    tone_curve: 0,
     advanced: {
         toe: true,
         dmin: [6624, 3054, 1546],

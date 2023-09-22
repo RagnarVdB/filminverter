@@ -4,13 +4,14 @@
     import Slider from "@bulatdashiev/svelte-slider"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
-    import type { AdvancedSettings, Settings } from "../RawImage"
+    import type { AdvancedSettings, Settings, TCIndex } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download } from "../utils"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
 
+    let tone_curve: TCIndex = 0
     let toe = true
     let dmin: Triple = [7662, 2939, 1711]
     let neutral: Triple = [3300, 730, 320]
@@ -41,6 +42,7 @@
     }
     $: {
         updateSettings(
+            tone_curve,
             toe,
             dmin,
             neutral,
@@ -61,6 +63,7 @@
     }
 
     function updateSettings(
+        tone_curve: TCIndex,
         toe: boolean,
         dmin: Triple,
         neutral: Triple,
@@ -93,6 +96,7 @@
                 toe_facB: toe_facB[0],
                 toe_facG: toe_facG[0],
             }
+            settings.tone_curve = tone_curve
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.rotation = rotation
@@ -103,22 +107,23 @@
 
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
-            toe = sets.advanced.toe
-            exposure[0] = sets.advanced.exposure + 5
-            blue[0] = sets.advanced.blue + 2
-            green[0] = sets.advanced.green + 2
-            gamma[0] = sets.advanced.gamma
-            facB[0] = (sets.advanced.facB - 1 + 4 * m) / m
-            facG[0] = (sets.advanced.facG - 1 + 3 * m) / m
-            toe_width[0] = sets.advanced.toe_width
-            toe_facB[0] = sets.advanced.toe_facB
-            toe_facG[0] = sets.advanced.toe_facG
-            rotation = sets.rotation
-            dmin = sets.advanced.dmin
-            neutral = sets.advanced.neutral
-            show_clipping = sets.show_clipping
-            show_negative = sets.show_negative
-            zoom = sets.zoom
+        tone_curve = sets.tone_curve
+        toe = sets.advanced.toe
+        exposure[0] = sets.advanced.exposure + 5
+        blue[0] = sets.advanced.blue + 2
+        green[0] = sets.advanced.green + 2
+        gamma[0] = sets.advanced.gamma
+        facB[0] = (sets.advanced.facB - 1 + 4 * m) / m
+        facG[0] = (sets.advanced.facG - 1 + 3 * m) / m
+        toe_width[0] = sets.advanced.toe_width
+        toe_facB[0] = sets.advanced.toe_facB
+        toe_facG[0] = sets.advanced.toe_facG
+        rotation = sets.rotation
+        dmin = sets.advanced.dmin
+        neutral = sets.advanced.neutral
+        show_clipping = sets.show_clipping
+        show_negative = sets.show_negative
+        zoom = sets.zoom
     }
 
     async function saveSettings() {
@@ -153,17 +158,27 @@
     function onKeyDown(e: KeyboardEvent) {
         console.log(e.key)
     }
-
 </script>
 
 <div class="advanced">
     <Picker name="film border" bind:color={dmin} />
 
     <Picker name="neutral" bind:color={neutral} />
+    <br />
+    <label for="Tone Curve">Tone Curve</label>
+    <select name="Tone Curve" bind:value={tone_curve}>
+        <option value="0" selected>Default</option>
+        <option value="1">Filmic</option>
+    </select>
+
+    <br />
+    <br />
 
     invert toe:
     <input type="checkbox" bind:checked={toe} />
     <br />
+    <br />
+
     exposure: {Math.round((exposure[0] - 5) * 100) / 100}
     <Slider bind:value={exposure} min="0" max="10" step="0.05" />
 
@@ -186,10 +201,10 @@
     <Slider bind:value={toe_width} min="0" max="0.3" step="0.01" />
 
     toe factor blue: {Math.round(toe_facB[0] * 100) / 100}
-    <Slider bind:value={toe_facB} min=0 max=3 step=0.01 />
+    <Slider bind:value={toe_facB} min="0" max="3" step="0.01" />
 
     toe factor green: {Math.round(toe_facG[0] * 100) / 100}
-    <Slider bind:value={toe_facG} min=0 max=3 step=0.01 />
+    <Slider bind:value={toe_facG} min="0" max="3" step="0.01" />
 
     Show clipping:
     <input type="checkbox" bind:checked={show_clipping} />
@@ -207,20 +222,22 @@
     <button on:click={() => dispatch("save", { all: false })}>Save</button>
     <button on:click={() => dispatch("save", { all: true })}>Save all</button>
     <Zoom bind:zoom />
-    <button on:click={() => copied_settings = settings.advanced}>Copy settings</button>
-    {#if (copied_settings != null)}
-        <button on:click={() => {
-            if (!copied_settings) return
-            settings.advanced = copied_settings
-            updateSliders(settings)
-        }}>Paste settings</button>
+    <button on:click={() => (copied_settings = settings.advanced)}
+        >Copy settings</button
+    >
+    {#if copied_settings != null}
+        <button
+            on:click={() => {
+                if (!copied_settings) return
+                settings.advanced = copied_settings
+                updateSliders(settings)
+            }}>Paste settings</button
+        >
     {/if}
-    
-    
+
     <button on:click={saveSettings}>Save settings</button>
     <button on:click={loadSettings}>Load settings</button>
 </div>
-
 
 <style>
 </style>
