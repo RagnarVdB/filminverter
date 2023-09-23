@@ -6,6 +6,9 @@ uniform bool toe;
 uniform bool show_clipping;
 uniform bool show_negative;
 
+uniform float tone_curve[256];
+uniform float tc_exp_shift;
+
 uniform vec3 clip_values;
 
 uniform float m;
@@ -16,24 +19,20 @@ uniform vec3 dmin;
 in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
-float x1 = -5.375717008844633f;
-float me = 0.9624795323710955f;
-float qe = 2.5637804040044925f;
-float ae = -0.090848876839316f;
-float be = -0.014276172547989074f;
-float ce = -0.06160072420528406f;
+float applyLUT(float x) {
+  return tone_curve[int(x * 255.0f)];
+}
 
-float ets_curve(float x) {
-  if(x < x1) {
-    return me * x + qe;
+float sRGB_gamma(float x) {
+  if(x <= 0.0031308f) {
+    return 12.92f * x;
   } else {
-    return ae * x * x + be * x + ce;
+    return 1.055f * pow(x, 1.0f / 2.4f) - 0.055f;
   }
 }
 
 vec3 exp_to_sRGB(vec3 color) {
-  // Log2 to Log2
-  return vec3(ets_curve(color[0]), ets_curve(color[1]), ets_curve(color[2]));
+  return vec3(sRGB_gamma(applyLUT(color[0])), sRGB_gamma(applyLUT(color[1])), sRGB_gamma(applyLUT(color[2])));
 }
 
 float pte_curve(float x, float m, float b, float d, float x1) {
@@ -85,10 +84,12 @@ void main() {
     } else {
       color = clip_white(color);
     }
-    color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
+    color = color - vec3(tc_exp_shift);
+    color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
   } else {
     color = log(color) / log(vec3(2.0f));
-    color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
+    color = color - vec3(tc_exp_shift);
+    color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);
 }
