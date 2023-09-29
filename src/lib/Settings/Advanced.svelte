@@ -155,9 +155,6 @@
         input.click()
     }
 
-    function onKeyDown(e: KeyboardEvent) {
-        console.log(e.key)
-    }
 </script>
 
 <div class="advanced">
