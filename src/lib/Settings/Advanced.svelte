@@ -35,7 +35,7 @@
 
     export let settings: Settings
 
-    const m = 1 / 5
+    const m = 8
 
     $: {
         updateSliders(settings)
@@ -90,8 +90,8 @@
                 blue: blue[0] - 2,
                 green: green[0] - 2,
                 gamma: gamma[0],
-                facB: m * facB[0] - 4 * m + 1,
-                facG: m * facG[0] - 3 * m + 1,
+                facB: 1 + (facB[0] - 5)/m,
+                facG: 1 + (facG[0] - 5)/m,
                 toe_width: toe_width[0],
                 toe_facB: toe_facB[0],
                 toe_facG: toe_facG[0],
@@ -113,8 +113,8 @@
         blue[0] = sets.advanced.blue + 2
         green[0] = sets.advanced.green + 2
         gamma[0] = sets.advanced.gamma
-        facB[0] = (sets.advanced.facB - 1 + 4 * m) / m
-        facG[0] = (sets.advanced.facG - 1 + 3 * m) / m
+        facB[0] = (sets.advanced.facB - 1) * m + 5
+        facG[0] = (sets.advanced.facG - 1) * m + 5
         toe_width[0] = sets.advanced.toe_width
         toe_facB[0] = sets.advanced.toe_facB
         toe_facG[0] = sets.advanced.toe_facG
@@ -188,10 +188,10 @@
     gamma: {Math.round(gamma[0] * 100) / 100}
     <Slider bind:value={gamma} min="0" max="1" step="0.01" />
 
-    factor blue: {Math.round((facB[0] - 4) * 100) / 100}
+    factor blue: {Math.round((facB[0] - 5) * 100) / 100}
     <Slider bind:value={facB} min="0" max="10" step="0.05" />
 
-    factor green: {Math.round((facG[0] - 3) * 100) / 100}
+    factor green: {Math.round((facG[0] - 5) * 100) / 100}
     <Slider bind:value={facG} min="0" max="10" step="0.05" />
 
     toe width: {Math.round(toe_width[0] * 100) / 100}

@@ -79,7 +79,7 @@ export function getConversionValuesColor(
 ): ConversionValuesColor {
     const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
     const gamma: Triple = [
-        settings.gamma,
+        settings.gamma * (3 - settings.facG - settings.facB),
         settings.gamma * settings.facG,
         settings.gamma * settings.facB,
     ]
