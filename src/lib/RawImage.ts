@@ -1,4 +1,5 @@
-import type { BgPrimary, Matrix, Primary, Triple } from "./utils"
+import { single_to_APD } from "./matrices"
+import type { BgPrimary, ColorMatrix, Matrix, Primary, Triple } from "./utils"
 import { allPromises, bgMap, clamp, colorOrder } from "./utils"
 
 export const BLACK = 1016
@@ -168,6 +169,7 @@ export interface Settings {
     show_clipping: boolean
     show_negative: boolean
     tone_curve: TCName
+    matrix: ColorMatrix
     advanced: AdvancedSettings
     bw: BWSettings
 }
@@ -204,6 +206,7 @@ export const defaultSettings: Settings = {
     show_clipping: false,
     show_negative: false,
     tone_curve: "Default",
+    matrix: single_to_APD,
     advanced: {
         toe: true,
         dmin: [6624, 3054, 1546],
@@ -221,12 +224,21 @@ export const defaultSettings: Settings = {
         toe_facG: 1.786,
         toe_facB: 1.462,
     },
+    // bw: {
+    //     toe: true,
+    //     blackpoint: [6583, 6583, 6583],
+    //     exposure: 0,
+    //     gamma: 68 / 100,
+    //     toe_width: 0.2,
+    //     blackpoint_shift: 0,
+    // },
+
     bw: {
         toe: true,
-        blackpoint: [6583, 6583, 6583],
-        exposure: 0,
-        gamma: 68 / 100,
-        toe_width: 0.2,
+        blackpoint: [4837, 4874, 5337],
+        exposure: -0.5,
+        gamma: 77 / 100,
+        toe_width: 0.22,
         blackpoint_shift: 0,
     },
 }
@@ -300,7 +312,6 @@ function getColorValueSingle(
     let color: Triple = [0, 0, 0]
     let pixelCounts: Triple = [0, 0, 0]
     const main = getCFAValue(cfa, x, y)
-    color[colorOrder[main]] = image.image[x + y * w]
     color[colorOrder[main]] = getTransmittanceNormal(image, main, x, y)
     pixelCounts[colorOrder[main]] = 1
     for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {

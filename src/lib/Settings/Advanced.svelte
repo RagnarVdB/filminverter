@@ -6,12 +6,14 @@
     import Zoom from "./Zoom.svelte"
     import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
-    import { download } from "../utils"
+    import { download, type ColorMatrix } from "../utils"
+    import { identity, single_to_APD } from "../matrices"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
 
     let tone_curve: TCName = "Default"
+    let matrix: ColorMatrix = single_to_APD
     let toe = true
     let dmin: Triple = [7662, 2939, 1711]
     let neutral: Triple = [3300, 730, 320]
@@ -43,6 +45,7 @@
     $: {
         updateSettings(
             tone_curve,
+            matrix,
             toe,
             dmin,
             neutral,
@@ -64,6 +67,7 @@
 
     function updateSettings(
         tone_curve: TCName,
+        matrix: ColorMatrix,
         toe: boolean,
         dmin: Triple,
         neutral: Triple,
@@ -97,6 +101,7 @@
                 toe_facG: toe_facG[0],
             }
             settings.tone_curve = tone_curve
+            settings.matrix = matrix
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.rotation = rotation
@@ -108,6 +113,7 @@
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
         tone_curve = sets.tone_curve
+        matrix = sets.matrix
         toe = sets.advanced.toe
         exposure[0] = sets.advanced.exposure + 5
         blue[0] = sets.advanced.blue + 2
@@ -166,6 +172,12 @@
     <select name="Tone Curve" bind:value={tone_curve}>
         <option value="Default" selected>Default</option>
         <option value="Filmic">Filmic</option>
+    </select>
+    <br/>
+    <label for="Matrix">Matrix</label>
+    <select name="Matrix" bind:value={matrix}>
+        <option value={single_to_APD}>Matrix 1</option>
+        <option value={identity}>Identity</option>
     </select>
 
     <br />

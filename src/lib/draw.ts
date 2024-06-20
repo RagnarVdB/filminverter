@@ -12,12 +12,9 @@ import {
 import {
     trich_to_APD,
     cam_to_sRGB,
-    cdd_to_cid,
-    exp_to_sRGB,
-    single_to_APD,
 } from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
-import { transpose, type Triple } from "./utils"
+import { transpose, type ColorMatrix, type Triple } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
     name: string
@@ -119,10 +116,11 @@ function webGlDraw(
 function getShaderParamsColor(
     gl: WebGL2RenderingContext,
     settings: AdvancedSettings,
+    matrix: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    const { m, b, d, dmin } = getConversionValuesColor(settings, kind)
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+    const { m, b, d, dmin } = getConversionValuesColor(settings, matrix, kind)
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
@@ -187,8 +185,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
 
     const w = image.width
     const h = image.height
-    const im = image.image
-    const img = im
+    const img = image.image
 
     const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
@@ -201,7 +198,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const fragment_parameters =
         mode == "bw"
             ? getShaderParamsBw(gl, image.settings.bw, image.kind)
-            : getShaderParamsColor(gl, image.settings.advanced, image.kind)
+            : getShaderParamsColor(gl, image.settings.advanced, image.settings.matrix, image.kind)
 
     const wb = image.wb_coeffs
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]

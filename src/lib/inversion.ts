@@ -1,14 +1,11 @@
 import type {
     AdvancedSettings,
     BWSettings,
-    Bg,
     LoadedDensity,
-    LoadedImage,
     LoadedSingleImage,
     LoadedTrichrome,
     Settings,
     TCName,
-    Trich,
 } from "./RawImage"
 import {
     BLACK,
@@ -17,10 +14,10 @@ import {
     getTransmittanceBg,
     getTransmittanceNormal,
 } from "./RawImage"
-import { trich_to_APD, sRGB_to_cam, single_to_APD } from "./matrices"
+import { trich_to_APD, sRGB_to_cam } from "./matrices"
 import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
 
-import type { Primary, Triple } from "./utils"
+import type { ColorMatrix, Primary, Triple } from "./utils"
 import luts from "./luts"
 
 interface ConversionValuesColor {
@@ -29,6 +26,7 @@ interface ConversionValuesColor {
     d: Triple
     dmin: Triple
     invert_toe: boolean
+    matrix: ColorMatrix
 }
 interface ConversionValuesBw {
     m: number
@@ -75,33 +73,43 @@ function sRGBGamma(x: number) {
 
 export function getConversionValuesColor(
     settings: AdvancedSettings,
+    matrix: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): ConversionValuesColor {
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
     const gamma: Triple = [
         settings.gamma * (3 - settings.facG - settings.facB),
         settings.gamma * settings.facG,
         settings.gamma * settings.facB,
     ]
+    console.log({ gamma })
+    console.log({ dmin: settings.dmin })
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
-
     const dminAPD = applyCMV(
         APD_matrix,
         mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
     )
-    console.log({ dminAPD })
 
     const d: Triple = [
         settings.toe_width,
         settings.toe_width * settings.toe_facG,
         settings.toe_width * settings.toe_facB,
     ]
+    console.log({ d })
     const target_neutral_APD: Triple = [
         -3 + settings.exposure,
         -3 + settings.exposure + settings.green,
         -3 + settings.exposure + settings.blue,
     ]
+    console.log({
+        exposure: [
+            settings.exposure,
+            settings.exposure + settings.green,
+            settings.exposure + settings.blue,
+        ],
+    })
     const selected_neutral_cam = settings.neutral
+    console.log({ selected_neutral_cam })
 
     const selected_neutral_APD = applyCMV(
         APD_matrix,
@@ -121,6 +129,7 @@ export function getConversionValuesColor(
         d,
         dmin: dminAPD,
         invert_toe: settings.toe,
+        matrix,
     }
 }
 
@@ -130,11 +139,12 @@ function procesValueColor(
     conversionValues: ConversionValuesColor,
     wb_coeff: number,
     exp_shift: number,
+    matrix: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
     const { m, b, d, dmin, invert_toe } = conversionValues
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
     const APD = applyCMV(
         APD_matrix,
         mapTriple((x) => -Math.log10(x), colorValue)
@@ -179,7 +189,11 @@ function invertRawColor(
         kind = "normal"
     }
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const conversion_values = getConversionValuesColor(settings.advanced, kind)
+    const conversion_values = getConversionValuesColor(
+        settings.advanced,
+        settings.matrix,
+        kind
+    )
     const exp_shift =
         Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
 
@@ -193,6 +207,7 @@ function invertRawColor(
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
                 exp_shift,
+                settings.matrix,
                 kind
             )
         }
@@ -206,9 +221,9 @@ export function invertJSColor8bit(
     tone_curve: TCName,
     kind: "normal" | "density" | "trichrome"
 ): Uint8Array {
-    const { m, b, d, dmin, invert_toe } = conversion_values
+    const { m, b, d, dmin, invert_toe, matrix } = conversion_values
     const { LUT, exp_shift } = tc_map[tone_curve]
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : single_to_APD
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
     const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const colorValue: Triple = [
