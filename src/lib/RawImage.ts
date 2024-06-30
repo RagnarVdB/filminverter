@@ -1,4 +1,4 @@
-import { single_to_APD } from "./matrices"
+import { identity, single_to_APD } from "./matrices"
 import type { BgPrimary, ColorMatrix, Matrix, Primary, Triple } from "./utils"
 import { allPromises, bgMap, clamp, colorOrder } from "./utils"
 
@@ -169,7 +169,8 @@ export interface Settings {
     show_clipping: boolean
     show_negative: boolean
     tone_curve: TCName
-    matrix: ColorMatrix
+    matrix1: ColorMatrix
+    matrix2: ColorMatrix
     advanced: AdvancedSettings
     bw: BWSettings
 }
@@ -206,14 +207,33 @@ export const defaultSettings: Settings = {
     show_clipping: false,
     show_negative: false,
     tone_curve: "Default",
-    matrix: single_to_APD,
+    // matrix: single_to_APD,
+    matrix1: identity,
+    matrix2: identity,
+    // advanced: {
+    //     toe: true,
+    //     dmin: [6624, 3054, 1546],
+    //     neutral: [2366, 720, 340],
+    //     exposure: 0,
+    //     blue: 0,
+    //     green: 0,
+    //     // gamma: 0.312,
+    //     // facB: 1.4649359387807215,
+    //     // facG: 1.6522,
+    //     gamma: 0.312*1.3724,
+    //     facB: 1.4649359387807215/1.3724,
+    //     facG: 1.6522/1.3724,
+    //     toe_width: 0.0521,
+    //     toe_facG: 1.786,
+    //     toe_facB: 1.462,
+    // },
     advanced: {
         toe: true,
-        dmin: [6624, 3054, 1546],
-        neutral: [2366, 720, 340],
-        exposure: 0,
-        blue: 0,
-        green: 0,
+        dmin: [6808, 2976, 1614],
+        neutral: [2940, 965, 433],
+        exposure: 0.2,
+        blue: -0.2,
+        green: 0.0,
         // gamma: 0.312,
         // facB: 1.4649359387807215,
         // facG: 1.6522,

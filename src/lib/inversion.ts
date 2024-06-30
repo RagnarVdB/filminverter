@@ -14,11 +14,12 @@ import {
     getTransmittanceBg,
     getTransmittanceNormal,
 } from "./RawImage"
-import { trich_to_APD, sRGB_to_cam } from "./matrices"
-import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
-
-import type { ColorMatrix, Primary, Triple } from "./utils"
 import luts from "./luts"
+import { sRGB_to_cam, trich_to_APD } from "./matrices"
+import type { ColorMatrix, Primary, Triple } from "./utils"
+import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
+// @ts-ignore
+import linear from "linear-solve"
 
 interface ConversionValuesColor {
     m: Triple
@@ -73,10 +74,11 @@ function sRGBGamma(x: number) {
 
 export function getConversionValuesColor(
     settings: AdvancedSettings,
-    matrix: ColorMatrix,
+    matrix1: ColorMatrix,
+    matrix2: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): ConversionValuesColor {
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
     const gamma: Triple = [
         settings.gamma * (3 - settings.facG - settings.facB),
         settings.gamma * settings.facG,
@@ -96,11 +98,18 @@ export function getConversionValuesColor(
         settings.toe_width * settings.toe_facB,
     ]
     console.log({ d })
-    const target_neutral_APD: Triple = [
+    const target_neutral_EXP1: Triple = [
         -3 + settings.exposure,
         -3 + settings.exposure + settings.green,
         -3 + settings.exposure + settings.blue,
     ]
+    const matrix2_arr = [
+        matrix2.matrix.slice(0, 3),
+        matrix2.matrix.slice(3, 6),
+        matrix2.matrix.slice(6, 9),
+    ]
+    const target_neutral_EXP = linear.solve(matrix2_arr, target_neutral_EXP1)
+    console.log(target_neutral_EXP)
     console.log({
         exposure: [
             settings.exposure,
@@ -118,9 +127,9 @@ export function getConversionValuesColor(
     // ms+b=t
     // b = t - ms
     const b: Triple = [
-        target_neutral_APD[0] - m[0] * selected_neutral_APD[0],
-        target_neutral_APD[1] - m[1] * selected_neutral_APD[1],
-        target_neutral_APD[2] - m[2] * selected_neutral_APD[2],
+        target_neutral_EXP[0] - m[0] * selected_neutral_APD[0],
+        target_neutral_EXP[1] - m[1] * selected_neutral_APD[1],
+        target_neutral_EXP[2] - m[2] * selected_neutral_APD[2],
     ]
     console.log({ m, b, d, dmin: dminAPD })
     return {
@@ -129,7 +138,7 @@ export function getConversionValuesColor(
         d,
         dmin: dminAPD,
         invert_toe: settings.toe,
-        matrix,
+        matrix: matrix1,
     }
 }
 
@@ -139,23 +148,24 @@ function procesValueColor(
     conversionValues: ConversionValuesColor,
     wb_coeff: number,
     exp_shift: number,
-    matrix: ColorMatrix,
+    matrix1: ColorMatrix,
+    matrix2: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
     const { m, b, d, dmin, invert_toe } = conversionValues
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
     const APD = applyCMV(
         APD_matrix,
         mapTriple((x) => -Math.log10(x), colorValue)
     )
     let exp: Triple
     if (invert_toe) {
-        exp = [
+        exp = applyCMV(matrix2, [
             pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
             pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
             pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
-        ]
+        ])
     } else {
         exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
     }
@@ -191,7 +201,8 @@ function invertRawColor(
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const conversion_values = getConversionValuesColor(
         settings.advanced,
-        settings.matrix,
+        settings.matrix1,
+        settings.matrix2,
         kind
     )
     const exp_shift =
@@ -207,7 +218,8 @@ function invertRawColor(
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
                 exp_shift,
-                settings.matrix,
+                settings.matrix1,
+                settings.matrix2,
                 kind
             )
         }

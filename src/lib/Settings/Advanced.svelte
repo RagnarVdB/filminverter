@@ -7,13 +7,14 @@
     import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
-    import { identity, single_to_APD } from "../matrices"
+    import { identity, single_to_APD, single_to_APD_theory, single_to_APD_theory_unnorm } from "../matrices"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
 
     let tone_curve: TCName = "Default"
-    let matrix: ColorMatrix = single_to_APD
+    let matrix1: ColorMatrix = single_to_APD
+    let matrix2: ColorMatrix = single_to_APD
     let toe = true
     let dmin: Triple = [7662, 2939, 1711]
     let neutral: Triple = [3300, 730, 320]
@@ -45,7 +46,8 @@
     $: {
         updateSettings(
             tone_curve,
-            matrix,
+            matrix1,
+            matrix2,
             toe,
             dmin,
             neutral,
@@ -67,7 +69,8 @@
 
     function updateSettings(
         tone_curve: TCName,
-        matrix: ColorMatrix,
+        matrix1: ColorMatrix,
+        matrix2: ColorMatrix,
         toe: boolean,
         dmin: Triple,
         neutral: Triple,
@@ -101,7 +104,8 @@
                 toe_facG: toe_facG[0],
             }
             settings.tone_curve = tone_curve
-            settings.matrix = matrix
+            settings.matrix1 = matrix1
+            settings.matrix2 = matrix2
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.rotation = rotation
@@ -113,7 +117,8 @@
     function updateSliders(sets: Settings) {
         // Sliders change to match settings of selected image
         tone_curve = sets.tone_curve
-        matrix = sets.matrix
+        matrix1 = sets.matrix1
+        matrix2 = sets.matrix2
         toe = sets.advanced.toe
         exposure[0] = sets.advanced.exposure + 5
         blue[0] = sets.advanced.blue + 2
@@ -174,9 +179,16 @@
         <option value="Filmic">Filmic</option>
     </select>
     <br/>
-    <label for="Matrix">Matrix</label>
-    <select name="Matrix" bind:value={matrix}>
+    <label for="Matrix1">Matrix1</label>
+    <select name="Matrix1" bind:value={matrix1}>
+        <option value={identity}>Identity</option>
+        <option value={single_to_APD_theory}>Theory</option>
+        <option value={single_to_APD_theory_unnorm}>Theory unnorm</option>
         <option value={single_to_APD}>Matrix 1</option>
+    </select>
+    <br/>
+    <label for="Matrix2">Matrix2</label>
+    <select name="Matrix2" bind:value={matrix2}>
         <option value={identity}>Identity</option>
     </select>
 

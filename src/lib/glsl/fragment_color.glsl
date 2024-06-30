@@ -9,7 +9,8 @@ uniform bool show_negative;
 uniform float tone_curve[256];
 uniform float tc_exp_shift;
 
-uniform mat3 cam_to_apd;
+uniform mat3 matrix1;
+uniform mat3 matrix2;
 uniform mat3 cam_to_sRGB;
 // uniform mat3 cdd_to_cid;
 // uniform mat3 exp_to_sRGBMatrix;
@@ -78,7 +79,7 @@ void main() {
   vec3 color = floatValues0To65535 / vec3(16384.0f);
 
   if(!show_negative) {
-    color = -cam_to_apd * log(color) / log(vec3(10.0f)); // Density
+    color = -matrix1 * log(color) / log(vec3(10.0f)); // Density
     // color = cdd_to_cid * color;
     if(toe) {
       color = paper_to_exp(color); // Paper
@@ -91,6 +92,7 @@ void main() {
     } else {
       color = clip_white(color);
     }
+    color = matrix2 * color; // EXP to ACES or other
     color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
     // color = exp_to_sRGBMatrix * color;
 

@@ -9,10 +9,7 @@ import {
     getConversionValuesColor,
     tc_map,
 } from "./inversion"
-import {
-    trich_to_APD,
-    cam_to_sRGB,
-} from "./matrices"
+import { trich_to_APD, cam_to_sRGB } from "./matrices"
 import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
 import { transpose, type ColorMatrix, type Triple } from "./utils"
 
@@ -116,11 +113,17 @@ function webGlDraw(
 function getShaderParamsColor(
     gl: WebGL2RenderingContext,
     settings: AdvancedSettings,
-    matrix: ColorMatrix,
+    matrix1: ColorMatrix,
+    matrix2: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    const { m, b, d, dmin } = getConversionValuesColor(settings, matrix, kind)
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
+    const { m, b, d, dmin } = getConversionValuesColor(
+        settings,
+        matrix1,
+        matrix2,
+        kind
+    )
+    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
@@ -128,9 +131,14 @@ function getShaderParamsColor(
             data: [settings.toe === true ? 1 : 0],
         },
         {
-            name: "cam_to_apd",
+            name: "matrix1",
             f: gl.uniformMatrix3fv,
             data: [false, transpose(APD_matrix).matrix],
+        },
+        {
+            name: "matrix2",
+            f: gl.uniformMatrix3fv,
+            data: [false, transpose(matrix2).matrix],
         },
         {
             name: "cam_to_sRGB",
@@ -198,12 +206,20 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const fragment_parameters =
         mode == "bw"
             ? getShaderParamsBw(gl, image.settings.bw, image.kind)
-            : getShaderParamsColor(gl, image.settings.advanced, image.settings.matrix, image.kind)
+            : getShaderParamsColor(
+                  gl,
+                  image.settings.advanced,
+                  image.settings.matrix1,
+                  image.settings.matrix2,
+                  image.kind
+              )
 
     const wb = image.wb_coeffs
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const tone_curve = tc_map[image.settings.tone_curve]
-    const clip_values = wb_coeffs.map((x) => Math.log2(x * image.DR) + tone_curve.exp_shift)
+    const clip_values = wb_coeffs.map(
+        (x) => Math.log2(x * image.DR) + tone_curve.exp_shift
+    )
 
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },

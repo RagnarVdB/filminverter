@@ -28,7 +28,8 @@
         } else if (image.settings.mode == "advanced") {
             const conversion_values = getConversionValuesColor(
                 image.settings.advanced,
-                image.settings.matrix,
+                image.settings.matrix1,
+                image.settings.matrix2,
                 image.kind
             )
             inverted = invertJSColor8bit(
