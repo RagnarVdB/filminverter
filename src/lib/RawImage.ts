@@ -266,7 +266,7 @@ export const defaultSettings: Settings = {
     advanced: {
         toe: true,
         dmin: [5972, 2307, 1280],
-        neutral: [3819.07904961, 1307.18752204, 657.64854282],
+        neutral: [2808, 832, 361],
         exposure: 0,
         blue: 0,
         green: 0,
@@ -280,15 +280,6 @@ export const defaultSettings: Settings = {
         toe_facG: 1.4,
         toe_facB: 1.7,
     },
-    // bw: {
-    //     toe: true,
-    //     blackpoint: [6583, 6583, 6583],
-    //     exposure: 0,
-    //     gamma: 68 / 100,
-    //     toe_width: 0.2,
-    //     blackpoint_shift: 0,
-    // },
-
     bw: {
         toe: true,
         blackpoint: [4837, 4874, 5337],
