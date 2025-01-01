@@ -52,8 +52,12 @@ vec3 paper_to_exp(vec3 color) {
 }
 
 vec3 clip_red(vec3 color) {
-  if(color[0] > clip_values[0] || color[1] > clip_values[1] || color[2] > clip_values[2]) {
+  if(color[0] > clip_values[0] && color[1] > clip_values[1] && color[2] > clip_values[2]) {
     return vec3(0.0f, -10.0f, -10.0f);
+  } else if(color[2] > clip_values[2] && color[1] > clip_values[1]) {
+    return vec3(-10.0f, -10.0f, 0.0f);
+  } else if(color[1] > clip_values[1]) {
+    return vec3(-10.0f, 0.0f, -10.0f);
   } else {
     return color;
   }

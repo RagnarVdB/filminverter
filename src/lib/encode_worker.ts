@@ -7,6 +7,8 @@ import { invertRaw } from "./inversion"
 import type { ProcessedImage, LoadedImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
 
+import { getCFAValue } from "./RawImage"
+
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
     return URL.createObjectURL(new Blob([arr.buffer], { type: mimeType }))
 }
@@ -30,7 +32,7 @@ onmessage = async function (e) {
             const [decoded, old] = await getRawImage(image.file)
             const newArr = invertRaw(
                 { ...old, bg_value: image.bg_value, DR: image.DR },
-                image.settings,
+                image.settings
             )
             newImage = decoded.encode(newArr)
             filename = image.filename
@@ -39,7 +41,7 @@ onmessage = async function (e) {
             const raws = await allPromisesTrich(xs)
             const newArr = invertRaw(
                 { ...mapTrich((raw) => raw[1], raws), DR: image.DR },
-                image.settings,
+                image.settings
             )
             // Gebruik eerste raw (Red image) om naar te schrijven
             newImage = raws.R[0].encode(newArr)
@@ -54,7 +56,7 @@ onmessage = async function (e) {
                     expfac: image.expfac,
                     DR: image.DR,
                 },
-                image.settings,
+                image.settings
             )
             newImage = decoded.encode(newArr)
             filename = image.filename

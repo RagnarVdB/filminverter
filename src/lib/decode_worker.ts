@@ -5,7 +5,7 @@ import type { RawImage, LoadedImage, DeBayeredImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
 import type { Triple } from "./utils.js"
 
-function getDeMosaiced(im: LoadedImage): RawImage {
+function demosaic(im: LoadedImage): RawImage {
     if (im.make == "FUJIFILM") {
         console.log("FUJI")
         const wb = im.wb_coeffs
@@ -28,12 +28,12 @@ onmessage = async function (e: MessageEvent) {
         const arr = await read_file(file[1])
         const decoded = decode_image(arr)
         const loadedImage = loadImage(decoded)
-        const deBayered = getDeMosaiced(loadedImage)
+        const demosaiced = demosaic(loadedImage)
         console.log(decoded.get_make())
-    
+
         const processed: DeBayeredImage = {
             ...loadedImage,
-            ...deBayered,
+            ...demosaiced,
             file: file[1],
             orientation: decoded.get_orientation(),
             settings: defaultSettings,
