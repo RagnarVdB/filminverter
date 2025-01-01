@@ -168,6 +168,7 @@ export interface Settings {
     zoom: [number, number, number, number]
     show_clipping: boolean
     show_negative: boolean
+    shown_value?: number
     tone_curve: TCName
     matrix1: ColorMatrix
     matrix2: ColorMatrix
@@ -206,6 +207,7 @@ export const defaultSettings: Settings = {
     zoom: [1, 1, 0, 0],
     show_clipping: false,
     show_negative: false,
+    shown_value: 0,
     tone_curve: "Default",
     // matrix: single_to_APD,
     matrix1: identity,

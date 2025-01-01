@@ -5,6 +5,8 @@ uniform highp usampler2D tex; // ?
 uniform bool toe;
 uniform bool show_clipping;
 uniform bool show_negative;
+uniform bool show_value;
+uniform float shown_value;
 
 uniform float tone_curve[256];
 uniform float tc_exp_shift;
@@ -86,14 +88,23 @@ void main() {
     } else {
       color = vec3(m) * color + vec3(b); // Linear
     }
-    color = color - vec3(tc_exp_shift);
-    if(show_clipping) {
-      color = clip_red(color);
+
+    if(show_value) {
+      if((color[0] + color[1] + color[2]) / 3.0f < shown_value) {
+        color = vec3(0.0f, 0.0f, 0.0f);
+      } else {
+        color = vec3(1.0f, 1.0f, 1.0f);
+      }
     } else {
-      color = clip_white(color);
+      color = color - tc_exp_shift;
+      if(show_clipping) {
+        color = clip_red(color);
+      } else {
+        color = clip_white(color);
+      }
+      color = matrix2 * pow(vec3(2), color); // EXP to ACES to sRGB or other
+      color = exp_to_sRGB(color); //sRGB
     }
-    color = matrix2 * color; // EXP to ACES or other
-    color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
     // color = exp_to_sRGBMatrix * color;
 
   } else {

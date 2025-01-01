@@ -7,7 +7,7 @@
     import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
-    import { identity, single_to_APD, single_to_APD_theory, single_to_APD_theory_unnorm } from "../matrices"
+    import { identity, single_to_APD, single_to_APD_theory, single_to_APD_theory_unnorm, exp_to_aces_to_sRGB, single_to_APD_colorsheet } from "../matrices"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
@@ -30,6 +30,8 @@
 
     let show_clipping = false
     let show_negative = false
+    let show_value = false
+    let shown_value: number = 0
 
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
@@ -62,6 +64,8 @@
             toe_facG,
             show_clipping,
             show_negative,
+            show_value,
+            shown_value,
             rotation,
             zoom
         )
@@ -85,6 +89,8 @@
         toe_facG: [number, number],
         show_clipping: boolean,
         show_negative: boolean,
+        show_value: boolean,
+        shown_value: number,
         rotation: number,
         zoom: [number, number, number, number]
     ) {
@@ -108,9 +114,12 @@
             settings.matrix2 = matrix2
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
+            settings.shown_value = show_value ? shown_value : undefined
             settings.rotation = rotation
             settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
+            console.log(show_value);
+            console.log(settings.shown_value);
         }
     }
 
@@ -177,11 +186,13 @@
     <select name="Tone Curve" bind:value={tone_curve}>
         <option value="Default" selected>Default</option>
         <option value="Filmic">Filmic</option>
+        <option value="Filmic2">Filmic2</option>
     </select>
     <br/>
     <label for="Matrix1">Matrix1</label>
     <select name="Matrix1" bind:value={matrix1}>
         <option value={identity}>Identity</option>
+        <option value={single_to_APD_colorsheet}>Colorsheet</option>
         <option value={single_to_APD_theory}>Theory</option>
         <option value={single_to_APD_theory_unnorm}>Theory unnorm</option>
         <option value={single_to_APD}>Matrix 1</option>
@@ -190,6 +201,7 @@
     <label for="Matrix2">Matrix2</label>
     <select name="Matrix2" bind:value={matrix2}>
         <option value={identity}>Identity</option>
+        <option value={exp_to_aces_to_sRGB}>aces</option>
     </select>
 
     <br />
@@ -233,6 +245,14 @@
     Show negative:
     <input type="checkbox" bind:checked={show_negative} />
     <br />
+
+    Show limit:
+    <input type="checkbox" bind:checked={show_value} />
+    <input type="number" bind:value={shown_value} />
+    <br />
+    
+
+
 
     <button
         on:click={() => {

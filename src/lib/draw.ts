@@ -200,6 +200,7 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
 
     const show_clipping = image.settings.show_clipping
     const show_negative = image.settings.show_negative
+    const shown_value = image.settings.shown_value
 
     const mode = image.settings.mode
     const shader = mode == "bw" ? fragment_bw : fragment_color
@@ -217,9 +218,8 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const wb = image.wb_coeffs
     const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const tone_curve = tc_map[image.settings.tone_curve]
-    const clip_values = wb_coeffs.map(
-        (x) => Math.log2(x * image.DR) + tone_curve.exp_shift
-    )
+    const exp_shift = Math.log2(image.DR) + tone_curve.exp_shift
+    const clip_values = wb_coeffs.map((x) => Math.log2(x) + exp_shift)
 
     const parameters: WebGLArgument<any[]>[] = [
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
@@ -234,6 +234,16 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
             name: "show_negative",
             f: gl.uniform1i,
             data: [show_negative ? 1 : 0],
+        },
+        {
+            name: "show_value",
+            f: gl.uniform1i,
+            data: [shown_value == undefined ? 0 : 1],
+        },
+        {
+            name: "shown_value",
+            f: gl.uniform1f,
+            data: [shown_value],
         },
         {
             name: "clip_values",
