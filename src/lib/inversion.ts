@@ -57,6 +57,7 @@ export const tc_map: Record<
 > = {
     Default: { index: 0, exp_shift: 0, LUT: luts.Default },
     Filmic: { index: 1, exp_shift: 1, LUT: luts.Filmic },
+    Filmic2: { index: 2, exp_shift: 2, LUT: luts.Filmic2 },
 }
 
 export function applyLUT(x: number, LUT: number[]): number {
@@ -87,9 +88,12 @@ export function getConversionValuesColor(
     console.log({ gamma })
     console.log({ dmin: settings.dmin })
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
-    const dminAPD = applyCMV(
-        APD_matrix,
-        mapTriple((x) => -Math.log10(x / 2 ** 14), settings.dmin)
+    const dminAPD = mapTriple(
+        (x) => -Math.log10(x),
+        applyCMV(
+            APD_matrix,
+            mapTriple((x) => x / 2 ** 14, settings.dmin)
+        )
     )
 
     const d: Triple = [
@@ -108,8 +112,12 @@ export function getConversionValuesColor(
         matrix2.matrix.slice(3, 6),
         matrix2.matrix.slice(6, 9),
     ]
-    const target_neutral_EXP = linear.solve(matrix2_arr, target_neutral_EXP1)
-    console.log(target_neutral_EXP)
+    const target_neutral_EXP = linear
+        .solve(
+            matrix2_arr,
+            target_neutral_EXP1.map((x) => 2 ** x)
+        )
+        .map((x: number) => Math.log2(x))
     console.log({
         exposure: [
             settings.exposure,
@@ -118,12 +126,17 @@ export function getConversionValuesColor(
         ],
     })
     const selected_neutral_cam = settings.neutral
-    console.log({ selected_neutral_cam })
+    console.log("selected_neutral_cam", selected_neutral_cam)
 
-    const selected_neutral_APD = applyCMV(
-        APD_matrix,
-        mapTriple((x) => -Math.log10(x / 2 ** 14), selected_neutral_cam)
+    const selected_neutral_APD = mapTriple(
+        (x) => -Math.log10(x),
+        applyCMV(
+            APD_matrix,
+            mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
+        )
     )
+    console.log("target_neutral_EXP", target_neutral_EXP)
+    console.log("selected_neutral_APD", selected_neutral_APD)
     // ms+b=t
     // b = t - ms
     const b: Triple = [
@@ -155,9 +168,9 @@ function procesValueColor(
     // Camera raw to output (sRGB)
     const { m, b, d, dmin, invert_toe } = conversionValues
     const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
-    const APD = applyCMV(
-        APD_matrix,
-        mapTriple((x) => -Math.log10(x), colorValue)
+    const APD = mapTriple(
+        (x) => -Math.log10(x),
+        applyCMV(APD_matrix, colorValue)
     )
     let exp: Triple
     if (invert_toe) {

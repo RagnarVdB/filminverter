@@ -81,7 +81,7 @@ void main() {
   vec3 color = floatValues0To65535 / vec3(16384.0f);
 
   if(!show_negative) {
-    color = -matrix1 * log(color) / log(vec3(10.0f)); // Density
+    color = -log(matrix1 * color) / log(vec3(10.0f)); // Density
     // color = cdd_to_cid * color;
     if(toe) {
       color = paper_to_exp(color); // Paper

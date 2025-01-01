@@ -16,10 +16,10 @@
     import dcp_profile from "/src/assets/Provia_no_huesatmap_no_look.dcp"
     const dispatch = createEventDispatcher()
 
-    let bg_valueR = 12929
-    let bg_valueG = 16247
-    let bg_valueB = 18516
-    let expfac = 125 / 15
+    let bg_valueR = 18787
+    let bg_valueG = 22983
+    let bg_valueB = 25953
+    let expfac = 30 / 2
     let expfac_trich_R = 30 / 4
     let expfac_trich_G = 30 / 4
     let expfac_trich_B = 13 * 0.6
