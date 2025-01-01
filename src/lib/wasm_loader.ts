@@ -27,6 +27,9 @@ function getCFA(decoded: WasmImage): CFA {
         case "X-E4":
             offset = [-2, 1]
             break
+        case "X-T3":
+            offset = [-2, 1]
+            break
     }
     const cfa: CFA = {
         str: decoded.get_cfastr(),
@@ -44,7 +47,7 @@ export function loadImage(wasmIm: WasmImage): LoadedImage {
         m: 4,
     }
     let blacks = Array.from(wasmIm.get_blacklevels())
-    if (wasmIm.get_model() == "X-E4") {
+    if (wasmIm.get_model() == "X-E4" || wasmIm.get_model() == "X-T3") {
         blacks = [1016, 1016, 1016, 1016]
     }
     return {
