@@ -256,9 +256,9 @@ export function invertJSColor8bit(
             im[i + 1] / 2 ** 14,
             im[i + 2] / 2 ** 14,
         ]
-        const APD = applyCMV(
-            APD_matrix,
-            mapTriple((x) => -Math.log10(x), colorValue)
+        const APD = mapTriple(
+            (x) => -Math.log10(x),
+            applyCMV(APD_matrix, colorValue)
         )
         let exp: Triple
         if (invert_toe) {
