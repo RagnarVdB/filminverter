@@ -137,11 +137,18 @@
         const images = await Promise.all(decoder(files))
         images.forEach((image) => {
             const name = image.filename.split(".")[0]
-            if (!isTrichName(name)) {
+            if (isTrichName(name)) {
+                const c = TrichNameMap[name]
+                trichImages[c] = image
+            } else if (name.endsWith("R")) {
+                trichImages.R = image
+            } else if (name.endsWith("G")) {
+                trichImages.G = image
+            } else if (name.endsWith("B")) {
+                trichImages.B = image
+            } else {
                 throw new Error(`${name} not in trichrome`)
             }
-            const c = TrichNameMap[name]
-            trichImages[c] = image
         })
         if (!trichNotNull(trichImages)) {
             throw new Error("Not all trichrome images loaded")
@@ -164,7 +171,13 @@
         const filenames = acceptedFiles.map((file) => file.name.split(".")[0])
 
         if (
-            TRICHNAMES.every((x) => filenames.includes(x)) &&
+            filenames.every(
+                (name) =>
+                    isTrichName(name) ||
+                    name.endsWith("R") ||
+                    name.endsWith("G") ||
+                    name.endsWith("B")
+            ) &&
             filenames.length == 6
         ) {
             console.log("Trichrome")
@@ -205,7 +218,9 @@
     </select>
     <br />
     <br />
-    <a href={dcp_profile} download="Provia_no_huesatmap_no_look.dcp">Download Lightroom Profile</a>
+    <a href={dcp_profile} download="Provia_no_huesatmap_no_look.dcp"
+        >Download Lightroom Profile</a
+    >
 </div>
 
 <style>
