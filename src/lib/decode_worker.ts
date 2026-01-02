@@ -7,7 +7,6 @@ import type { Triple } from "./utils.js"
 
 function demosaic(im: LoadedImage): RawImage {
     if (im.make == "FUJIFILM") {
-        console.log("FUJI")
         const wb = im.wb_coeffs
         const wb_coeffs: Triple = [wb[0] / wb[1], 1, wb[2] / wb[1]]
         return deMosaicFuji(
@@ -29,7 +28,6 @@ onmessage = async function (e: MessageEvent) {
         const decoded = decode_image(arr)
         const loadedImage = loadImage(decoded)
         const demosaiced = demosaic(loadedImage)
-        console.log(decoded.get_make())
 
         const processed: DeBayeredImage = {
             ...loadedImage,
@@ -40,7 +38,6 @@ onmessage = async function (e: MessageEvent) {
             iter: 0,
             filename: file[1].name,
         }
-        console.log("wb", processed.wb_coeffs)
         postMessage([file[0], processed])
     }
 }

@@ -118,8 +118,6 @@
             settings.rotation = rotation
             settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
-            console.log(show_value);
-            console.log(settings.shown_value);
         }
     }
 

@@ -19,10 +19,8 @@
     function getPreview(image: ProcessedImage): string {
         let inverted: Uint8Array
         if (!image) {
-            console.log("No image")
             return ""
         }
-        console.log("Rendering preview")
         if (image.settings.mode == "basic") {
             throw new Error("Basic mode not supported")
         } else if (image.settings.mode == "advanced") {

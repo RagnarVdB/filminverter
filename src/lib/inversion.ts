@@ -85,8 +85,8 @@ export function getConversionValuesColor(
         settings.gamma * settings.facG,
         settings.gamma * settings.facB,
     ]
-    console.log({ gamma })
-    console.log({ dmin: settings.dmin })
+    console.debug(gamma)
+    console.debug(settings.dmin)
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
     const dminAPD = mapTriple(
         (x) => -Math.log10(x),
@@ -101,7 +101,7 @@ export function getConversionValuesColor(
         settings.toe_width * settings.toe_facG,
         settings.toe_width * settings.toe_facB,
     ]
-    console.log({ d })
+    console.debug("d=", d)
     const target_neutral_EXP1: Triple = [
         -3 + settings.exposure,
         -3 + settings.exposure + settings.green,
@@ -118,15 +118,14 @@ export function getConversionValuesColor(
             target_neutral_EXP1.map((x) => 2 ** x)
         )
         .map((x: number) => Math.log2(x))
-    console.log({
-        exposure: [
-            settings.exposure,
-            settings.exposure + settings.green,
-            settings.exposure + settings.blue,
-        ],
-    })
+    console.debug("exposure=", [
+        settings.exposure,
+        settings.exposure + settings.green,
+        settings.exposure + settings.blue,
+    ]
+    )
     const selected_neutral_cam = settings.neutral
-    console.log("selected_neutral_cam", selected_neutral_cam)
+    console.debug("selected_neutral_cam=", selected_neutral_cam)
 
     const selected_neutral_APD = mapTriple(
         (x) => -Math.log10(x),
@@ -135,8 +134,8 @@ export function getConversionValuesColor(
             mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
         )
     )
-    console.log("target_neutral_EXP", target_neutral_EXP)
-    console.log("selected_neutral_APD", selected_neutral_APD)
+    console.debug("target_neutral_EXP=", target_neutral_EXP)
+    console.debug("selected_neutral_APD=", selected_neutral_APD)
     // ms+b=t
     // b = t - ms
     const b: Triple = [
@@ -144,7 +143,7 @@ export function getConversionValuesColor(
         target_neutral_EXP[1] - m[1] * selected_neutral_APD[1],
         target_neutral_EXP[2] - m[2] * selected_neutral_APD[2],
     ]
-    console.log({ m, b, d, dmin: dminAPD })
+    console.debug({ m, b, d, dmin: dminAPD })
     return {
         m,
         b,
@@ -298,7 +297,7 @@ export function getConversionValuesBw(
 
     const b = mapTriple((x) => settings.exposure - m * (x + 1.2), dmin)
     const invert_toe = settings.toe
-    console.log({ m, b, d, dmin })
+    console.debug({ m, b, d, dmin })
     return { m, b, d, dmin, invert_toe }
 }
 
