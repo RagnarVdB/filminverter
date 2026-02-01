@@ -154,6 +154,7 @@
     function loadSettings() {
         const input = document.createElement("input")
         input.type = "file"
+        input.accept = ".json"
         input.addEventListener("change", (e) => {
             const files = input.files
             if (!files || files.length != 1) {

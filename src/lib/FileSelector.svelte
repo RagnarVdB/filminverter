@@ -62,7 +62,6 @@
             worker.onmessage = (message) => {
                 finishedImages++
                 const [j, image]: [number, DeBayeredImage] = message.data
-                console.log("resolving", j)
                 resolvers[j](image)
                 if (finishedImages == workerFiles.length) {
                     worker.terminate()

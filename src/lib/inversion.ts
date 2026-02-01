@@ -27,7 +27,8 @@ interface ConversionValuesColor {
     d: Triple
     dmin: Triple
     invert_toe: boolean
-    matrix: ColorMatrix
+    matrix1: ColorMatrix
+    matrix2: ColorMatrix
 }
 interface ConversionValuesBw {
     m: number
@@ -150,7 +151,8 @@ export function getConversionValuesColor(
         d,
         dmin: dminAPD,
         invert_toe: settings.toe,
-        matrix: matrix1,
+        matrix1,
+        matrix2,
     }
 }
 
@@ -160,16 +162,13 @@ function procesValueColor(
     conversionValues: ConversionValuesColor,
     wb_coeff: number,
     exp_shift: number,
-    matrix1: ColorMatrix,
-    matrix2: ColorMatrix,
     kind: "normal" | "trichrome" | "density"
 ): number {
     // Camera raw to output (sRGB)
-    const { m, b, d, dmin, invert_toe } = conversionValues
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
+    const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversionValues
     const APD = mapTriple(
         (x) => -Math.log10(x),
-        applyCMV(APD_matrix, colorValue)
+        applyCMV(matrix1, colorValue)
     )
     let exp: Triple
     if (invert_toe) {
@@ -179,7 +178,11 @@ function procesValueColor(
             pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
         ])
     } else {
-        exp = [m[0] * APD[0] + b[0], m[1] * APD[1] + b[1], m[2] * APD[2] + b[2]]
+        exp = applyCMV(matrix2, [
+            m[0] * APD[0] + b[0],
+            m[1] * APD[1] + b[1],
+            m[2] * APD[2] + b[2],
+        ])
     }
     const rawValuesRGB = mapTriple((x) => 2 ** (x - exp_shift), exp)
     const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
@@ -230,8 +233,6 @@ function invertRawColor(
                 conversion_values,
                 wb_coeffs[colorOrder[main]],
                 exp_shift,
-                settings.matrix1,
-                settings.matrix2,
                 kind
             )
         }
@@ -243,11 +244,9 @@ export function invertJSColor8bit(
     im: Uint16Array,
     conversion_values: ConversionValuesColor,
     tone_curve: TCName,
-    kind: "normal" | "density" | "trichrome"
 ): Uint8Array {
-    const { m, b, d, dmin, invert_toe, matrix } = conversion_values
+    const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
     const { LUT, exp_shift } = tc_map[tone_curve]
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix
     const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const colorValue: Triple = [
@@ -257,21 +256,21 @@ export function invertJSColor8bit(
         ]
         const APD = mapTriple(
             (x) => -Math.log10(x),
-            applyCMV(APD_matrix, colorValue)
+            applyCMV(matrix1, colorValue)
         )
         let exp: Triple
         if (invert_toe) {
-            exp = [
+            exp = applyCMV(matrix2, [
                 pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
                 pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
                 pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
-            ]
+            ])
         } else {
-            exp = [
+            exp = applyCMV(matrix2, [
                 m[0] * APD[0] + b[0],
                 m[1] * APD[1] + b[1],
                 m[2] * APD[2] + b[2],
-            ]
+            ])
         }
         const sRGB = mapTriple(
             (x) => sRGBGamma(applyLUT(2 ** (x - exp_shift), LUT)),

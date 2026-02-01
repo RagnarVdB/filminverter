@@ -106,19 +106,11 @@ void main() {
       color = exp_to_sRGB(color); //sRGB
     }
     // color = exp_to_sRGBMatrix * color;
-
   } else {
-    // color = cdd_to_cid * color;
-    // color = exp_to_sRGBMatrix * color;
     color = cam_to_sRGB * color;
     color = log(color) / log(vec3(2.0f));
-    color = color - vec3(tc_exp_shift);
-    if(show_clipping) {
-      color = clip_red(color);
-    } else {
-      color = clip_white(color);
-    }
-    color = pow(vec3(2), exp_to_sRGB(color)); //sRGB
+    color = pow(vec3(2), color); //sRGB
+    color = exp_to_sRGB(color);
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);
 }

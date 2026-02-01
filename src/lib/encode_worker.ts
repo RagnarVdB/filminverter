@@ -7,10 +7,8 @@ import { invertRaw } from "./inversion"
 import type { ProcessedImage, LoadedImage } from "./RawImage"
 import { read_file, loadImage } from "./wasm_loader.js"
 
-import { getCFAValue } from "./RawImage"
-
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
-    return URL.createObjectURL(new Blob([arr.buffer], { type: mimeType }))
+    return URL.createObjectURL(new Blob([arr], { type: mimeType }))
 }
 
 async function getRawImage(file: File): Promise<[WasmImage, LoadedImage]> {
