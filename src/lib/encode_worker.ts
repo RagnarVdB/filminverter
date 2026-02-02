@@ -1,65 +1,26 @@
-import init, {
-    decode_image,
-    Image as WasmImage,
-} from "../../rawloader-wasm/pkg/rawloader_wasm.js"
-import { allPromisesTrich, mapTrich } from "./RawImage"
 import { invertRaw } from "./inversion"
-import type { ProcessedImage, LoadedImage } from "./RawImage"
-import { read_file, loadImage } from "./wasm_loader.js"
+import type { Image } from "./RawImage"
 
 function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
     return URL.createObjectURL(new Blob([arr], { type: mimeType }))
 }
 
-async function getRawImage(file: File): Promise<[WasmImage, LoadedImage]> {
-    const original = await read_file(file)
-    const decoded: WasmImage = decode_image(original)
-    const old = loadImage(decoded)
-    return [decoded, old]
+function image_to_tiff(arr: Float32Array): Uint8Array {
+    throw new Error("unimplemented")
 }
 
-onmessage = async function (e) {
-    const images: ProcessedImage[] = e.data
-    await init()
 
+onmessage = async function (e) {
+    const images: Image[] = e.data
     let newImage: Uint8Array
     let filename: string
 
     for (const image of images) {
-        if (image.kind == "normal") {
-            const [decoded, old] = await getRawImage(image.file)
-            const newArr = invertRaw(
-                { ...old, bg_value: image.bg_value, DR: image.DR },
-                image.settings
-            )
-            newImage = decoded.encode(newArr)
-            filename = image.filename
-        } else if (image.kind == "trichrome") {
-            const xs = mapTrich(getRawImage, image.files)
-            const raws = await allPromisesTrich(xs)
-            const newArr = invertRaw(
-                { ...mapTrich((raw) => raw[1], raws), DR: image.DR },
-                image.settings
-            )
-            // Gebruik eerste raw (Red image) om naar te schrijven
-            newImage = raws.R[0].encode(newArr)
-            filename = image.filenames.R
-        } else {
-            const [decoded, old] = await getRawImage(image.file)
-            const [_, old_bg] = await getRawImage(image.bg_file)
-            const newArr = invertRaw(
-                {
-                    image: old,
-                    background: old_bg,
-                    expfac: image.expfac,
-                    DR: image.DR,
-                },
-                image.settings
-            )
-            newImage = decoded.encode(newArr)
-            filename = image.filename
-        }
-        const URL = typedArrayToURL(newImage, "RAF: image/x-fuji-raf")
+        const newArr = invertRaw(image)
+        const tiff = image_to_tiff(newArr)
+        filename = image.file.name.replace("rgs", "tiff")
+
+        const URL = typedArrayToURL(tiff, "tiff: image")
         postMessage([filename, URL])
     }
 }

@@ -3,13 +3,13 @@
 
     import { images, index as currentIndex, mainCanvas } from "../stores"
 
-    import type { ProcessedImage } from "./RawImage"
+    import type { Image } from "./RawImage"
     import ImagePreview from "./ImagePreview.svelte"
 
     type cvsobj = {
         canvas: HTMLCanvasElement
         width: number
-        image: ProcessedImage
+        image: Image
         height: number
         iteration: number
     }

@@ -1,19 +1,12 @@
 import type {
     AdvancedSettings,
     BWSettings,
-    LoadedDensity,
-    LoadedSingleImage,
-    LoadedTrichrome,
+    Image,
+    RawImage,
     Settings,
     TCName,
 } from "./RawImage"
-import {
-    BLACK,
-    getCFAValue,
-    getColorValue,
-    getTransmittanceBg,
-    getTransmittanceNormal,
-} from "./RawImage"
+import { BLACK } from "./RawImage"
 import luts from "./luts"
 import { sRGB_to_cam, trich_to_APD } from "./matrices"
 import type { ColorMatrix, Primary, Triple } from "./utils"
@@ -78,9 +71,7 @@ export function getConversionValuesColor(
     settings: AdvancedSettings,
     matrix1: ColorMatrix,
     matrix2: ColorMatrix,
-    kind: "normal" | "trichrome" | "density"
 ): ConversionValuesColor {
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
     const gamma: Triple = [
         settings.gamma * (3 - settings.facG - settings.facB),
         settings.gamma * settings.facG,
@@ -92,7 +83,7 @@ export function getConversionValuesColor(
     const dminAPD = mapTriple(
         (x) => -Math.log10(x),
         applyCMV(
-            APD_matrix,
+            matrix1,
             mapTriple((x) => x / 2 ** 14, settings.dmin)
         )
     )
@@ -131,7 +122,7 @@ export function getConversionValuesColor(
     const selected_neutral_APD = mapTriple(
         (x) => -Math.log10(x),
         applyCMV(
-            APD_matrix,
+            matrix1,
             mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
         )
     )
@@ -190,54 +181,32 @@ function procesValueColor(
 }
 
 function invertRawColor(
-    image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
-    settings: Settings
-): Uint16Array {
-    let w: number, h: number
-    let wb
-    let kind: "normal" | "trichrome" | "density"
-    if ("R" in image) {
-        // Trichrome
-        w = image.R.width
-        h = image.R.height
-        wb = image.R.wb_coeffs
-        kind = "trichrome"
-    } else if ("background" in image) {
-        w = image.image.width
-        h = image.image.height
-        wb = image.image.wb_coeffs
-        kind = "density"
-    } else {
-        w = image.width
-        h = image.height
-        wb = image.wb_coeffs
-        kind = "normal"
-    }
-    const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const conversion_values = getConversionValuesColor(
-        settings.advanced,
-        settings.matrix1,
-        settings.matrix2,
-        kind
-    )
-    const exp_shift =
-        Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
+    image: Image,
+): Float32Array {
+    throw new Error("unimplemented")
+    // const w = image.width
+    // const h = image.height
 
-    let out = new Uint16Array(w * h)
-    for (let i = 0; i < w; i++) {
-        for (let j = 0; j < h; j++) {
-            const { main, color } = getColorValue(image, i, j)
-            out[i + j * w] = procesValueColor(
-                color,
-                main,
-                conversion_values,
-                wb_coeffs[colorOrder[main]],
-                exp_shift,
-                kind
-            )
-        }
-    }
-    return out
+    // const conversion_values = getConversionValuesColor(
+    //     image.settings.advanced,
+    //     image.settings.matrix1,
+    //     image.settings.matrix2,
+    // )
+    // const exp_shift = tc_map[settings.tone_curve].exp_shift
+
+    // let out = new Uint16Array(w * h)
+    // for (let i = 0; i < w; i++) {
+    //     for (let j = 0; j < h; j++) {
+    //         const { main, color } = getColorValue(image, i, j)
+    //         out[i + j * w] = procesValueColor(
+    //             color,
+    //             main,
+    //             conversion_values,
+    //             exp_shift,
+    //         )
+    //     }
+    // }
+    // return out
 }
 
 export function invertJSColor8bit(
@@ -345,64 +314,50 @@ function processColorValueBw(
 }
 
 function invertRawBW(
-    image: LoadedSingleImage | LoadedDensity,
-    settings: Settings
-): Uint16Array {
-    const withBackground = "background" in image
-    const [w, h] = withBackground
-        ? [image.image.width, image.image.height]
-        : [image.width, image.height]
-    const cfa = withBackground ? image.image.cfa : image.cfa
+    image: Image,
+): Float32Array {
+    throw new Error("unimplemented")
+    // const withBackground = "background" in image
+    // const [w, h] = withBackground
+    //     ? [image.width, image.height]
+    //     : [image.width, image.height]
 
-    const { m, b, d, dmin, invert_toe } = getConversionValuesBw(settings.bw)
-    let wb = withBackground ? image.image.wb_coeffs : image.wb_coeffs
-    const white_balance = [wb[0] / wb[1], 1, wb[2] / wb[1]]
-    const exp_shift =
-        Math.log2(image.DR) + tc_map[settings.tone_curve].exp_shift
+    // const { m, b, d, dmin, invert_toe } = getConversionValuesBw(image.settings.bw)
+    // const exp_shift = tc_map[settings.tone_curve].exp_shift
 
-    const out = new Uint16Array(w * h)
-    for (let j = 0; j < h; j++) {
-        for (let i = 0; i < w; i++) {
-            const primary = getCFAValue(cfa, i, j)
-            const colorIndex = colorOrder[primary]
-            const color_value = withBackground
-                ? getTransmittanceBg(image, primary, i, j)
-                : getTransmittanceNormal(image, primary, i, j)
+    // const out = new Uint16Array(w * h)
+    // for (let j = 0; j < h; j++) {
+    //     for (let i = 0; i < w; i++) {
+    //         const primary = getCFAValue(cfa, i, j)
+    //         const colorIndex = colorOrder[primary]
+    //         const color_value = withBackground
+    //             ? getTransmittanceBg(image, primary, i, j)
+    //             : getTransmittanceNormal(image, primary, i, j)
 
-            out[i + j * w] = processColorValueBw(
-                color_value,
-                {
-                    m,
-                    b: b[colorIndex],
-                    d,
-                    dmin: dmin[colorIndex],
-                    invert_toe,
-                },
-                white_balance[colorIndex],
-                exp_shift
-            )
-            // if (primary == "B") {
-            //     out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
-            // } else {
-            //     out[i + j * w] = 1016
-            // }
-            // out[i + j * w] = 2500 / white_balance[colorIndex] + 1016
-        }
-    }
+    //         out[i + j * w] = processColorValueBw(
+    //             color_value,
+    //             {
+    //                 m,
+    //                 b: b[colorIndex],
+    //                 d,
+    //                 dmin: dmin[colorIndex],
+    //                 invert_toe,
+    //             },
+    //             white_balance[colorIndex],
+    //             exp_shift
+    //         )
+    //     }
+    // }
 
-    return out
+    // return out
 }
 
 export function invertRaw(
-    image: LoadedSingleImage | LoadedDensity | LoadedTrichrome,
-    settings: Settings
-): Uint16Array {
-    if (settings.mode == "bw") {
-        if ("R" in image) {
-            throw new Error("BW not supported for trichrome")
-        }
-        return invertRawBW(image, settings)
+    image: Image,
+): Float32Array {
+    if (image.settings.mode == "bw") {
+        return invertRawBW(image)
     } else {
-        return invertRawColor(image, settings)
+        return invertRawColor(image)
     }
 }

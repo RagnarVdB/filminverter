@@ -1,9 +1,9 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import { draw } from "./draw"
-    import type { ProcessedImage } from "./RawImage"
+    import type { Image } from "./RawImage"
 
-    export let image: ProcessedImage
+    export let image: Image
     let iter: number = -1
     let rotation = -1
     let zoom = -1
@@ -13,26 +13,18 @@
     let gl: WebGL2RenderingContext
     let wrapper: HTMLDivElement
 
-    function getFileName(image: ProcessedImage): string {
-        if (image.kind == "normal" || image.kind == "density") {
-            return image.filename
-        } else {
-            return image.filenames.R
-        }
-    }
-
-    async function drawImage(image: ProcessedImage) {
-        if (image && image.image && canvas) {
+    async function drawImage(image: Image) {
+        if (image && image.large.arr && canvas) {
             draw(gl, image)
         }
     }
 
-    function setSize(image: ProcessedImage) {
+    function setSize(image: Image) {
         if (!canvas) return
         const dpr = window.devicePixelRatio || 1
         let imRatio =
-            (image.width * image.settings.zoom[0]) /
-            (image.height * image.settings.zoom[1])
+            (image.large.width * image.settings.zoom[0]) /
+            (image.large.height * image.settings.zoom[1])
         if (image.settings.rotation == 1 || image.settings.rotation == 3) {
             imRatio = 1 / imRatio
         }
@@ -54,7 +46,7 @@
         // ct.scale()
     }
 
-    function rotateHandle(image: ProcessedImage) {
+    function rotateHandle(image: Image) {
         if (image && wrapper) {
             if (
                 image &&
@@ -82,7 +74,7 @@
     $: rotateHandle(image)
 
     onMount(() => {
-        if (image && image.image) {
+        if (image && image.large.arr) {
             setSize(image)
             if (canvas) {
                 const ct = canvas.getContext("webgl2")
@@ -97,8 +89,8 @@
     })
     $: {
         if (image && wrapper) {
-            if (getFileName(image) != filename) {
-                filename = getFileName(image)
+            if (image.file.name != filename) {
+                filename = image.file.name
                 setSize(image)
                 if (canvas) {
                     const ct = canvas.getContext("webgl2")

@@ -10,7 +10,7 @@ import {
     tc_map,
 } from "./inversion"
 import { trich_to_APD, cam_to_sRGB } from "./matrices"
-import type { AdvancedSettings, BWSettings, ProcessedImage } from "./RawImage"
+import { BLACK, type AdvancedSettings, type BWSettings, type Image } from "./RawImage"
 import { transpose, type ColorMatrix, type Triple } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
@@ -115,15 +115,12 @@ function getShaderParamsColor(
     settings: AdvancedSettings,
     matrix1: ColorMatrix,
     matrix2: ColorMatrix,
-    kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
     const { m, b, d, dmin } = getConversionValuesColor(
         settings,
         matrix1,
         matrix2,
-        kind
     )
-    const APD_matrix = kind == "trichrome" ? trich_to_APD : matrix1
     const parameters: WebGLArgument<any[]>[] = [
         {
             name: "toe",
@@ -133,28 +130,13 @@ function getShaderParamsColor(
         {
             name: "matrix1",
             f: gl.uniformMatrix3fv,
-            data: [false, transpose(APD_matrix).matrix],
+            data: [false, transpose(matrix1).matrix],
         },
         {
             name: "matrix2",
             f: gl.uniformMatrix3fv,
             data: [false, transpose(matrix2).matrix],
         },
-        {
-            name: "cam_to_sRGB",
-            f: gl.uniformMatrix3fv,
-            data: [false, transpose(cam_to_sRGB).matrix],
-        },
-        // {
-        //     name: "cdd_to_cid",
-        //     f: gl.uniformMatrix3fv,
-        //     data: [false, transpose(cdd_to_cid).matrix],
-        // },
-        // {
-        //     name: "exp_to_sRGBMatrix",
-        //     f: gl.uniformMatrix3fv,
-        //     data: [false, transpose(exp_to_sRGB).matrix],
-        // },
         { name: "m", f: gl.uniform3f, data: m },
         { name: "b", f: gl.uniform3f, data: b },
         { name: "d", f: gl.uniform3f, data: d },
@@ -168,32 +150,28 @@ function getShaderParamsColor(
 function getShaderParamsBw(
     gl: WebGL2RenderingContext,
     settings: BWSettings,
-    kind: "normal" | "trichrome" | "density"
 ): WebGLArgument<any[]>[] {
-    if (kind == "trichrome") {
-        throw new Error("BW not supported for trichrome")
-    } else {
-        const { m, b, d, dmin } = getConversionValuesBw(settings)
-        return [
-            {
-                name: "toe",
-                f: gl.uniform1i,
-                data: [settings.toe ? 1 : 0],
-            },
-            { name: "m", f: gl.uniform1f, data: [m] },
-            { name: "b", f: gl.uniform3f, data: b },
-            { name: "d", f: gl.uniform1f, data: [d] },
-            { name: "dmin", f: gl.uniform3f, data: dmin },
-        ]
-    }
+    const { m, b, d, dmin } = getConversionValuesBw(settings)
+    return [
+        {
+            name: "toe",
+            f: gl.uniform1i,
+            data: [settings.toe ? 1 : 0],
+        },
+        { name: "m", f: gl.uniform1f, data: [m] },
+        { name: "b", f: gl.uniform3f, data: b },
+        { name: "d", f: gl.uniform1f, data: [d] },
+        { name: "dmin", f: gl.uniform3f, data: dmin },
+    ]
+
 }
 
-export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
+export function draw(gl: WebGL2RenderingContext, image: Image) {
     if (!gl) console.log("No gl")
 
-    const w = image.width
-    const h = image.height
-    const img = image.image
+    const w = image.large.width
+    const h = image.large.height
+    const img = image.large.arr
 
     const rot = image.settings.rotationMatrix.matrix
     const zoom = image.settings.zoom
@@ -206,22 +184,25 @@ export function draw(gl: WebGL2RenderingContext, image: ProcessedImage) {
     const shader = mode == "bw" ? fragment_bw : fragment_color
     const fragment_parameters =
         mode == "bw"
-            ? getShaderParamsBw(gl, image.settings.bw, image.kind)
+            ? getShaderParamsBw(gl, image.settings.bw)
             : getShaderParamsColor(
-                  gl,
-                  image.settings.advanced,
-                  image.settings.matrix1,
-                  image.settings.matrix2,
-                  image.kind
-              )
+                gl,
+                image.settings.advanced,
+                image.settings.matrix1,
+                image.settings.matrix2,
+            )
 
-    const wb = image.wb_coeffs
-    const wb_coeffs = [wb[0] / wb[1], 1, wb[2] / wb[1]]
     const tone_curve = tc_map[image.settings.tone_curve]
-    const exp_shift = Math.log2(image.DR) + tone_curve.exp_shift
-    const clip_values = wb_coeffs.map((x) => Math.log2(x) + exp_shift)
+    const exp_shift = tone_curve.exp_shift
+    const clip_values = [exp_shift, exp_shift, exp_shift]
+
+    const b = image.raw_conv_settings.offset
+    const black = [(b[0] - BLACK) / 16384, (b[1] - BLACK) / 16384, (b[2] - BLACK) / 16384]
 
     const parameters: WebGLArgument<any[]>[] = [
+        { name: "raw_gain", f: gl.uniform3f, data: image.raw_conv_settings.gain },
+        { name: "raw_black", f: gl.uniform3f, data: black },
+        { name: "bg", f: gl.uniform3f, data: image.raw_conv_settings.background },
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },

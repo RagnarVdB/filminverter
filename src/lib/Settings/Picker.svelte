@@ -36,9 +36,9 @@
         let pickedColor: [number, number, number] = [0, 0, 0]
         for (let i = -2; i < 3; i++) {
             for (let j = -2; j < 3; j++) {
-                pickedColor[0] += image.image[((y + j) * w + (x + i)) * 4]
-                pickedColor[1] += image.image[((y + j) * w + (x + i)) * 4 + 1]
-                pickedColor[2] += image.image[((y + j) * w + (x + i)) * 4 + 2]
+                pickedColor[0] += image.arr[((y + j) * w + (x + i)) * 4]
+                pickedColor[1] += image.arr[((y + j) * w + (x + i)) * 4 + 1]
+                pickedColor[2] += image.arr[((y + j) * w + (x + i)) * 4 + 2]
             }
         }
         color[0] = Math.round(pickedColor[0] / 25)

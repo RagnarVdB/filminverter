@@ -1,16 +1,8 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
     import Dropzone from "svelte-file-dropzone"
-    import type { Trich, DeBayeredImage } from "./RawImage"
-    import {
-        TRICHNAMES,
-        TrichNameMap,
-        isTrichName,
-        loadSingle,
-        loadTrichrome,
-        loadWithBackground,
-        trichNotNull,
-    } from "./RawImage"
+    import type { Image } from "./RawImage"
+
     import { numberOfWorkers } from "./utils"
     // @ts-ignore
     import dcp_profile from "/src/assets/Provia_no_huesatmap_no_look.dcp"
@@ -25,9 +17,9 @@
     let expfac_trich_B = 13 * 0.6
     let DR: number
 
-    function decoder(files: File[]): Promise<DeBayeredImage>[] {
-        let resolvers: ((value: DeBayeredImage) => void)[] = []
-        let promises: Promise<DeBayeredImage>[] = []
+    function decoder(files: File[]): Promise<Image>[] {
+        let resolvers: ((value: Image) => void)[] = []
+        let promises: Promise<Image>[] = []
 
         files.forEach((_, i) => {
             promises[i] = new Promise((resolve) => {
@@ -61,7 +53,7 @@
             let finishedImages = 0
             worker.onmessage = (message) => {
                 finishedImages++
-                const [j, image]: [number, DeBayeredImage] = message.data
+                const [j, image]: [number, Image] = message.data
                 resolvers[j](image)
                 if (finishedImages == workerFiles.length) {
                     worker.terminate()
@@ -76,85 +68,9 @@
             promise.then((image) => {
                 dispatch("image", {
                     index: i,
-                    image: loadSingle(
-                        image,
-                        [bg_valueR, bg_valueG, bg_valueB],
-                        DR
-                    ),
+                    image,
                 })
             })
-        })
-    }
-
-    async function openWithBackground(files: File[]) {
-        let backgroundFile: File | undefined = undefined
-        let imageFiles: File[] = []
-        for (const file of files) {
-            if (file.name.split(".")[0] == "background") {
-                if (backgroundFile) {
-                    throw new Error("Multiple background files")
-                }
-                backgroundFile = file
-            } else {
-                imageFiles.push(file)
-            }
-        }
-        if (!backgroundFile) {
-            throw new Error("No background file")
-        }
-        const background = await decoder([backgroundFile])[0]
-
-        const decodedImages = decoder(imageFiles)
-        for (const [index, decodedImage] of decodedImages.entries()) {
-            const image = await decodedImage
-            const densityImage = loadWithBackground(
-                {
-                    background,
-                    image,
-                    expfac,
-                },
-                DR
-            )
-            dispatch("image", {
-                index,
-                image: densityImage,
-            })
-        }
-    }
-
-    async function openTrichrome(files: File[]) {
-        const trichImages: Trich<DeBayeredImage | null> = {
-            R: null,
-            G: null,
-            B: null,
-            BR: null,
-            BG: null,
-            BB: null,
-            expfac: [expfac_trich_R, expfac_trich_G, expfac_trich_B],
-        }
-
-        const images = await Promise.all(decoder(files))
-        images.forEach((image) => {
-            const name = image.filename.split(".")[0]
-            if (isTrichName(name)) {
-                const c = TrichNameMap[name]
-                trichImages[c] = image
-            } else if (name.endsWith("R")) {
-                trichImages.R = image
-            } else if (name.endsWith("G")) {
-                trichImages.G = image
-            } else if (name.endsWith("B")) {
-                trichImages.B = image
-            } else {
-                throw new Error(`${name} not in trichrome`)
-            }
-        })
-        if (!trichNotNull(trichImages)) {
-            throw new Error("Not all trichrome images loaded")
-        }
-        dispatch("image", {
-            index: 0,
-            image: loadTrichrome(trichImages, DR),
         })
     }
 
@@ -168,33 +84,14 @@
         }
 
         const filenames = acceptedFiles.map((file) => file.name.split(".")[0])
-
-        if (
-            filenames.every(
-                (name) =>
-                    isTrichName(name) ||
-                    name.endsWith("R") ||
-                    name.endsWith("G") ||
-                    name.endsWith("B")
-            ) &&
-            filenames.length == 6
-        ) {
-            console.log("Trichrome")
-            openTrichrome(acceptedFiles)
-        } else if (filenames.includes("background")) {
-            console.log("Background")
-            openWithBackground(acceptedFiles)
-        } else {
-            console.log("Single")
-            openFiles(acceptedFiles)
-        }
+        openFiles(acceptedFiles)
     }
 </script>
 
 <div class="fileSelector">
     <h1>Select File</h1>
 
-    <Dropzone on:drop={handleFilesSelect} accept=".RAF" inputElement="null" />
+    <Dropzone on:drop={handleFilesSelect} accept=".rgb" inputElement="null" />
 
     <p>Background value</p>
     <input type="number" bind:value={bg_valueR} />

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import type { ProcessedImage } from "./RawImage"
+    import type { Image } from "./RawImage"
     // @ts-ignore
     import UPNG from "upng-js"
     import {
@@ -10,13 +10,13 @@
         invertJSColor8bit,
     } from "./inversion"
 
-    export let image: ProcessedImage
+    export let image: Image
     let url: string = ""
     let iter: number = -1
     let rotation = -1
     let img_element: HTMLImageElement
 
-    function getPreview(image: ProcessedImage): string {
+    function getPreview(image: Image): string {
         let inverted: Uint8Array
         if (!image) {
             return ""
@@ -28,21 +28,20 @@
                 image.settings.advanced,
                 image.settings.matrix1,
                 image.settings.matrix2,
-                image.kind
             )
             inverted = invertJSColor8bit(
-                image.preview,
+                image.small.arr,
                 conversion_values,
                 image.settings.tone_curve,
             )
         } else {
             const conversion_values = getConversionValuesBw(image.settings.bw)
-            inverted = invertJSBW8bit(image.preview, conversion_values, image.settings.tone_curve)
+            inverted = invertJSBW8bit(image.small.arr, conversion_values, image.settings.tone_curve)
         }
         const png = UPNG.encode(
-            [inverted.buffer],
-            image.preview_width,
-            image.preview_height,
+            [new Uint8Array(inverted).buffer as ArrayBuffer],
+            image.small.width,
+            image.small.height,
             0
         )
         const blob = new Blob([png], { type: "image/png" })
@@ -55,7 +54,7 @@
         console.log("Rotating", rotation)
         const strip_height = img_element.parentElement?.clientHeight
         if (!strip_height) return
-        const ratio = image.preview_width / image.preview_height
+        const ratio = image.small.width / image.small.height
         console.log(strip_height, ratio)
         if (rotation % 2 == 1) {
             img_element.style.width = `${strip_height}px`

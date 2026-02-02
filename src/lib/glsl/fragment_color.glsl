@@ -13,12 +13,14 @@ uniform float tc_exp_shift;
 
 uniform mat3 matrix1;
 uniform mat3 matrix2;
-uniform mat3 cam_to_sRGB;
 // uniform mat3 cdd_to_cid;
 // uniform mat3 exp_to_sRGBMatrix;
 
 uniform vec3 clip_values;
 
+uniform vec3 raw_gain;
+uniform vec3 raw_black;
+uniform vec3 bg;
 uniform vec3 m;
 uniform vec3 b;
 uniform vec3 d;
@@ -78,11 +80,14 @@ vec3 clip_white(vec3 color) {
 void main() {
   uvec3 unsignedIntValues = texture(tex, pixelCoordinate).rgb;
   vec3 floatValues0To65535 = vec3(unsignedIntValues);
-  vec3 color = floatValues0To65535 / vec3(16384.0f);
+  vec3 color = floatValues0To65535 / vec3(65535.0f);
+
+  // Raw to linear conversion
+   color = (raw_black + color / raw_gain) / bg;
+
 
   if(!show_negative) {
     color = -log(matrix1 * color) / log(vec3(10.0f)); // Density
-    // color = cdd_to_cid * color;
     if(toe) {
       color = paper_to_exp(color); // Paper
     } else {
@@ -105,11 +110,7 @@ void main() {
       color = matrix2 * pow(vec3(2), color); // EXP to ACES to sRGB or other
       color = exp_to_sRGB(color); //sRGB
     }
-    // color = exp_to_sRGBMatrix * color;
   } else {
-    color = cam_to_sRGB * color;
-    color = log(color) / log(vec3(2.0f));
-    color = pow(vec3(2), color); //sRGB
     color = exp_to_sRGB(color);
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);

@@ -1,7 +1,7 @@
 <script lang="ts">
     import FileSelector from "./lib/FileSelector.svelte"
     import ImageArea from "./lib/ImageArea.svelte"
-    import type { ProcessedImage } from "./lib/RawImage"
+    import type { Image } from "./lib/RawImage"
     import { images, index } from "./stores"
     import Settings from "./lib/Settings/Settings.svelte"
     import { numberOfWorkers } from "./lib/utils"
@@ -10,15 +10,11 @@
     let showImages = false
 
     function receivedImage(event: CustomEvent) {
-        const { index, image }: { index: number; image: ProcessedImage } =
+        const { index, image }: { index: number; image: Image } =
             event.detail
         $images[index] = image
 
         showImages = true
-    }
-
-    function typedArrayToURL(arr: Uint8Array, mimeType: string): string {
-        return URL.createObjectURL(new Blob([arr.buffer], { type: mimeType }))
     }
 
     function save(e: CustomEvent<{ all: boolean }>) {
