@@ -31,6 +31,7 @@
             )
             inverted = invertJSColor8bit(
                 image.small.arr,
+                image.raw_conv_settings,
                 conversion_values,
                 image.settings.tone_curve,
             )

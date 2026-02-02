@@ -2,6 +2,7 @@ import type {
     AdvancedSettings,
     BWSettings,
     Image,
+    RawConvSettings,
     RawImage,
     Settings,
     TCName,
@@ -211,21 +212,33 @@ function invertRawColor(
 
 export function invertJSColor8bit(
     im: Uint16Array,
+    raw_conv_settings: RawConvSettings,
     conversion_values: ConversionValuesColor,
     tone_curve: TCName,
 ): Uint8Array {
     const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
     const { LUT, exp_shift } = tc_map[tone_curve]
+    
+    const bl = raw_conv_settings.offset
+    const raw_black = [(bl[0] - BLACK) / 16384, (bl[1] - BLACK) / 16384, (bl[2] - BLACK) / 16384]
+    const raw_gain = raw_conv_settings.gain
+    const bg = raw_conv_settings.background
+
     const out = new Uint8Array(im.length)
     for (let i = 0; i < im.length; i += 4) {
         const colorValue: Triple = [
-            im[i] / 2 ** 14,
-            im[i + 1] / 2 ** 14,
-            im[i + 2] / 2 ** 14,
+            im[i] / 65536,
+            im[i + 1] / 65536,
+            im[i + 2] / 65536,
+        ]
+        const linear: Triple = [
+            (raw_black[0] + colorValue[0] / raw_gain[0]) / bg[0],
+            (raw_black[1] + colorValue[1] / raw_gain[1]) / bg[1],
+            (raw_black[2] + colorValue[2] / raw_gain[2]) / bg[2],
         ]
         const APD = mapTriple(
             (x) => -Math.log10(x),
-            applyCMV(matrix1, colorValue)
+            applyCMV(matrix1, linear)
         )
         let exp: Triple
         if (invert_toe) {
