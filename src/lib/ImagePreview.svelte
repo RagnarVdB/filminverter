@@ -2,12 +2,14 @@
     import { onMount } from "svelte"
     import type { Image } from "./RawImage"
     // @ts-ignore
-    import UPNG from "upng-js"
+    // import UPNG from "upng-js"
+    import { encode } from "fast-png"
+    import type { ImageData } from "fast-png";
     import {
         getConversionValuesBw,
         getConversionValuesColor,
         invertJSBW8bit,
-        invertJSColor8bit,
+        invertColorRGBA,
     } from "./inversion"
 
     export let image: Image
@@ -24,28 +26,36 @@
         if (image.settings.mode == "basic") {
             throw new Error("Basic mode not supported")
         } else if (image.settings.mode == "advanced") {
-            const conversion_values = getConversionValuesColor(
-                image.settings.advanced,
-                image.settings.matrix1,
-                image.settings.matrix2,
-            )
-            inverted = invertJSColor8bit(
-                image.small.arr,
+            inverted = invertColorRGBA(
+                image.small,
                 image.raw_conv_settings,
-                conversion_values,
-                image.settings.tone_curve,
+                image.settings
             )
         } else {
             const conversion_values = getConversionValuesBw(image.settings.bw)
-            inverted = invertJSBW8bit(image.small.arr, conversion_values, image.settings.tone_curve)
+            inverted = invertJSBW8bit(
+                image.small.arr,
+                conversion_values,
+                image.settings.tone_curve
+            )
         }
-        const png = UPNG.encode(
-            [new Uint8Array(inverted).buffer as ArrayBuffer],
-            image.small.width,
-            image.small.height,
-            0
+        // const png = UPNG.encode(
+        //     [new Uint8Array(inverted).buffer as ArrayBuffer],
+        //     image.small.width,
+        //     image.small.height,
+        //     0
+        // )
+        const imdata: ImageData = {
+            data: inverted,
+            width: image.small.width,
+            height: image.small.height,
+            channels: 4,
+            depth: 8,
+        }
+        const png = encode(
+            imdata
         )
-        const blob = new Blob([png], { type: "image/png" })
+        const blob = new Blob([png.buffer as ArrayBuffer], { type: "image/png" })
         const url = URL.createObjectURL(blob)
         return url
     }

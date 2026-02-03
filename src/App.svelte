@@ -2,6 +2,7 @@
     import FileSelector from "./lib/FileSelector.svelte"
     import ImageArea from "./lib/ImageArea.svelte"
     import type { Image } from "./lib/RawImage"
+    import type { OutputType } from "./lib/inversion"
     import { images, index } from "./stores"
     import Settings from "./lib/Settings/Settings.svelte"
     import { numberOfWorkers } from "./lib/utils"
@@ -17,15 +18,16 @@
         showImages = true
     }
 
-    function save(e: CustomEvent<{ all: boolean }>) {
-        if (!e.detail.all) {
+    function save(e: CustomEvent<{ all: boolean, type: OutputType }>) {
+        const {all, type} = e.detail
+        if (!all) {
             // Only one file
             const worker = new Worker(
                 new URL("./lib/encode_worker.ts", import.meta.url),
                 { type: "module" }
             )
             const image = $images[$index]
-            worker.postMessage([image])
+            worker.postMessage([[image, type]])
             worker.onmessage = (message) => {
                 const [filename, url]: [string, string] = message.data
                 download(url, filename)

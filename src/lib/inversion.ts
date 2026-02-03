@@ -7,9 +7,7 @@ import type {
     Settings,
     TCName,
 } from "./RawImage"
-import { BLACK } from "./RawImage"
 import luts from "./luts"
-import { sRGB_to_cam, trich_to_APD } from "./matrices"
 import type { ColorMatrix, Primary, Triple } from "./utils"
 import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
 // @ts-ignore
@@ -30,6 +28,14 @@ interface ConversionValuesBw {
     d: number
     dmin: Triple
     invert_toe: boolean
+}
+
+export type OutputType = "png16" | "png8"
+export type FileType = "png" | "jpg" | "tiff"
+
+export const outputTypes: Record<OutputType, { filetype: FileType, linear: boolean, bit_depth: 8 | 16 | 32, little_endian: boolean }> = {
+    png16: { filetype: "png", linear: false, bit_depth: 16, little_endian: true },
+    png8: { filetype: "png", linear: false, bit_depth: 8, little_endian: true }
 }
 
 type LutSets = [number, number, number, number]
@@ -148,19 +154,18 @@ export function getConversionValuesColor(
     }
 }
 
-function procesValueColor(
-    colorValue: Triple,
-    primary: Primary,
-    conversionValues: ConversionValuesColor,
-    wb_coeff: number,
-    exp_shift: number,
-    kind: "normal" | "trichrome" | "density"
-): number {
-    // Camera raw to output (sRGB)
-    const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversionValues
+
+export function process_color_value(color: Triple, raw_conv_settings: RawConvSettings, conversion_values: ConversionValuesColor, exp_shift: number, lut: number[],): Triple {
+    const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
+    const { black, gain, background } = raw_conv_settings
+    const linear_in: Triple = [
+        (black[0] + color[0] / gain[0]) / background[0],
+        (black[1] + color[1] / gain[1]) / background[1],
+        (black[2] + color[2] / gain[2]) / background[2],
+    ]
     const APD = mapTriple(
         (x) => -Math.log10(x),
-        applyCMV(matrix1, colorValue)
+        applyCMV(matrix1, linear_in)
     )
     let exp: Triple
     if (invert_toe) {
@@ -176,88 +181,80 @@ function procesValueColor(
             m[2] * APD[2] + b[2],
         ])
     }
-    const rawValuesRGB = mapTriple((x) => 2 ** (x - exp_shift), exp)
-    const rawValue = applyCMVRow(sRGB_to_cam, rawValuesRGB, primary) / wb_coeff
-    return clamp(rawValue * 16384 + BLACK, 1016, 16384)
+    const linear_out = mapTriple(
+        (x) => applyLUT(2 ** (x - exp_shift), lut),
+        exp
+    )
+    return linear_out
 }
 
-function invertRawColor(
-    image: Image,
-): Float32Array {
-    throw new Error("unimplemented")
-    // const w = image.width
-    // const h = image.height
-
-    // const conversion_values = getConversionValuesColor(
-    //     image.settings.advanced,
-    //     image.settings.matrix1,
-    //     image.settings.matrix2,
-    // )
-    // const exp_shift = tc_map[settings.tone_curve].exp_shift
-
-    // let out = new Uint16Array(w * h)
-    // for (let i = 0; i < w; i++) {
-    //     for (let j = 0; j < h; j++) {
-    //         const { main, color } = getColorValue(image, i, j)
-    //         out[i + j * w] = procesValueColor(
-    //             color,
-    //             main,
-    //             conversion_values,
-    //             exp_shift,
-    //         )
-    //     }
-    // }
-    // return out
-}
-
-export function invertJSColor8bit(
-    im: Uint16Array,
+export function invertColorRGB(
+    im: RawImage,
     raw_conv_settings: RawConvSettings,
-    conversion_values: ConversionValuesColor,
-    tone_curve: TCName,
-): Uint8Array {
-    const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
-    const { LUT, exp_shift } = tc_map[tone_curve]
-    
-    const bl = raw_conv_settings.offset
-    const raw_black = [(bl[0] - BLACK) / 16384, (bl[1] - BLACK) / 16384, (bl[2] - BLACK) / 16384]
-    const raw_gain = raw_conv_settings.gain
-    const bg = raw_conv_settings.background
+    inversion_settings: Settings,
+    bit_depth: 8 | 16 | 32,
+    linear: boolean,
+    little_endian: boolean
+): ArrayBuffer {
+    const conversion_values = getConversionValuesColor(
+        inversion_settings.advanced,
+        inversion_settings.matrix1,
+        inversion_settings.matrix2,
+    )
+    const { LUT, exp_shift } = tc_map[inversion_settings.tone_curve]
+    const byte_depth = bit_depth / 8
+    const buffer = new ArrayBuffer(im.arr.length * byte_depth)
+    const view = new DataView(buffer)
+    const [setter, max] = (() => {
+        if (bit_depth == 8)
+            return [view.setUint8.bind(view), 255]
+        else if (bit_depth == 16)
+            return [view.setUint16.bind(view), 65536]
+        else
+            return [view.setFloat32.bind(view), 1.0]
+    })()
 
-    const out = new Uint8Array(im.length)
-    for (let i = 0; i < im.length; i += 4) {
-        const colorValue: Triple = [
-            im[i] / 65536,
-            im[i + 1] / 65536,
-            im[i + 2] / 65536,
+
+    for (let i = 0; i < im.arr.length; i += 3) {
+        const color_value: Triple = [
+            im.arr[i] / 65536,
+            im.arr[i + 1] / 65536,
+            im.arr[i + 2] / 65536,
         ]
-        const linear: Triple = [
-            (raw_black[0] + colorValue[0] / raw_gain[0]) / bg[0],
-            (raw_black[1] + colorValue[1] / raw_gain[1]) / bg[1],
-            (raw_black[2] + colorValue[2] / raw_gain[2]) / bg[2],
+        let processed = process_color_value(color_value, raw_conv_settings, conversion_values, exp_shift, LUT)
+        if (!linear)
+            processed = mapTriple(sRGBGamma, processed)
+
+
+        setter((i + 0) * byte_depth, processed[0] * max, little_endian)
+        setter((i + 1) * byte_depth, processed[1] * max, little_endian)
+        setter((i + 2) * byte_depth, processed[2] * max, little_endian)
+
+    }
+    return buffer
+}
+
+export function invertColorRGBA(
+    im: RawImage,
+    raw_conv_settings: RawConvSettings,
+    inversion_settings: Settings,
+): Uint8Array {
+    const conversion_values = getConversionValuesColor(
+        inversion_settings.advanced,
+        inversion_settings.matrix1,
+        inversion_settings.matrix2,
+    )
+    const { LUT, exp_shift } = tc_map[inversion_settings.tone_curve]
+    const out = new Uint8Array(im.arr.length)
+    for (let i = 0; i < im.arr.length; i += 4) {
+        const color_value: Triple = [
+            im.arr[i] / 65536,
+            im.arr[i + 1] / 65536,
+            im.arr[i + 2] / 65536,
         ]
-        const APD = mapTriple(
-            (x) => -Math.log10(x),
-            applyCMV(matrix1, linear)
-        )
-        let exp: Triple
-        if (invert_toe) {
-            exp = applyCMV(matrix2, [
-                pteCurve(APD[0], [m[0], b[0], d[0], dmin[0]]),
-                pteCurve(APD[1], [m[1], b[1], d[1], dmin[1]]),
-                pteCurve(APD[2], [m[2], b[2], d[2], dmin[2]]),
-            ])
-        } else {
-            exp = applyCMV(matrix2, [
-                m[0] * APD[0] + b[0],
-                m[1] * APD[1] + b[1],
-                m[2] * APD[2] + b[2],
-            ])
-        }
-        const sRGB = mapTriple(
-            (x) => sRGBGamma(applyLUT(2 ** (x - exp_shift), LUT)),
-            exp
-        )
+        const processed_linear = process_color_value(color_value, raw_conv_settings, conversion_values, exp_shift, LUT)
+        const sRGB = mapTriple(sRGBGamma, processed_linear)
+
         out[i] = sRGB[0] * 2 ** 8
         out[i + 1] = sRGB[1] * 2 ** 8
         out[i + 2] = sRGB[2] * 2 ** 8
@@ -305,26 +302,26 @@ export function invertJSBW8bit(
     return out
 }
 
-function processColorValueBw(
-    colorValue: number,
-    conversionValues: {
-        m: number
-        b: number
-        d: number
-        dmin: number
-        invert_toe: boolean
-    },
-    wb_coeff: number,
-    exp_shift: number
-): number {
-    const { m, b, d, dmin, invert_toe } = conversionValues
-    const density = -Math.log10(colorValue)
-    const exp = invert_toe
-        ? pteCurve(density, [m, b, d, dmin])
-        : m * density + b
-    const rawValue = 2 ** (exp - exp_shift) / wb_coeff
-    return clamp(rawValue * 16384 + BLACK, BLACK, 16384)
-}
+// function processColorValueBw(
+//     colorValue: number,
+//     conversionValues: {
+//         m: number
+//         b: number
+//         d: number
+//         dmin: number
+//         invert_toe: boolean
+//     },
+//     wb_coeff: number,
+//     exp_shift: number
+// ): number {
+//     const { m, b, d, dmin, invert_toe } = conversionValues
+//     const density = -Math.log10(colorValue)
+//     const exp = invert_toe
+//         ? pteCurve(density, [m, b, d, dmin])
+//         : m * density + b
+//     const rawValue = 2 ** (exp - exp_shift) / wb_coeff
+//     return clamp(rawValue * 16384 + BLACK, BLACK, 16384)
+// }
 
 function invertRawBW(
     image: Image,
@@ -363,14 +360,4 @@ function invertRawBW(
     // }
 
     // return out
-}
-
-export function invertRaw(
-    image: Image,
-): Float32Array {
-    if (image.settings.mode == "bw") {
-        return invertRawBW(image)
-    } else {
-        return invertRawColor(image)
-    }
 }

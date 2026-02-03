@@ -10,7 +10,7 @@ import {
     tc_map,
 } from "./inversion"
 import { trich_to_APD, cam_to_sRGB } from "./matrices"
-import { BLACK, type AdvancedSettings, type BWSettings, type Image } from "./RawImage"
+import { type AdvancedSettings, type BWSettings, type Image } from "./RawImage"
 import { transpose, type ColorMatrix, type Triple } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
@@ -196,12 +196,11 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
     const exp_shift = tone_curve.exp_shift
     const clip_values = [exp_shift, exp_shift, exp_shift]
 
-    const b = image.raw_conv_settings.offset
-    const black = [(b[0] - BLACK) / 16384, (b[1] - BLACK) / 16384, (b[2] - BLACK) / 16384]
+    const b = image.raw_conv_settings.black
 
     const parameters: WebGLArgument<any[]>[] = [
         { name: "raw_gain", f: gl.uniform3f, data: image.raw_conv_settings.gain },
-        { name: "raw_black", f: gl.uniform3f, data: black },
+        { name: "raw_black", f: gl.uniform3f, data: image.raw_conv_settings.black },
         { name: "bg", f: gl.uniform3f, data: image.raw_conv_settings.background },
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },

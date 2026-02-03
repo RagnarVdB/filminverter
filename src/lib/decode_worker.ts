@@ -1,24 +1,10 @@
-import { type RawImage, initializeImage, type Image, type RawConvSettings } from "./RawImage"
-import type { Triple } from "./utils.js"
+import { type RawConvSettings, initializeImage, read_raw } from "./RawImage"
 
-async function read_raw(file: File): Promise<RawImage> {
-    let arr = new Uint16Array(await file.arrayBuffer())
-    let width = arr.slice(0, 2)[0]
-    let height = arr.slice(2, 4)[0]
-    let image = arr.slice(4, arr.length)
-    console.log("Read image: ", width, height)
-    return {
-        arr: image,
-        width,
-        height
-    }
-    
-}
 
 const raw_conv_settings: RawConvSettings = {
     gain: [2.21913894, 1.07177346, 1.5691682],
-    offset: [1041, 1041, 1041],
-    background: [0.644867  , 1.402771  , 0.86978493]
+    black: [0.0015258789, 0.0015258789, 0.0015258789],
+    background: [0.644867, 1.402771, 0.86978493]
 }
 
 onmessage = async function (e: MessageEvent) {

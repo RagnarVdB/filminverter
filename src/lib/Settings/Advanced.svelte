@@ -7,7 +7,15 @@
     import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
-    import { identity, single_to_APD, single_to_APD_theory, single_to_APD_theory_unnorm, exp_to_aces_to_sRGB, single_to_APD_colorsheet } from "../matrices"
+    import {
+        identity,
+        single_to_APD,
+        single_to_APD_theory,
+        single_to_APD_theory_unnorm,
+        exp_to_aces_to_sRGB,
+        single_to_APD_colorsheet,
+    } from "../matrices"
+    import type { OutputType } from "../inversion"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
@@ -35,6 +43,8 @@
 
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
+
+    let output_type: OutputType = "png16"
 
     let copied_settings: AdvancedSettings | null = null
 
@@ -103,8 +113,8 @@
                 blue: blue[0] - 2,
                 green: green[0] - 2,
                 gamma: gamma[0],
-                facB: 1 + (facB[0] - 5)/m,
-                facG: 1 + (facG[0] - 5)/m,
+                facB: 1 + (facB[0] - 5) / m,
+                facG: 1 + (facG[0] - 5) / m,
                 toe_width: toe_width[0],
                 toe_facB: toe_facB[0],
                 toe_facG: toe_facG[0],
@@ -173,7 +183,6 @@
 
         input.click()
     }
-
 </script>
 
 <div class="advanced">
@@ -187,7 +196,7 @@
         <option value="Filmic">Filmic</option>
         <option value="Filmic2">Filmic2</option>
     </select>
-    <br/>
+    <br />
     <label for="Matrix1">Matrix1</label>
     <select name="Matrix1" bind:value={matrix1}>
         <option value={identity}>Identity</option>
@@ -196,7 +205,7 @@
         <option value={single_to_APD_theory_unnorm}>Theory unnorm</option>
         <option value={single_to_APD}>Matrix 1</option>
     </select>
-    <br/>
+    <br />
     <label for="Matrix2">Matrix2</label>
     <select name="Matrix2" bind:value={matrix2}>
         <option value={identity}>Identity</option>
@@ -250,8 +259,12 @@
     <input type="number" bind:value={shown_value} />
     <br />
     
-
-
+    Output
+    <select name="Output" bind:value={output_type}>
+        <option value="png16">16-bit PNG</option>
+        <option value="png8">8-bit PNG</option>
+    </select>
+    <br>
 
     <button
         on:click={() => {
@@ -259,8 +272,8 @@
         }}>Rotate</button
     >
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
-    <button on:click={() => dispatch("save", { all: false })}>Save</button>
-    <button on:click={() => dispatch("save", { all: true })}>Save all</button>
+    <button on:click={() => dispatch("save", { all: false, type: output_type})}>Save </button>
+    <button on:click={() => dispatch("save", { all: true, type: output_type})}>Save all</button>
     <Zoom bind:zoom />
     <button on:click={() => (copied_settings = settings.advanced)}
         >Copy settings</button

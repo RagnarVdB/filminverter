@@ -1,12 +1,9 @@
-import { identity, single_to_APD } from "./matrices"
-import type { BgPrimary, ColorMatrix, Matrix, Primary, Triple } from "./utils"
-import { allPromises, bgMap, clamp, colorOrder } from "./utils"
-
-export const BLACK = 1016
+import { identity } from "./matrices"
+import type { ColorMatrix, Matrix, Triple } from "./utils"
 
 export interface RawConvSettings {
     gain: [number, number, number]
-    offset: [number, number, number]
+    black: [number, number, number]
     background: [number, number, number]
 }
 
@@ -86,8 +83,8 @@ export const defaultSettings: Settings = {
             1956
         ],
         neutral: [1458,
-        562,
-        329],
+            562,
+            329],
         exposure: 1.35,
         blue: -0.17,
         green: -0.14,
@@ -106,6 +103,20 @@ export const defaultSettings: Settings = {
         toe_width: 0.22,
         blackpoint_shift: 0,
     },
+}
+
+export async function read_raw(file: File): Promise<RawImage> {
+    let arr = new Uint16Array(await file.arrayBuffer())
+    let width = arr.slice(0, 2)[0]
+    let height = arr.slice(2, 4)[0]
+    let image = arr.slice(4, arr.length)
+    console.log("Read image: ", width, height)
+    return {
+        arr: image,
+        width,
+        height
+    }
+
 }
 
 export function buildPreview(image: RawImage, scale: number): RawImage {
@@ -148,7 +159,7 @@ export function buildPreview(image: RawImage, scale: number): RawImage {
 export function initializeImage(
     image: RawImage, file: File, raw_conv_settings: RawConvSettings
 ): Image {
-    const large = buildPreview(image, 6)
+    const large = buildPreview(image, 3)
     const small = buildPreview(image, 24)
     console.log("Large preview: ", large.width, large.height)
     console.log("small preview: ", small.width, small.height)
