@@ -18,12 +18,6 @@ export const colorOrder = {
     B: 2,
 }
 
-export const bgMap: { [Key in Primary]: BgPrimary } = {
-    R: "BR",
-    G: "BG",
-    B: "BB",
-}
-
 export function mapTriple(f: (x: number) => number, x: Triple): Triple {
     return [f(x[0]), f(x[1]), f(x[2])]
 }
@@ -44,7 +38,6 @@ export function numberOfWorkers(nFiles: number): number {
 export function zip<T, Y>(l1: T[], l2: Y[]): [T, Y][] {
     return l1.map((x, i) => [x, l2[i]])
 }
-
 
 function matmul(
     M1: number[],
@@ -114,13 +107,6 @@ export function transpose(matrix: Matrix): Matrix {
     }
 }
 
-export function applyConversionMatrix(
-    image: number[] | Uint16Array,
-    matrix: Matrix
-): number[] {
-    return chunksRgba(image).flatMap((vec) => applyMatrixVector(vec, matrix))
-}
-
 export function applyMatrixVector(vec: number[], matrix: Matrix): number[] {
     const result: number[] = []
     const { n, m } = matrix
@@ -159,75 +145,8 @@ export function applyCMVRow(
     return result
 }
 
-export function chunks<T>(array: ArrayLike<T>, chunkSize: number): T[][] {
-    const result = []
-    for (let i = 0; i < array.length; i += chunkSize) {
-        result.push(Array.prototype.slice.call(array).slice(i, i + chunkSize))
-    }
-    return result
-}
-
 export function clamp(x: number, min: number, max: number) {
     return Math.max(min, Math.min(x, max))
-}
-
-export function chunksRgba(
-    array: Uint16Array | number[]
-): [number, number, number, number][] {
-    const result: [number, number, number, number][] = []
-    for (let i = 0; i < array.length; i += 4) {
-        const out = Array.prototype.slice.call(array).slice(i, i + 4)
-        result.push([out[0], out[1], out[2], out[3]])
-    }
-    return result
-}
-
-export function chunksRgb(array: Uint16Array): [number, number, number][] {
-    const result: [number, number, number][] = []
-    for (let i = 0; i < array.length; i += 3) {
-        const out = Array.prototype.slice.call(array).slice(i, i + 3)
-        result.push([out[0], out[1], out[2]])
-    }
-    return result
-}
-
-export function changeBitDepth(
-    image: Uint16Array,
-    oldDepth: number,
-    newDepth: number
-): Uint16Array {
-    const factor = newDepth / oldDepth
-    const n = new Uint16Array(image.length)
-    for (let i = 0; i < image.length; i += 4) {
-        n[i] = image[i] * factor
-        n[i + 1] = image[i + 1] * factor
-        n[i + 2] = image[i + 2] * factor
-        n[i + 3] = image[i + 3]
-    }
-
-    return n
-}
-
-async function moveKey<T>(pair: [string, Promise<T>]): Promise<[string, T]> {
-    const [key, promise] = pair
-    return [key, await promise]
-}
-
-export async function allPromises<TO extends { [key: string]: any }>(o: {
-    [TK in keyof TO]: Promise<TO[TK]>
-}): Promise<TO> {
-    const promiseList = Object.entries(o).map(moveKey)
-    const results = await Promise.all(promiseList)
-    return Object.fromEntries(results) as TO
-}
-
-export function omap<T, U, O extends { [key: string]: T }>(
-    f: (x: T) => U,
-    o: O
-): { [Key in keyof O]: U } {
-    return Object.fromEntries(
-        Object.entries(o).map(([key, value]) => [key, f(value)])
-    ) as { [Key in keyof O]: U }
 }
 
 export function download(url: string, filename: string) {
