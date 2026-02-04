@@ -1,5 +1,4 @@
 import type { ColorMatrix } from "./utils"
-import { multiplyColorMatrices, multiplyMatrices } from "./utils"
 
 export const exp_to_aces_to_sRGB: ColorMatrix = {
     matrix: [

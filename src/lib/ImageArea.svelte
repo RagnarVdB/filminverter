@@ -1,10 +1,10 @@
 <script lang="ts">
     import ImageView from "./ImageView.svelte"
 
-    import { images, index as currentIndex, mainCanvas } from "../stores"
+    import { index as currentIndex, images, mainCanvas } from "../stores"
 
-    import type { Image } from "./RawImage"
     import ImagePreview from "./ImagePreview.svelte"
+    import type { Image } from "./RawImage"
 
     type cvsobj = {
         canvas: HTMLCanvasElement
@@ -22,15 +22,15 @@
     <div id="strip">
         {#each $images as image, index}
             {#if image}
-            <div
-                class="preview"
-                class:selected={$currentIndex == index}
-                on:click={() => {
-                    $currentIndex = index
-                }}
-            >
-                <ImagePreview {image} />
-            </div>
+                <div
+                    class="preview"
+                    class:selected={$currentIndex == index}
+                    on:click={() => {
+                        $currentIndex = index
+                    }}
+                >
+                    <ImagePreview {image} />
+                </div>
             {/if}
         {/each}
     </div>

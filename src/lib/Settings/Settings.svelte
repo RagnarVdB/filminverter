@@ -1,11 +1,11 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
-    import Basic from "./Basic.svelte"
-    import Advanced from "./Advanced.svelte"
-    import Bw from "./Bw.svelte"
+    import { images, index } from "../../stores"
     import type { Settings } from "../RawImage"
     import { defaultSettings } from "../RawImage"
-    import { images, index } from "../../stores"
+    import Advanced from "./Advanced.svelte"
+    import Basic from "./Basic.svelte"
+    import Bw from "./Bw.svelte"
 
     const dispatch = createEventDispatcher()
 

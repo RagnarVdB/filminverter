@@ -1,6 +1,5 @@
 <script lang="ts">
     import Slider from "@bulatdashiev/svelte-slider"
-    import type { Settings } from "../RawImage"
 
     let exposure = [1, 0]
     let contrast = [1, 0]

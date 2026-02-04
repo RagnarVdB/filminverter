@@ -2,20 +2,20 @@
     import { createEventDispatcher } from "svelte"
     // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
-    import Picker from "./Picker.svelte"
-    import Zoom from "./Zoom.svelte"
+    import type { OutputType } from "../inversion"
+    import {
+        exp_to_aces_to_sRGB,
+        identity,
+        single_to_APD,
+        single_to_APD_colorsheet,
+        single_to_APD_theory,
+        single_to_APD_theory_unnorm,
+    } from "../matrices"
     import type { AdvancedSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
-    import {
-        identity,
-        single_to_APD,
-        single_to_APD_theory,
-        single_to_APD_theory_unnorm,
-        exp_to_aces_to_sRGB,
-        single_to_APD_colorsheet,
-    } from "../matrices"
-    import type { OutputType } from "../inversion"
+    import Picker from "./Picker.svelte"
+    import Zoom from "./Zoom.svelte"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]
@@ -258,13 +258,13 @@
     <input type="checkbox" bind:checked={show_value} />
     <input type="number" bind:value={shown_value} />
     <br />
-    
+
     Output
     <select name="Output" bind:value={output_type}>
         <option value="png16">16-bit PNG</option>
         <option value="png8">8-bit PNG</option>
     </select>
-    <br>
+    <br />
 
     <button
         on:click={() => {
@@ -272,8 +272,12 @@
         }}>Rotate</button
     >
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
-    <button on:click={() => dispatch("save", { all: false, type: output_type})}>Save </button>
-    <button on:click={() => dispatch("save", { all: true, type: output_type})}>Save all</button>
+    <button on:click={() => dispatch("save", { all: false, type: output_type })}
+        >Save
+    </button>
+    <button on:click={() => dispatch("save", { all: true, type: output_type })}
+        >Save all</button
+    >
     <Zoom bind:zoom />
     <button on:click={() => (copied_settings = settings.advanced)}
         >Copy settings</button

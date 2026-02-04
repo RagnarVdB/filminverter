@@ -116,7 +116,6 @@
         e.preventDefault()
         console.log("WebGL context lost")
     })
-
 </script>
 
 <div class="view" bind:this={wrapper}>

@@ -2,11 +2,11 @@
     import { createEventDispatcher } from "svelte"
     // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
-    import Picker from "./Picker.svelte"
-    import Zoom from "./Zoom.svelte"
     import type { BWSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download } from "../utils"
+    import Picker from "./Picker.svelte"
+    import Zoom from "./Zoom.svelte"
 
     const dispatch = createEventDispatcher()
     type Triple = [number, number, number]

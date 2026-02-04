@@ -9,9 +9,8 @@ import {
     getConversionValuesColor,
     tc_map,
 } from "./inversion"
-import { trich_to_APD, cam_to_sRGB } from "./matrices"
 import { type AdvancedSettings, type BWSettings, type Image } from "./RawImage"
-import { transpose, type ColorMatrix, type Triple } from "./utils"
+import { transpose, type ColorMatrix } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
     name: string

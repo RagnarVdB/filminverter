@@ -3,13 +3,12 @@
     import type { Image } from "./RawImage"
     // @ts-ignore
     // import UPNG from "upng-js"
+    import type { ImageData } from "fast-png"
     import { encode } from "fast-png"
-    import type { ImageData } from "fast-png";
     import {
         getConversionValuesBw,
-        getConversionValuesColor,
-        invertJSBW8bit,
         invertColorRGBA,
+        invertJSBW8bit,
     } from "./inversion"
 
     export let image: Image
@@ -39,12 +38,7 @@
                 image.settings.tone_curve
             )
         }
-        // const png = UPNG.encode(
-        //     [new Uint8Array(inverted).buffer as ArrayBuffer],
-        //     image.small.width,
-        //     image.small.height,
-        //     0
-        // )
+
         const imdata: ImageData = {
             data: inverted,
             width: image.small.width,
@@ -52,10 +46,10 @@
             channels: 4,
             depth: 8,
         }
-        const png = encode(
-            imdata
-        )
-        const blob = new Blob([png.buffer as ArrayBuffer], { type: "image/png" })
+        const png = encode(imdata)
+        const blob = new Blob([png.buffer as ArrayBuffer], {
+            type: "image/png",
+        })
         const url = URL.createObjectURL(blob)
         return url
     }

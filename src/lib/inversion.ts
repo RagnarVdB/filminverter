@@ -8,8 +8,8 @@ import type {
     TCName,
 } from "./RawImage"
 import luts from "./luts"
-import type { ColorMatrix, Primary, Triple } from "./utils"
-import { applyCMV, applyCMVRow, clamp, colorOrder, mapTriple } from "./utils"
+import type { ColorMatrix, Triple } from "./utils"
+import { applyCMV, clamp, mapTriple } from "./utils"
 // @ts-ignore
 import linear from "linear-solve"
 

@@ -18,8 +18,8 @@
 
         const dpr = window.devicePixelRatio || 1
 
-        const x = mouseX / Math.round(($canvas.width/dpr))
-        const y = mouseY / Math.round(($canvas.height/dpr))
+        const x = mouseX / Math.round($canvas.width / dpr)
+        const y = mouseY / Math.round($canvas.height / dpr)
         return [x, y]
     }
 

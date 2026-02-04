@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { images, index, mainCanvas as canvas } from "../../stores"
+    import { mainCanvas as canvas, images, index } from "../../stores"
     import { applyRotationAndZoom } from "../rotation"
     import colorPickIcon from "/src/assets/color-picker-svgrepo-com.svg"
 
