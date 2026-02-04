@@ -22,7 +22,6 @@ export interface Image {
     iter: number
 }
 
-
 export type TCName = "Default" | "Filmic" | "Filmic2"
 
 export interface Settings {
@@ -77,14 +76,8 @@ export const defaultSettings: Settings = {
     matrix2: identity,
     advanced: {
         toe: true,
-        dmin: [
-            6829,
-            3406,
-            1956
-        ],
-        neutral: [1458,
-            562,
-            329],
+        dmin: [6829, 3406, 1956],
+        neutral: [1458, 562, 329],
         exposure: 1.35,
         blue: -0.17,
         green: -0.14,
@@ -114,9 +107,8 @@ export async function read_raw(file: File): Promise<RawImage> {
     return {
         arr: image,
         width,
-        height
+        height,
     }
-
 }
 
 export function buildPreview(image: RawImage, scale: number): RawImage {
@@ -132,15 +124,21 @@ export function buildPreview(image: RawImage, scale: number): RawImage {
                 for (let i = 0; i < scale; i++) {
                     R +=
                         image.arr[
-                        ((y * scale + j) * image.width + (x * scale + i)) * 3 + 0
+                            ((y * scale + j) * image.width + (x * scale + i)) *
+                                3 +
+                                0
                         ]
                     G +=
                         image.arr[
-                        ((y * scale + j) * image.width + (x * scale + i)) * 3 + 1
+                            ((y * scale + j) * image.width + (x * scale + i)) *
+                                3 +
+                                1
                         ]
                     B +=
                         image.arr[
-                        ((y * scale + j) * image.width + (x * scale + i)) * 3 + 2
+                            ((y * scale + j) * image.width + (x * scale + i)) *
+                                3 +
+                                2
                         ]
                 }
             }
@@ -155,9 +153,10 @@ export function buildPreview(image: RawImage, scale: number): RawImage {
     return { arr: out, width: N, height: M }
 }
 
-
 export function initializeImage(
-    image: RawImage, file: File, raw_conv_settings: RawConvSettings
+    image: RawImage,
+    file: File,
+    raw_conv_settings: RawConvSettings
 ): Image {
     const large = buildPreview(image, 3)
     const small = buildPreview(image, 24)

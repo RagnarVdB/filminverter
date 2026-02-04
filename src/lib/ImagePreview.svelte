@@ -7,7 +7,7 @@
     import { encode } from "fast-png"
     import {
         getConversionValuesBw,
-        invertColorRGBA,
+        invertColor,
         invertJSBW8bit,
     } from "./inversion"
 
@@ -25,10 +25,17 @@
         if (image.settings.mode == "basic") {
             throw new Error("Basic mode not supported")
         } else if (image.settings.mode == "advanced") {
-            inverted = invertColorRGBA(
-                image.small,
-                image.raw_conv_settings,
-                image.settings
+            inverted = new Uint8Array(
+                invertColor(
+                    image.small,
+                    image.raw_conv_settings,
+                    image.settings,
+                    4,
+                    4,
+                    8,
+                    false,
+                    true
+                )
             )
         } else {
             const conversion_values = getConversionValuesBw(image.settings.bw)

@@ -113,12 +113,12 @@ function getShaderParamsColor(
     gl: WebGL2RenderingContext,
     settings: AdvancedSettings,
     matrix1: ColorMatrix,
-    matrix2: ColorMatrix,
+    matrix2: ColorMatrix
 ): WebGLArgument<any[]>[] {
     const { m, b, d, dmin } = getConversionValuesColor(
         settings,
         matrix1,
-        matrix2,
+        matrix2
     )
     const parameters: WebGLArgument<any[]>[] = [
         {
@@ -148,7 +148,7 @@ function getShaderParamsColor(
 
 function getShaderParamsBw(
     gl: WebGL2RenderingContext,
-    settings: BWSettings,
+    settings: BWSettings
 ): WebGLArgument<any[]>[] {
     const { m, b, d, dmin } = getConversionValuesBw(settings)
     return [
@@ -162,7 +162,6 @@ function getShaderParamsBw(
         { name: "d", f: gl.uniform1f, data: [d] },
         { name: "dmin", f: gl.uniform3f, data: dmin },
     ]
-
 }
 
 export function draw(gl: WebGL2RenderingContext, image: Image) {
@@ -185,11 +184,11 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
         mode == "bw"
             ? getShaderParamsBw(gl, image.settings.bw)
             : getShaderParamsColor(
-                gl,
-                image.settings.advanced,
-                image.settings.matrix1,
-                image.settings.matrix2,
-            )
+                  gl,
+                  image.settings.advanced,
+                  image.settings.matrix1,
+                  image.settings.matrix2
+              )
 
     const tone_curve = tc_map[image.settings.tone_curve]
     const exp_shift = tone_curve.exp_shift
@@ -198,9 +197,21 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
     const b = image.raw_conv_settings.black
 
     const parameters: WebGLArgument<any[]>[] = [
-        { name: "raw_gain", f: gl.uniform3f, data: image.raw_conv_settings.gain },
-        { name: "raw_black", f: gl.uniform3f, data: image.raw_conv_settings.black },
-        { name: "bg", f: gl.uniform3f, data: image.raw_conv_settings.background },
+        {
+            name: "raw_gain",
+            f: gl.uniform3f,
+            data: image.raw_conv_settings.gain,
+        },
+        {
+            name: "raw_black",
+            f: gl.uniform3f,
+            data: image.raw_conv_settings.black,
+        },
+        {
+            name: "bg",
+            f: gl.uniform3f,
+            data: image.raw_conv_settings.background,
+        },
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },
         { name: "trans", f: gl.uniform2f, data: [zoom[2], zoom[3]] },
