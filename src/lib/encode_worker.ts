@@ -1,23 +1,29 @@
 import type { ImageData } from "fast-png"
 import { encode } from "fast-png"
-import { invertColor, outputTypes, type OutputType } from "./inversion"
+import { invertColor, output_types, type OutputType } from "./inversion"
 import { read_raw, type Image } from "./RawImage"
+import { encodeImage } from "./tiff_encode"
 
 onmessage = async function (e) {
     const images: [Image, OutputType][] = e.data
     for (const [image, type] of images) {
-        const { filetype, linear, bit_depth, little_endian } = outputTypes[type]
+        const { filetype, linear, bit_depth, little_endian, channels } =
+            output_types[type]
         const raw_image = await read_raw(image.file)
+        // For faster testing
+        // const raw_image = image.large
         const image_buffer = invertColor(
             raw_image,
             image.raw_conv_settings,
             image.settings,
             3,
-            3,
+            // 4,
+            channels,
             bit_depth,
             linear,
             little_endian
         )
+
         console.log("Done inverting")
         const filename = image.file.name.replace("rgb", filetype)
         const file_buffer: ArrayBuffer = (() => {
@@ -39,8 +45,18 @@ onmessage = async function (e) {
                     channels: 3,
                     depth: 8,
                 }
-                const png = encode(imdata)
-                return png.buffer as ArrayBuffer
+                return encode(imdata).buffer as ArrayBuffer
+            } else if (
+                type == "tiff8" ||
+                type == "tiff16" ||
+                type == "tiff32"
+            ) {
+                return encodeImage(
+                    image_buffer,
+                    raw_image.width,
+                    raw_image.height,
+                    {}
+                )
             } else {
                 throw new Error("unimplemented")
             }

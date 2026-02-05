@@ -30,12 +30,11 @@ interface ConversionValuesBw {
     invert_toe: boolean
 }
 
-export type OutputType = "png16" | "png8"
 export type FileType = "png" | "jpg" | "tiff"
-
-export const outputTypes: Record<
-    OutputType,
+export const output_types: Record<
+    string,
     {
+        name: string
         filetype: FileType
         linear: boolean
         bit_depth: 8 | 16 | 32
@@ -44,6 +43,7 @@ export const outputTypes: Record<
     }
 > = {
     png16: {
+        name: "16-bit PNG",
         filetype: "png",
         linear: false,
         bit_depth: 16,
@@ -51,13 +51,39 @@ export const outputTypes: Record<
         little_endian: true,
     },
     png8: {
+        name: "8-bit PNG",
         filetype: "png",
         linear: false,
         bit_depth: 8,
         channels: 3,
         little_endian: true,
     },
+    tiff32: {
+        name: "32-bit Tiff",
+        filetype: "tiff",
+        linear: true,
+        bit_depth: 32,
+        channels: 4,
+        little_endian: false,
+    },
+    tiff16: {
+        name: "16-bit Tiff",
+        filetype: "tiff",
+        linear: false,
+        bit_depth: 16,
+        channels: 4,
+        little_endian: false,
+    },
+    tiff8: {
+        name: "8-bit Tiff",
+        filetype: "tiff",
+        linear: false,
+        bit_depth: 8,
+        channels: 4,
+        little_endian: false,
+    },
 }
+export type OutputType = keyof typeof output_types
 
 type LutSets = [number, number, number, number]
 
@@ -208,6 +234,7 @@ export function process_color_value(
         exp
     )
     return linear_out
+    // return [0.0, 0.0, 1.0]
 }
 
 export function invertColor(
@@ -227,11 +254,11 @@ export function invertColor(
     )
     const { LUT, exp_shift } = tc_map[inversion_settings.tone_curve]
     const byte_depth = bit_depth / 8
-    const buffer = new ArrayBuffer(im.arr.length * byte_depth)
+    const buffer = new ArrayBuffer(im.width * im.height * channels_out * byte_depth)
     const view = new DataView(buffer)
     const [setter, max] = (() => {
         if (bit_depth == 8) return [view.setUint8.bind(view), 255]
-        else if (bit_depth == 16) return [view.setUint16.bind(view), 65536]
+        else if (bit_depth == 16) return [view.setUint16.bind(view), 65535]
         else return [view.setFloat32.bind(view), 1.0]
     })()
 

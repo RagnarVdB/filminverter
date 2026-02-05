@@ -3,6 +3,7 @@
     // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
     import type { OutputType } from "../inversion"
+    import { output_types } from "../inversion"
     import {
         exp_to_aces_to_sRGB,
         identity,
@@ -44,7 +45,7 @@
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
-    let output_type: OutputType = "png16"
+    let output_type: OutputType = "tiff32"
 
     let copied_settings: AdvancedSettings | null = null
 
@@ -261,8 +262,9 @@
 
     Output
     <select name="Output" bind:value={output_type}>
-        <option value="png16">16-bit PNG</option>
-        <option value="png8">8-bit PNG</option>
+        {#each Object.keys(output_types) as type}
+            <option value={type}>{output_types[type].name}</option>
+        {/each}
     </select>
     <br />
 

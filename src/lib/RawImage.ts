@@ -158,7 +158,7 @@ export function initializeImage(
     file: File,
     raw_conv_settings: RawConvSettings
 ): Image {
-    const large = buildPreview(image, 3)
+    const large = buildPreview(image, 4)
     const small = buildPreview(image, 24)
     console.log("Large preview: ", large.width, large.height)
     console.log("small preview: ", small.width, small.height)
