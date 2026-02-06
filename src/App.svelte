@@ -1,7 +1,7 @@
 <script lang="ts">
     import FileSelector from "./lib/FileSelector.svelte"
     import ImageArea from "./lib/ImageArea.svelte"
-    import type { Image } from "./lib/RawImage"
+    import { read_raw, type Image } from "./lib/RawImage"
     import Settings from "./lib/Settings/Settings.svelte"
     import type { OutputType } from "./lib/inversion"
     import { download, numberOfWorkers } from "./lib/utils"
@@ -14,6 +14,18 @@
         $images[index] = image
 
         showImages = true
+    }
+
+    async function save_raw() {
+        console.log("Saving raw")
+        const image = $images[$index]
+        const raw_image = await read_raw(image.file)
+        console.log("Done loading")
+        const file_buffer = raw_image.arr.buffer as ArrayBuffer
+        const url = URL.createObjectURL(
+            new Blob([file_buffer], { type: "image/tiff" })
+        )
+        download(url, image.file.name.replace("RAF", "rgb"))
     }
 
     function save(e: CustomEvent<{ all: boolean; type: OutputType }>) {
@@ -78,7 +90,7 @@
     {:else}
         <FileSelector on:image={receivedImage} />
     {/if}
-    <Settings on:save={save} on:applyAll={applyAll} />
+    <Settings on:save={save} on:applyAll={applyAll} on:save_raw={save_raw}/>
     <!-- <Presets/> -->
 </main>
 

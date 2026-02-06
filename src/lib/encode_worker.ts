@@ -1,7 +1,7 @@
 import type { ImageData } from "fast-png"
 import { encode } from "fast-png"
 import { invertColor, output_types, type OutputType } from "./inversion"
-import { read_raw, type Image } from "./RawImage"
+import { type Image } from "./RawImage"
 import { encodeImage } from "./tiff_encode"
 
 onmessage = async function (e) {
@@ -9,15 +9,15 @@ onmessage = async function (e) {
     for (const [image, type] of images) {
         const { filetype, linear, bit_depth, little_endian, channels } =
             output_types[type]
-        const raw_image = await read_raw(image.file)
+        // const raw_image = await read_raw(image.file)
         // For faster testing
-        // const raw_image = image.large
+        const raw_image = image.large
         const image_buffer = invertColor(
             raw_image,
             image.raw_conv_settings,
             image.settings,
-            3,
-            // 4,
+            // 3,
+            4,
             channels,
             bit_depth,
             linear,

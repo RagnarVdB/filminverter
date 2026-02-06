@@ -1,5 +1,7 @@
 import { identity } from "./matrices"
 import type { ColorMatrix, Matrix, Triple } from "./utils"
+// @ts-ignore
+import LibRaw from "libraw-wasm"
 
 export interface RawConvSettings {
     gain: [number, number, number]
@@ -98,16 +100,32 @@ export const defaultSettings: Settings = {
     },
 }
 
+const libraw_settings = {
+    outputColor: 0,
+    gamm: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    noAutoBright: 1,
+    useCameraWb: false,
+    useAutoWb: false,
+    highlight: 0,
+    fbddNoiserd: 0,
+    userFlip: 0,
+    outputBps: 16,
+}
+
 export async function read_raw(file: File): Promise<RawImage> {
-    let arr = new Uint16Array(await file.arrayBuffer())
-    let width = arr.slice(0, 2)[0]
-    let height = arr.slice(2, 4)[0]
-    let image = arr.slice(4, arr.length)
-    console.log("Read image: ", width, height)
+    const raw = new LibRaw()
+    const file_arr = new Uint8Array(await file.arrayBuffer())
+    await raw.open(file_arr, libraw_settings)
+
+    // Fetch metadata
+    // const meta = await raw.metadata(/* fullOutput=false */)
+
+    const imageData = await raw.imageData()
+    console.log(imageData)
     return {
-        arr: image,
-        width,
-        height,
+        arr: imageData.data,
+        width: imageData.width,
+        height: imageData.height,
     }
 }
 

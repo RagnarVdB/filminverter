@@ -254,7 +254,9 @@ export function invertColor(
     )
     const { LUT, exp_shift } = tc_map[inversion_settings.tone_curve]
     const byte_depth = bit_depth / 8
-    const buffer = new ArrayBuffer(im.width * im.height * channels_out * byte_depth)
+    const buffer = new ArrayBuffer(
+        im.width * im.height * channels_out * byte_depth
+    )
     const view = new DataView(buffer)
     const [setter, max] = (() => {
         if (bit_depth == 8) return [view.setUint8.bind(view), 255]

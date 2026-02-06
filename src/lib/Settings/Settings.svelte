@@ -83,6 +83,7 @@
             bind:settings
             on:save={(e) => dispatch("save", e.detail)}
             on:applyAll={(e) => dispatch("applyAll", e.detail)}
+            on:save_raw={(e) => dispatch("save_raw", e.detail)}
         />
     {:else}
         <Bw

@@ -82,8 +82,6 @@
         if (fileRejections.length != 0) {
             console.log("Rejected files: ", fileRejections)
         }
-
-        const filenames = acceptedFiles.map((file) => file.name.split(".")[0])
         openFiles(acceptedFiles)
     }
 </script>
@@ -91,7 +89,7 @@
 <div class="fileSelector">
     <h1>Select File</h1>
 
-    <Dropzone on:drop={handleFilesSelect} accept=".rgb" inputElement="null" />
+    <Dropzone on:drop={handleFilesSelect} accept=".rgb,.RAF" inputElement="null" />
 
     <p>Background value</p>
     <input type="number" bind:value={bg_valueR} />

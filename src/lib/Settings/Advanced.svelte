@@ -12,7 +12,7 @@
         single_to_APD_theory,
         single_to_APD_theory_unnorm,
     } from "../matrices"
-    import type { AdvancedSettings, Settings, TCName } from "../RawImage"
+    import { type AdvancedSettings, type Settings, type TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
     import Picker from "./Picker.svelte"
@@ -184,6 +184,7 @@
 
         input.click()
     }
+
 </script>
 
 <div class="advanced">
@@ -274,6 +275,7 @@
         }}>Rotate</button
     >
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
+    <button on:click={() => dispatch("save_raw")}>Save Raw </button>
     <button on:click={() => dispatch("save", { all: false, type: output_type })}
         >Save
     </button>
