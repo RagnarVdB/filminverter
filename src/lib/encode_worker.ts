@@ -7,7 +7,7 @@ import {
     type OutputType,
 } from "./inversion"
 import { buildPreview, read_raw, type Image } from "./RawImage"
-import { encodeImage } from "./tiff_encode"
+import { encodeDNG, encodeImage } from "./tiff_encode"
 
 onmessage = async function (e) {
     const images: [Image, OutputType, OutputResolution][] = e.data
@@ -66,8 +66,16 @@ onmessage = async function (e) {
                     raw_image.height,
                     {}
                 )
+            } else if (type == "dng_dem16") {
+                return encodeDNG(
+                    image_buffer,
+                    channels,
+                    raw_image.width,
+                    raw_image.height,
+                    {}
+                )
             } else {
-                throw new Error("unimplemented")
+                throw new Error("unimplemented " + type)
             }
         })()
 
