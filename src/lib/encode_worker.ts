@@ -1,6 +1,11 @@
 import type { ImageData } from "fast-png"
 import { encode } from "fast-png"
-import { invertColor, output_types, type OutputResolution, type OutputType } from "./inversion"
+import {
+    invertColor,
+    output_types,
+    type OutputResolution,
+    type OutputType,
+} from "./inversion"
 import { buildPreview, read_raw, type Image } from "./RawImage"
 import { encodeImage } from "./tiff_encode"
 
@@ -9,7 +14,6 @@ onmessage = async function (e) {
     for (const [image, type, resolution] of images) {
         const { filetype, linear, bit_depth, little_endian, channels } =
             output_types[type]
-
 
         let raw_image
         let n_channels_in: 3 | 4
@@ -39,32 +43,25 @@ onmessage = async function (e) {
         console.log("Done inverting")
         const filename = image.file.name.split(".")[0] + "." + filetype
         const file_buffer: ArrayBuffer = (() => {
-            if (type == "png16") {
+            const data =
+                bit_depth == 8
+                    ? new Uint8Array(image_buffer)
+                    : new Uint16Array(image_buffer)
+            if (filetype == "png") {
+                if (bit_depth == 32) throw new Error("32-bit PNG doesn't exist")
                 const imdata: ImageData = {
-                    data: new Uint16Array(image_buffer),
+                    data,
                     width: raw_image.width,
                     height: raw_image.height,
                     channels: 3,
-                    depth: 16,
+                    depth: bit_depth,
                 }
                 const png = encode(imdata)
                 return png.buffer as ArrayBuffer
-            } else if (type == "png8") {
-                const imdata: ImageData = {
-                    data: new Uint8Array(image_buffer),
-                    width: raw_image.width,
-                    height: raw_image.height,
-                    channels: 3,
-                    depth: 8,
-                }
-                return encode(imdata).buffer as ArrayBuffer
-            } else if (
-                type == "tiff8" ||
-                type == "tiff16" ||
-                type == "tiff32"
-            ) {
+            } else if (filetype == "tiff") {
                 return encodeImage(
                     image_buffer,
+                    channels,
                     raw_image.width,
                     raw_image.height,
                     {}

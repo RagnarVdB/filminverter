@@ -30,7 +30,7 @@ interface ConversionValuesBw {
     invert_toe: boolean
 }
 
-export type FileType = "png" | "jpg" | "tiff"
+export type FileType = "png" | "jpg" | "tiff" | 'dng'
 export const output_types: Record<
     string,
     {
@@ -63,7 +63,7 @@ export const output_types: Record<
         filetype: "tiff",
         linear: true,
         bit_depth: 32,
-        channels: 4,
+        channels: 3,
         little_endian: false,
     },
     tiff16: {
@@ -71,7 +71,7 @@ export const output_types: Record<
         filetype: "tiff",
         linear: false,
         bit_depth: 16,
-        channels: 4,
+        channels: 3,
         little_endian: false,
     },
     tiff8: {
@@ -79,9 +79,17 @@ export const output_types: Record<
         filetype: "tiff",
         linear: false,
         bit_depth: 8,
-        channels: 4,
+        channels: 3,
         little_endian: false,
     },
+    dng_dem16: {
+        name: "16-bit linear DNG",
+        filetype: "dng",
+        linear: true,
+        bit_depth: 16,
+        channels: 3,
+        little_endian: true
+    }
 }
 export type OutputType = keyof typeof output_types
 export type OutputResolution = 1 | 2 | 4
