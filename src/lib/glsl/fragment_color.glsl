@@ -3,6 +3,7 @@ precision highp float; // ?
 uniform highp usampler2D tex; // ?
 
 uniform bool toe;
+uniform bool use_tone_curve;
 uniform bool show_clipping;
 uniform bool show_negative;
 uniform bool show_value;
@@ -30,7 +31,11 @@ in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
 float applyLUT(float x) {
-  return tone_curve[int(x * 255.0f)];
+  if (use_tone_curve) {
+    return tone_curve[int(x * 255.0f)];
+  } else {
+    return x;
+  }
 }
 
 float sRGB_gamma(float x) {
@@ -69,14 +74,6 @@ vec3 clip_red(vec3 color) {
   }
 }
 
-vec3 clip_white(vec3 color) {
-  if(color[0] > clip_values[0] || color[1] > clip_values[1] || color[2] > clip_values[2]) {
-    return vec3(0.0f);
-  } else {
-    return color;
-  }
-}
-
 void main() {
   uvec3 unsignedIntValues = texture(tex, pixelCoordinate).rgb;
   vec3 floatValues0To65535 = vec3(unsignedIntValues);
@@ -105,7 +102,7 @@ void main() {
       if(show_clipping) {
         color = clip_red(color);
       } else {
-        color = clip_white(color);
+        color = clamp(color, vec3(-100.0f), clip_values);
       }
       color = matrix2 * pow(vec3(2), color); // EXP to ACES to sRGB or other
       color = exp_to_sRGB(color); //sRGB

@@ -2,8 +2,8 @@
     import { createEventDispatcher } from "svelte"
     // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
-    import type { OutputType } from "../inversion"
-    import { output_types } from "../inversion"
+    import type { OutputResolution, OutputType } from "../inversion"
+    import { output_types, tc_map } from "../inversion"
     import {
         exp_to_aces_to_sRGB,
         identity,
@@ -12,7 +12,11 @@
         single_to_APD_theory,
         single_to_APD_theory_unnorm,
     } from "../matrices"
-    import { type AdvancedSettings, type Settings, type TCName } from "../RawImage"
+    import {
+        type AdvancedSettings,
+        type Settings,
+        type TCName,
+    } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
     import Picker from "./Picker.svelte"
@@ -46,6 +50,7 @@
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     let output_type: OutputType = "tiff32"
+    let output_resolution: OutputResolution = 4
 
     let copied_settings: AdvancedSettings | null = null
 
@@ -184,7 +189,6 @@
 
         input.click()
     }
-
 </script>
 
 <div class="advanced">
@@ -194,9 +198,12 @@
     <br />
     <label for="Tone Curve">Tone Curve</label>
     <select name="Tone Curve" bind:value={tone_curve}>
-        <option value="Default" selected>Default</option>
+        {#each Object.keys(tc_map) as tc}
+        <option value={tc}>{tc}</option>
+        {/each}
+        <!-- <option value="Default" selected>Default</option>
         <option value="Filmic">Filmic</option>
-        <option value="Filmic2">Filmic2</option>
+        <option value="Filmic2">Filmic2</option> -->
     </select>
     <br />
     <label for="Matrix1">Matrix1</label>
@@ -267,6 +274,14 @@
             <option value={type}>{output_types[type].name}</option>
         {/each}
     </select>
+    <br>
+    Resolution
+    <select name="Resolution" bind:value={output_resolution}>
+        <option value={1}>Full</option>
+        {#each [2, 4] as x}
+            <option value={x}>1/{x}</option>
+        {/each}
+    </select>
     <br />
 
     <button
@@ -276,11 +291,22 @@
     >
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
     <button on:click={() => dispatch("save_raw")}>Save Raw </button>
-    <button on:click={() => dispatch("save", { all: false, type: output_type })}
+    <button
+        on:click={() =>
+            dispatch("save", {
+                all: false,
+                type: output_type,
+                resolution: output_resolution,
+            })}
         >Save
     </button>
-    <button on:click={() => dispatch("save", { all: true, type: output_type })}
-        >Save all</button
+    <button
+        on:click={() =>
+            dispatch("save", {
+                all: true,
+                type: output_type,
+                resolution: output_resolution,
+            })}>Save all</button
     >
     <Zoom bind:zoom />
     <button on:click={() => (copied_settings = settings.advanced)}

@@ -3,7 +3,7 @@
     import ImageArea from "./lib/ImageArea.svelte"
     import { read_raw, type Image } from "./lib/RawImage"
     import Settings from "./lib/Settings/Settings.svelte"
-    import type { OutputType } from "./lib/inversion"
+    import type { OutputResolution, OutputType } from "./lib/inversion"
     import { download, numberOfWorkers } from "./lib/utils"
     import { images, index } from "./stores"
 
@@ -28,8 +28,8 @@
         download(url, image.file.name.replace("RAF", "rgb"))
     }
 
-    function save(e: CustomEvent<{ all: boolean; type: OutputType }>) {
-        const { all, type } = e.detail
+    function save(e: CustomEvent<{ all: boolean; type: OutputType, resolution: OutputResolution }>) {
+        const { all, type, resolution } = e.detail
         if (!all) {
             // Only one file
             const worker = new Worker(
@@ -37,7 +37,7 @@
                 { type: "module" }
             )
             const image = $images[$index]
-            worker.postMessage([[image, type]])
+            worker.postMessage([[image, type, resolution]])
             worker.onmessage = (message) => {
                 const [filename, url]: [string, string] = message.data
                 download(url, filename)

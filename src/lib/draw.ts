@@ -221,6 +221,11 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
             data: [show_clipping ? 1 : 0],
         },
         {
+            name: "use_tone_curve",
+            f: gl.uniform1i,
+            data: [tone_curve.LUT ? 1 : 0],
+        },
+        {
             name: "show_negative",
             f: gl.uniform1i,
             data: [show_negative ? 1 : 0],
@@ -243,7 +248,7 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
         {
             name: "tone_curve",
             f: gl.uniform1fv,
-            data: [tone_curve.LUT],
+            data: [tone_curve.LUT || [0, 1]],
         },
         {
             name: "tc_exp_shift",

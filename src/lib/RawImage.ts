@@ -24,7 +24,7 @@ export interface Image {
     iter: number
 }
 
-export type TCName = "Default" | "Filmic" | "Filmic2"
+export type TCName = "Default" | "None" | "Filmic" | "Filmic2"
 
 export interface Settings {
     mode: "advanced" | "basic" | "bw"

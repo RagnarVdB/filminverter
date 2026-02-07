@@ -84,6 +84,7 @@ export const output_types: Record<
     },
 }
 export type OutputType = keyof typeof output_types
+export type OutputResolution = 1 | 2 | 4
 
 type LutSets = [number, number, number, number]
 
@@ -101,14 +102,18 @@ function pteCurve(x: number, sets: LutSets): number {
 
 export const tc_map: Record<
     TCName,
-    { index: number; exp_shift: number; LUT: number[] }
+    { name: string, exp_shift: number; LUT: number[] | null }
 > = {
-    Default: { index: 0, exp_shift: 0, LUT: luts.Default },
-    Filmic: { index: 1, exp_shift: 1, LUT: luts.Filmic },
-    Filmic2: { index: 2, exp_shift: 2, LUT: luts.Filmic2 },
+    Default: { name: "Default", exp_shift: 0, LUT: luts.Default },
+    None: { name: "None", exp_shift: 0, LUT: null },
+    Filmic: { name: "Filmic", exp_shift: 1, LUT: luts.Filmic },
+    Filmic2: { name: "Filmic 2", exp_shift: 2, LUT: luts.Filmic2 },
 }
 
-export function applyLUT(x: number, LUT: number[]): number {
+export function applyLUT(x: number, LUT: number[] | null): number {
+    if (!LUT) {
+        return x
+    }
     const index = Math.floor(clamp(x, 0, 1) * 255)
     return LUT[index]
 }
@@ -205,7 +210,8 @@ export function process_color_value(
     raw_conv_settings: RawConvSettings,
     conversion_values: ConversionValuesColor,
     exp_shift: number,
-    lut: number[]
+    lut: number[] | null,
+    apply_clamp: boolean
 ): Triple {
     const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
     const { black, gain, background } = raw_conv_settings
@@ -233,8 +239,10 @@ export function process_color_value(
         (x) => applyLUT(2 ** (x - exp_shift), lut),
         exp
     )
-    return linear_out
-    // return [0.0, 0.0, 1.0]
+    if (apply_clamp)
+        return mapTriple((x) => Math.min(x, 1), linear_out)
+    else
+        return linear_out
 }
 
 export function invertColor(
@@ -276,7 +284,8 @@ export function invertColor(
             raw_conv_settings,
             conversion_values,
             exp_shift,
-            LUT
+            LUT,
+            bit_depth !== 32
         )
         if (!linear) processed = mapTriple(sRGBGamma, processed)
 
