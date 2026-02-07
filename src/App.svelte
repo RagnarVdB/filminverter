@@ -65,7 +65,7 @@
                               i * imagesPerWorker,
                               (i + 1) * imagesPerWorker
                           )
-                worker.postMessage(workerImages)
+                worker.postMessage(workerImages.map(im => [im, type, resolution]))
 
                 worker.onmessage = (message) => {
                     const [filename, url]: [string, string] = message.data
