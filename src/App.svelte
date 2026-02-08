@@ -1,7 +1,7 @@
 <script lang="ts">
     import FileSelector from "./lib/FileSelector.svelte"
     import ImageArea from "./lib/ImageArea.svelte"
-    import { read_raw, type Image } from "./lib/RawImage"
+    import { read_and_demoisaic_raw, type Image } from "./lib/RawImage"
     import Settings from "./lib/Settings/Settings.svelte"
     import type { OutputResolution, OutputType } from "./lib/inversion"
     import { download, numberOfWorkers } from "./lib/utils"
@@ -19,7 +19,7 @@
     async function save_raw() {
         console.log("Saving raw")
         const image = $images[$index]
-        const raw_image = await read_raw(image.file)
+        const raw_image = await read_and_demoisaic_raw(image.file)
         console.log("Done loading")
         const file_buffer = raw_image.arr.buffer as ArrayBuffer
         const url = URL.createObjectURL(
