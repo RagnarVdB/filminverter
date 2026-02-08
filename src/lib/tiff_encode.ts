@@ -102,6 +102,13 @@ function writeint(buff, p, n) {
     buff[p + 3] = (n >> 0) & 255
 }
 
+function writefloat(buff, p, n) {
+    UTIF._binBE.fl32[0] = n
+    for (var i = 0; i < 4; i++) {
+        buff[p + i] = UTIF._binBE.ui8[3 - i] // write BE
+    }
+}
+
 const writer = function (bin, data, offset, ifd) {
     var keys = Object.keys(ifd)
     bin.writeUshort(data, offset, keys.length)
@@ -125,7 +132,7 @@ const writer = function (bin, data, offset, ifd) {
         bin.writeUint(data, offset, num)
         offset += 4
 
-        var dlen = [-1, 1, 1, 2, 4, 8, 0, 0, 0, 0, 0, 0, 8][type] * num
+        var dlen = [-1, 1, 1, 2, 4, 8, 0, 0, 0, 0, 8, 4, 8][type] * num
         var toff = offset
         if (dlen > 4) {
             bin.writeUint(data, offset, eoff)
@@ -158,6 +165,11 @@ const writer = function (bin, data, offset, ifd) {
             for (var i = 0; i < num; i++) {
                 writeint(data, toff + 8 * i, Math.round(val[i] * 10000))
                 writeint(data, toff + 8 * i + 4, 10000)
+            }
+        }
+        if (type == 11) {
+            for (var i = 0; i < num; i++) {
+                writefloat(data, toff + 4 * i, val[i])
             }
         }
         if (type == 12) {
@@ -230,13 +242,17 @@ export function encodeDNG(
         // DNG Specific
         t50706: [1, 4, 0, 0], // DNGVersion
         t50707: [1, 4, 0, 0], // DNGBackwardVersion
-        t50708: ["Fujifilm X-T3"],
+        // t50708: ["Fujifilm X-T3"],
+        t50708: ["Film negative"],
+        t50714: Array(channels).fill(0), // BlackLevel per channel
+        t50717: Array(channels).fill(65535), // WhiteLevel per channel
         t50721: [
-            // ColorMatrix1 RATIONAL 3x3
-            4124564, 3575761, 1804375, 2126729, 7151522, 721750, 193339,
-            1191920, 950304,
+            // XYZ to sRGB
+            3.2404542, -1.5371385, -0.4985314, -0.969266, 1.8760108, 0.041556,
+            0.0556434, -0.2040259, 1.0572252,
         ],
         t50728: [1.0, 1.0, 1.0], // AsShotNeutral
+        t50940: [0, 0, 1, 1],
     }
     if (channels == 4) ifd["t338"] = [2]
     if (metadata) {
@@ -246,8 +262,6 @@ export function encodeDNG(
     }
 
     // ifd.t50712 = [1] // LinearRaw = yes
-    // ifd.t50714 = Array(channels).fill(0) // BlackLevel per channel
-    // ifd.t50717 = Array(channels).fill(65535) // WhiteLevel per channel
     // ifd.t50730 = [-2.0] // BaselineExposure (optional)
     // ifd.t50778 = [21] // CalibrationIlluminant1 = D65
 
@@ -283,10 +297,11 @@ export function encodeDNG(
         50712: 3, // LinearRaw (SHORT)
         50714: 3, // BlackLevel (SHORT per channel)
         50717: 3, // WhiteLevel (SHORT per channel)
-        50721: 5, // ColorMatrix1 (RATIONAL)
+        50721: 10, // ColorMatrix1 (RATIONAL)
         50728: 5, // AsShotNeutral (short)
         50730: 1, // BaselineExposure (DOUBLE)
         50778: 3, // CalibrationIlluminant1 (SHORT)
+        50940: 11,
     }
 
     const prfx = new Uint8Array(UTIF.encode([ifd]))

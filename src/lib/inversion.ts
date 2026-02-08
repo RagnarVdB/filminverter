@@ -30,7 +30,7 @@ interface ConversionValuesBw {
     invert_toe: boolean
 }
 
-export type FileType = "png" | "jpg" | "tiff" | 'dng'
+export type FileType = "png" | "jpg" | "tiff" | "dng"
 export const output_types: Record<
     string,
     {
@@ -88,8 +88,8 @@ export const output_types: Record<
         linear: true,
         bit_depth: 16,
         channels: 3,
-        little_endian: true
-    }
+        little_endian: false,
+    },
 }
 export type OutputType = keyof typeof output_types
 export type OutputResolution = 1 | 2 | 4
@@ -110,7 +110,7 @@ function pteCurve(x: number, sets: LutSets): number {
 
 export const tc_map: Record<
     TCName,
-    { name: string, exp_shift: number; LUT: number[] | null }
+    { name: string; exp_shift: number; LUT: number[] | null }
 > = {
     Default: { name: "Default", exp_shift: 0, LUT: luts.Default },
     None: { name: "None", exp_shift: 0, LUT: null },
@@ -247,10 +247,8 @@ export function process_color_value(
         (x) => applyLUT(2 ** (x - exp_shift), lut),
         exp
     )
-    if (apply_clamp)
-        return mapTriple((x) => Math.min(x, 1), linear_out)
-    else
-        return linear_out
+    if (apply_clamp) return mapTriple((x) => Math.min(x, 1), linear_out)
+    else return linear_out
 }
 
 export function invertColor(
@@ -300,6 +298,24 @@ export function invertColor(
         setter((j + 0) * byte_depth, processed[0] * max, little_endian)
         setter((j + 1) * byte_depth, processed[1] * max, little_endian)
         setter((j + 2) * byte_depth, processed[2] * max, little_endian)
+
+        // Full rgb testimage
+        // const k = j / 3
+        // const f = max / 117
+        // setter((j + 0) * byte_depth, Math.floor(k / 13689) * f, little_endian)
+        // setter(
+        //     (j + 1) * byte_depth,
+        //     Math.floor((k % 13689) / 117) * f,
+        //     little_endian
+        // )
+        // setter((j + 2) * byte_depth, Math.floor(k % 117) * f, little_endian)
+
+        // Greyscale ramp
+        // const ratio = Math.floor(j/channels_out % im.width) / im.width
+        // setter((j + 0) * byte_depth, ratio * max, little_endian)
+        // setter((j + 1) * byte_depth, ratio * max, little_endian)
+        // setter((j + 2) * byte_depth, ratio * max, little_endian)
+
         if (channels_out == 4) setter((j + 3) * byte_depth, max, little_endian)
         j += channels_out
     }
