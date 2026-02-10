@@ -222,11 +222,11 @@ export function process_color_value(
     apply_clamp: boolean
 ): Triple {
     const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
-    const { black, gain, background } = raw_conv_settings
+    const { black, gain, background, max } = raw_conv_settings
     const linear_in: Triple = [
-        (black[0] + color[0] / gain[0]) / background[0],
-        (black[1] + color[1] / gain[1]) / background[1],
-        (black[2] + color[2] / gain[2]) / background[2],
+        ((color[0] / max - black[0]) * gain[0]) / background[0],
+        ((color[1] / max - black[1]) * gain[1]) / background[1],
+        ((color[2] / max - black[2]) * gain[2]) / background[2],
     ]
     const APD = mapTriple((x) => -Math.log10(x), applyCMV(matrix1, linear_in))
     let exp: Triple
@@ -280,11 +280,7 @@ export function invertColor(
 
     let j = 0
     for (let i = 0; i < im.arr.length; i += channels_in) {
-        const color_value: Triple = [
-            im.arr[i] / 65536,
-            im.arr[i + 1] / 65536,
-            im.arr[i + 2] / 65536,
-        ]
+        const color_value: Triple = [im.arr[i], im.arr[i + 1], im.arr[i + 2]]
         let processed = process_color_value(
             color_value,
             raw_conv_settings,

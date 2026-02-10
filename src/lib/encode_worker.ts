@@ -6,7 +6,7 @@ import {
     type OutputResolution,
     type OutputType,
 } from "./inversion"
-import { buildPreview, read_and_demoisaic_raw, type Image } from "./RawImage"
+import { downSample, read_and_demoisaic_raw, type Image } from "./RawImage"
 import { encodeDNG, encodeImage } from "./tiff_encode"
 
 onmessage = async function (e) {
@@ -25,7 +25,7 @@ onmessage = async function (e) {
             n_channels_in = 3
         } else {
             const full = await read_and_demoisaic_raw(image.file)
-            raw_image = buildPreview(full, resolution)
+            raw_image = downSample(full, resolution, 3)
             n_channels_in = 4
         }
         // For faster testing

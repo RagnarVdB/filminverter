@@ -194,23 +194,25 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
     const exp_shift = tone_curve.exp_shift
     const clip_values = [exp_shift, exp_shift, exp_shift]
 
-    const b = image.raw_conv_settings.black
+    const g = image.raw_conv_settings.gain
+    const bg = image.raw_conv_settings.background
+    const gain = [g[0] / bg[0], g[1] / bg[1], g[2] / bg[2]]
 
     const parameters: WebGLArgument<any[]>[] = [
         {
-            name: "raw_gain",
+            name: "max_value",
+            f: gl.uniform1f,
+            data: [image.raw_conv_settings.max],
+        },
+        {
+            name: "gain",
             f: gl.uniform3f,
-            data: image.raw_conv_settings.gain,
+            data: gain,
         },
         {
             name: "raw_black",
             f: gl.uniform3f,
             data: image.raw_conv_settings.black,
-        },
-        {
-            name: "bg",
-            f: gl.uniform3f,
-            data: image.raw_conv_settings.background,
         },
         { name: "rot", f: gl.uniformMatrix2fv, data: [false, rot] },
         { name: "scale", f: gl.uniform2f, data: [zoom[0] / 2, zoom[1] / 2] },

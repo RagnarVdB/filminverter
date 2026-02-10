@@ -836,7 +836,7 @@ __metadata:
     "@types/webgl2": ^0.0.7
     fast-png: ^8.0.0
     gl-matrix: ^3.4.3
-    libraw-wasm: ^1.1.2
+    libraw-wasm: "https://github.com/RagnarVdB/LibRaw-Wasm#filminverter"
     linear-solve: ^1.2.1
     svelte: ^4.2.0
     svelte-check: ^3.5.1
@@ -1137,10 +1137,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libraw-wasm@npm:^1.1.2":
+"libraw-wasm@https://github.com/RagnarVdB/LibRaw-Wasm#filminverter":
   version: 1.1.2
-  resolution: "libraw-wasm@npm:1.1.2"
-  checksum: 1cf532c5e1a6f5516f4333dd75d04aba86b79d194bdda3c64369b5e62dfeb76bd4cc06940d14ec30045360e0dda3e9c299dc9ed6ae3e65206cafb6af49aae549
+  resolution: "libraw-wasm@https://github.com/RagnarVdB/LibRaw-Wasm.git#commit=3b6e71d0365a26c280715095ea1e10527807f197"
+  checksum: 7aa5461611a9ee58293c4bf64f42ab0c4c4f3a44480ba12d099c9fdbb563c2d47e9b8ee584748f05ec7009fed40743c89ca14d57270142db622ac62e5e7205cd
   languageName: node
   linkType: hard
 

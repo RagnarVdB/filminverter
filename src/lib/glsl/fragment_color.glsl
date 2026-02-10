@@ -14,14 +14,12 @@ uniform float tc_exp_shift;
 
 uniform mat3 matrix1;
 uniform mat3 matrix2;
-// uniform mat3 cdd_to_cid;
-// uniform mat3 exp_to_sRGBMatrix;
 
 uniform vec3 clip_values;
 
-uniform vec3 raw_gain;
+uniform float max_value;
+uniform vec3 gain;
 uniform vec3 raw_black;
-uniform vec3 bg;
 uniform vec3 m;
 uniform vec3 b;
 uniform vec3 d;
@@ -63,7 +61,11 @@ float pte_curve(float x, float m, float b, float d, float x1) {
 
 vec3 paper_to_exp(vec3 color) {
   // Log10 to Log2
-  return vec3(pte_curve(color[0], m[0], b[0], d[0], dmin[0]), pte_curve(color[1], m[1], b[1], d[1], dmin[1]), pte_curve(color[2], m[2], b[2], d[2], dmin[2]));
+  return vec3(
+    pte_curve(color[0], m[0], b[0], d[0], dmin[0]),
+    pte_curve(color[1], m[1], b[1], d[1], dmin[1]),
+    pte_curve(color[2], m[2], b[2], d[2], dmin[2])
+    );
 }
 
 vec3 clip_red(vec3 color) {
@@ -77,13 +79,13 @@ vec3 clip_red(vec3 color) {
 void main() {
   uvec3 unsignedIntValues = texture(tex, pixelCoordinate).rgb;
   vec3 floatValues0To65535 = vec3(unsignedIntValues);
-  vec3 color = floatValues0To65535 / vec3(65535.0f);
+  vec3 color = (floatValues0To65535) / vec3(max_value);
 
-  // Raw to linear conversion
-   color = (raw_black + color / raw_gain) / bg;
 
 
   if(!show_negative) {
+    // Raw to linear conversion
+    color = (color - raw_black) * gain;
     color = -log(matrix1 * color) / log(vec3(10.0f)); // Density
     if(toe) {
       color = paper_to_exp(color); // Paper
@@ -108,6 +110,7 @@ void main() {
       color = exp_to_sRGB(color); //sRGB
     }
   } else {
+    color = color - raw_black;
     color = exp_to_sRGB(color);
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);

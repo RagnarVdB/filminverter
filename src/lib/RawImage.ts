@@ -1,12 +1,14 @@
 import { identity } from "./matrices"
 import type { ColorMatrix, Matrix, Triple } from "./utils"
-// @ts-ignore
+//@ts-ignore
 import LibRaw from "libraw-wasm"
+// import LibRaw from "/Users/rvandenbroec/Documents/LibRaw-Wasm"
 
 export interface RawConvSettings {
     gain: [number, number, number]
     black: [number, number, number]
     background: [number, number, number]
+    max: number
 }
 
 export interface RawImage {
@@ -103,13 +105,15 @@ export const defaultSettings: Settings = {
 const libraw_settings = {
     outputColor: 0,
     gamm: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-    noAutoBright: 1,
+    noAutoBright: true,
     useCameraWb: false,
     useAutoWb: false,
     highlight: 0,
     fbddNoiserd: 0,
     userFlip: 0,
     outputBps: 16,
+    noAutoScale: 1,
+    userBlack: 0,
 }
 
 export async function read_rgb(file: File): Promise<RawImage> {
@@ -128,31 +132,29 @@ export async function read_rgb(file: File): Promise<RawImage> {
 export async function read_raw(file: File): Promise<RawImage> {
     const raw = new LibRaw()
     const file_arr = new Uint8Array(await file.arrayBuffer())
+    // @ts-ignore
     await raw.open(file_arr, libraw_settings)
     // Fetch metadata
     // const meta = await raw.metadata(/* fullOutput=false */)
-    
-    const imageData = await raw.imageData()
-    console.log(imageData)
+    const rawData: any = await raw.rawData()
+    console.log(rawData)
     return {
-        arr: imageData.data,
-        width: imageData.width,
-        height: imageData.height,
+        arr: rawData.data,
+        width: rawData.width,
+        height: rawData.height,
     }
 }
 
 export async function read_and_demoisaic_raw(file: File): Promise<RawImage> {
     const raw = new LibRaw()
     const file_arr = new Uint8Array(await file.arrayBuffer())
-    console.log("Start reading")
+    // @ts-ignore
     await raw.open(file_arr, libraw_settings)
-    console.log(raw)
-    console.log("Start debayering")
-    
     // Fetch metadata
-    // const meta = await raw.metadata(/* fullOutput=false */)
+    // const meta: any = await raw.metadata(true)
+    // console.log(meta.color_data.xtrans_pattern)
 
-    const imageData = await raw.imageData()
+    const imageData: any = await raw.imageData()
     console.log(imageData)
     return {
         arr: imageData.data,
@@ -161,7 +163,18 @@ export async function read_and_demoisaic_raw(file: File): Promise<RawImage> {
     }
 }
 
-export function buildPreview(image: RawImage, scale: number): RawImage {
+export interface CFA {
+    str: string
+    width: number
+    height: number
+    offset: [number, number]
+}
+
+export function downSample(
+    image: RawImage,
+    scale: number,
+    channels_in: 3 | 4
+): RawImage {
     const N = Math.floor(image.width / scale)
     const M = Math.floor(image.height / scale)
     const out = new Uint16Array(N * M * 4)
@@ -175,19 +188,19 @@ export function buildPreview(image: RawImage, scale: number): RawImage {
                     R +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                3 +
+                                channels_in +
                                 0
                         ]
                     G +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                3 +
+                                channels_in +
                                 1
                         ]
                     B +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                3 +
+                                channels_in +
                                 2
                         ]
                 }
@@ -201,23 +214,4 @@ export function buildPreview(image: RawImage, scale: number): RawImage {
     }
 
     return { arr: out, width: N, height: M }
-}
-
-export function initializeImage(
-    image: RawImage,
-    file: File,
-    raw_conv_settings: RawConvSettings
-): Image {
-    const large = buildPreview(image, 4)
-    const small = buildPreview(image, 24)
-    console.log("Large preview: ", large.width, large.height)
-    console.log("small preview: ", small.width, small.height)
-    return {
-        file,
-        large,
-        small,
-        raw_conv_settings,
-        settings: defaultSettings,
-        iter: 0,
-    }
 }
