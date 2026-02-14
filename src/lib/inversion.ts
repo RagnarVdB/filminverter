@@ -255,7 +255,6 @@ export function invertColor(
     im: RawImage,
     raw_conv_settings: RawConvSettings,
     inversion_settings: Settings,
-    channels_in: 3 | 4,
     channels_out: 3 | 4,
     bit_depth: 8 | 16 | 32,
     linear: boolean,
@@ -279,7 +278,7 @@ export function invertColor(
     })()
 
     let j = 0
-    for (let i = 0; i < im.arr.length; i += channels_in) {
+    for (let i = 0; i < im.arr.length; i += im.channels) {
         const color_value: Triple = [im.arr[i], im.arr[i + 1], im.arr[i + 2]]
         let processed = process_color_value(
             color_value,

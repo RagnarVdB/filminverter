@@ -24,14 +24,14 @@ onmessage = async function (e: MessageEvent) {
             if (file.name.endsWith("RAF")) {
                 const raw = await read_raw(file)
                 const large = deMosaicFuji(raw, [-2, 1])
-                const small = downSample(large, 6, 4)
+                const small = downSample(large, 6)
                 return { large, small }
             } else {
                 const raw_image = await (file.name.endsWith("rgb")
                     ? read_rgb(file)
                     : read_and_demoisaic_raw(file))
-                const large = downSample(raw_image, 4, 3)
-                const small = downSample(raw_image, 24, 3)
+                const large = downSample(raw_image, 4)
+                const small = downSample(raw_image, 24)
                 return { large, small }
             }
         })()

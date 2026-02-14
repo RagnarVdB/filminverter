@@ -67,7 +67,7 @@ export function deBayer(image: RawImage, cfa: CFA, black: Triple): RawImage {
             im[(n * j + i) * 4 + 3] = 65535
         }
     }
-    return { arr: im, width: n, height: m }
+    return { arr: im, width: n, height: m, channels: 4 }
 }
 
 export function deMosaicFuji(
@@ -123,5 +123,5 @@ export function deMosaicFuji(
             im[(n * j + i) * 4 + 4] = 65535
         }
     }
-    return { arr: im, width: n, height: m }
+    return { arr: im, width: n, height: m, channels: 4 }
 }

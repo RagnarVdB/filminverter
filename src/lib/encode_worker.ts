@@ -16,24 +16,19 @@ onmessage = async function (e) {
             output_types[type]
 
         let raw_image
-        let n_channels_in: 3 | 4
         if (resolution == 4) {
             raw_image = image.large
-            n_channels_in = 4
         } else if (resolution == 1) {
             raw_image = await read_and_demoisaic_raw(image.file)
-            n_channels_in = 3
         } else {
             const full = await read_and_demoisaic_raw(image.file)
-            raw_image = downSample(full, resolution, 3)
-            n_channels_in = 4
+            raw_image = downSample(full, resolution)
         }
         // For faster testing
         const image_buffer = invertColor(
             raw_image,
             image.raw_conv_settings,
             image.settings,
-            n_channels_in,
             channels,
             bit_depth,
             linear,

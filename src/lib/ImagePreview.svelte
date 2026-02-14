@@ -31,7 +31,6 @@
                     image.raw_conv_settings,
                     image.settings,
                     4,
-                    4,
                     8,
                     false,
                     true

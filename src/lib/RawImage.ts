@@ -15,6 +15,7 @@ export interface RawImage {
     arr: Uint16Array // RAW
     width: number
     height: number
+    channels: 3 | 4
 }
 
 export interface Image {
@@ -126,6 +127,7 @@ export async function read_rgb(file: File): Promise<RawImage> {
         arr: image,
         width,
         height,
+        channels: 3,
     }
 }
 
@@ -142,6 +144,7 @@ export async function read_raw(file: File): Promise<RawImage> {
         arr: rawData.data,
         width: rawData.width,
         height: rawData.height,
+        channels: 3,
     }
 }
 
@@ -160,6 +163,7 @@ export async function read_and_demoisaic_raw(file: File): Promise<RawImage> {
         arr: imageData.data,
         width: imageData.width,
         height: imageData.height,
+        channels: 3,
     }
 }
 
@@ -170,11 +174,7 @@ export interface CFA {
     offset: [number, number]
 }
 
-export function downSample(
-    image: RawImage,
-    scale: number,
-    channels_in: 3 | 4
-): RawImage {
+export function downSample(image: RawImage, scale: number): RawImage {
     const N = Math.floor(image.width / scale)
     const M = Math.floor(image.height / scale)
     const out = new Uint16Array(N * M * 4)
@@ -188,19 +188,19 @@ export function downSample(
                     R +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                channels_in +
+                                image.channels +
                                 0
                         ]
                     G +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                channels_in +
+                                image.channels +
                                 1
                         ]
                     B +=
                         image.arr[
                             ((y * scale + j) * image.width + (x * scale + i)) *
-                                channels_in +
+                                image.channels +
                                 2
                         ]
                 }
@@ -213,5 +213,5 @@ export function downSample(
         }
     }
 
-    return { arr: out, width: N, height: M }
+    return { arr: out, width: N, height: M, channels: 4 }
 }
