@@ -36,6 +36,7 @@ export const output_types: Record<
     {
         name: string
         filetype: FileType
+        cfa_image: boolean
         linear: boolean
         bit_depth: 8 | 16 | 32
         channels: 3 | 4
@@ -45,6 +46,7 @@ export const output_types: Record<
     png16: {
         name: "16-bit PNG",
         filetype: "png",
+        cfa_image: false,
         linear: false,
         bit_depth: 16,
         channels: 3,
@@ -53,6 +55,7 @@ export const output_types: Record<
     png8: {
         name: "8-bit PNG",
         filetype: "png",
+        cfa_image: false,
         linear: false,
         bit_depth: 8,
         channels: 3,
@@ -61,6 +64,7 @@ export const output_types: Record<
     tiff32: {
         name: "32-bit Tiff",
         filetype: "tiff",
+        cfa_image: false,
         linear: true,
         bit_depth: 32,
         channels: 3,
@@ -69,6 +73,7 @@ export const output_types: Record<
     tiff16: {
         name: "16-bit Tiff",
         filetype: "tiff",
+        cfa_image: false,
         linear: false,
         bit_depth: 16,
         channels: 3,
@@ -77,6 +82,7 @@ export const output_types: Record<
     tiff8: {
         name: "8-bit Tiff",
         filetype: "tiff",
+        cfa_image: false,
         linear: false,
         bit_depth: 8,
         channels: 3,
@@ -85,6 +91,16 @@ export const output_types: Record<
     dng_dem16: {
         name: "16-bit linear DNG",
         filetype: "dng",
+        cfa_image: true,
+        linear: true,
+        bit_depth: 16,
+        channels: 3,
+        little_endian: false,
+    },
+    dng_raw16: {
+        name: "16-bit raw DNG",
+        filetype: "dng",
+        cfa_image: false,
         linear: true,
         bit_depth: 16,
         channels: 3,
@@ -313,6 +329,119 @@ export function invertColor(
 
         if (channels_out == 4) setter((j + 3) * byte_depth, max, little_endian)
         j += channels_out
+    }
+    return buffer
+}
+
+export interface CFA {
+    str: string
+    width: number
+    height: number
+    offset: [number, number]
+}
+
+export function getCFAValue(cfa: CFA, x: number, y: number): 0 | 1 | 2 {
+    // Getransponeerde CFA
+    let color: 0 | 1 | 2
+    // Ad hoc fix omdat deMosaic andere offset gebruikt
+    const offset = [cfa.offset[0] + 4, cfa.offset[1] - 1]
+    const c =
+        cfa.str[
+            ((y + 6 - offset[1]) % cfa.width) +
+                ((x + 6 - offset[0]) % cfa.height) * cfa.width
+        ]
+    if (c == "R" || c == "G" || c == "B") {
+        color = colorOrder[c as "R" | "G" | "B"] as 0 | 1 | 2
+    } else {
+        throw "Invalid CFA"
+    }
+    return color
+}
+
+const colorOrder = {
+    R: 0,
+    G: 1,
+    B: 2,
+}
+
+function getColorValue(
+    image: RawImage,
+    cfa: CFA,
+    x: number,
+    y: number
+): { main: 0 | 1 | 2; color: Triple } {
+    const w = image.width,
+        h = image.height
+    let color: Triple = [0, 0, 0]
+    let pixelCounts: Triple = [0, 0, 0]
+    const main = getCFAValue(cfa, x, y)
+    color[main] = image.arr[x + y * w]
+    pixelCounts[main] = 1
+    for (let i = Math.max(x - 1, 0); i < Math.min(x + 1, w) + 1; i++) {
+        for (let j = Math.max(y - 1, 0); j < Math.min(y + 1, h) + 1; j++) {
+            const c = getCFAValue(cfa, i, j)
+            if (c !== main) {
+                color[c] += image.arr[x + y * w]
+                pixelCounts[c]++
+            }
+        }
+    }
+    color[0] /= pixelCounts[0]
+    color[1] /= pixelCounts[1]
+    color[2] /= pixelCounts[2]
+    return { main, color }
+}
+
+export function invertRawColor(
+    im: RawImage,
+    raw_conv_settings: RawConvSettings,
+    inversion_settings: Settings,
+    bit_depth: 8 | 16 | 32,
+    linear: boolean,
+    little_endian: boolean,
+    cfa: CFA,
+    output_offset: [number, number]
+): ArrayBuffer {
+    if (im.channels != 3) throw new Error("Raw must have 3 channels")
+    const conversion_values = getConversionValuesColor(
+        inversion_settings.advanced,
+        inversion_settings.matrix1,
+        inversion_settings.matrix2
+    )
+    const { LUT, exp_shift } = tc_map[inversion_settings.tone_curve]
+    const byte_depth = bit_depth / 8
+    const buffer = new ArrayBuffer(im.width * im.height * byte_depth)
+    const view = new DataView(buffer)
+    const [setter, max] = (() => {
+        if (bit_depth == 8) return [view.setUint8.bind(view), 255]
+        else if (bit_depth == 16) return [view.setUint16.bind(view), 65535]
+        else return [view.setFloat32.bind(view), 1.0]
+    })()
+
+    for (let i = 0; i < im.width - output_offset[0]; i++) {
+        for (let j = 0; j < im.height - output_offset[1]; j++) {
+            const { main, color } = getColorValue(
+                im,
+                cfa,
+                i + output_offset[0],
+                j + output_offset[1]
+            )
+            let processed = process_color_value(
+                color,
+                raw_conv_settings,
+                conversion_values,
+                exp_shift,
+                LUT,
+                true
+            )[main]
+            if (!linear) processed = sRGBGamma(processed)
+
+            setter(
+                (i + j * im.width) * byte_depth,
+                processed * max,
+                little_endian
+            )
+        }
     }
     return buffer
 }

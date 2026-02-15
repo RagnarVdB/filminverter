@@ -49,8 +49,8 @@
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
-    let output_type: OutputType = "dng_dem16"
-    let output_resolution: OutputResolution = 4
+    let output_type: OutputType = "dng_raw16"
+    let output_resolution: OutputResolution = 1
 
     let copied_settings: AdvancedSettings | null = null
 
