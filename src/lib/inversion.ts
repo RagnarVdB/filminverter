@@ -91,7 +91,7 @@ export const output_types: Record<
     dng_dem16: {
         name: "16-bit linear DNG",
         filetype: "dng",
-        cfa_image: true,
+        cfa_image: false,
         linear: true,
         bit_depth: 16,
         channels: 3,
@@ -100,7 +100,7 @@ export const output_types: Record<
     dng_raw16: {
         name: "16-bit raw DNG",
         filetype: "dng",
-        cfa_image: false,
+        cfa_image: true,
         linear: true,
         bit_depth: 16,
         channels: 3,
