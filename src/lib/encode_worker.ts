@@ -16,6 +16,7 @@ import {
     type RawImage,
 } from "./RawImage"
 import { encodeDNG, encodeImage, encodeRawDNG } from "./tiff_encode"
+import luts from "./luts"
 
 function to_be(im: RawImage): ArrayBuffer {
     const out = new ArrayBuffer(im.arr.byteLength)
@@ -46,6 +47,7 @@ onmessage = async function (e) {
             bit_depth,
             little_endian,
             channels,
+            apply_tonecurve,
         } = output_types[type]
 
         let raw_image
@@ -65,6 +67,7 @@ onmessage = async function (e) {
                 bit_depth,
                 linear,
                 little_endian,
+                apply_tonecurve,
                 cfa,
                 [0, 1]
             )
@@ -84,7 +87,8 @@ onmessage = async function (e) {
                 channels,
                 bit_depth,
                 linear,
-                little_endian
+                little_endian,
+                apply_tonecurve
             )
         }
 
@@ -115,20 +119,38 @@ onmessage = async function (e) {
                     {}
                 )
             } else if (type == "dng_dem16") {
+                const lut =
+                    image.settings.tone_curve == "None"
+                        ? [0.0, 1.0]
+                        : luts[image.settings.tone_curve]
+                const tone_curve: [number, number][] = lut.map((x, i) => [
+                    i / (lut.length - 1),
+                    x,
+                ])
                 return encodeDNG(
                     image_buffer,
                     channels,
                     raw_image.width,
                     raw_image.height,
+                    tone_curve,
                     {}
                 )
             } else if (type == "dng_raw16") {
                 if (resolution != 1) throw new Error("Raw DNG only full res")
+                const lut =
+                    image.settings.tone_curve == "None"
+                        ? [0.0, 1.0]
+                        : luts[image.settings.tone_curve]
+                const tone_curve: [number, number][] = lut.map((x, i) => [
+                    i / (lut.length - 1),
+                    x,
+                ])
                 return encodeRawDNG(
                     // to_be(raw_image),
                     image_buffer,
                     raw_image.width,
                     raw_image.height,
+                    tone_curve,
                     {}
                 )
             } else {

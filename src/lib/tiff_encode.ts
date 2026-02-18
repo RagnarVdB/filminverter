@@ -1,5 +1,47 @@
 // @ts-nocheck
 import UTIF from "utif"
+UTIF.ttypes = {
+    254: 3,
+    256: 3,
+    257: 3,
+    258: 3,
+    259: 3,
+    262: 3,
+    273: 4,
+    274: 3,
+    277: 3,
+    278: 4,
+    279: 4,
+    282: 5,
+    283: 5,
+    284: 3,
+    286: 5,
+    287: 5,
+    296: 3,
+    305: 2,
+    306: 2,
+    338: 3,
+    513: 4,
+    514: 4,
+    339: 3,
+    34665: 4,
+    33421: 3, // CFARepeatPatternDim
+    33422: 1, // CFAPattern2
+    50706: 1, // DNGVersion (4 bytes)
+    50707: 1, // DNGBackwardVersion (4 bytes)
+    50708: 2, // UniqueCameraModel (ASCII)
+    50710: 1, // CFAPlaneColor
+    50711: 3, // CFALayout
+    50712: 3, // LinearRaw (SHORT)
+    50714: 3, // BlackLevel (SHORT per channel)
+    50717: 3, // WhiteLevel (SHORT per channel)
+    50721: 10, // ColorMatrix1 (RATIONAL)
+    50728: 5, // AsShotNeutral (short)
+    50730: 1, // BaselineExposure (DOUBLE)
+    50778: 3, // CalibrationIlluminant1 (SHORT)
+    50829: 5,
+    50940: 11,
+}
 
 export function encodeImage(
     im: ArrayBuffer,
@@ -59,33 +101,6 @@ export function encodeImage(
         }
     }
 
-    // @ts-ignore
-    UTIF.ttypes = {
-        256: 3,
-        257: 3,
-        258: 3,
-        259: 3,
-        262: 3,
-        273: 4,
-        274: 3,
-        277: 3,
-        278: 4,
-        279: 4,
-        282: 5,
-        283: 5,
-        284: 3,
-        286: 5,
-        287: 5,
-        296: 3,
-        305: 2,
-        306: 2,
-        338: 3,
-        513: 4,
-        514: 4,
-        34665: 4,
-        339: 3,
-    }
-
     const prfx = new Uint8Array(UTIF.encode([ifd]))
     const data = new Uint8Array(psz + tsz)
     console.log(prfx.length, data.length, psz, tsz)
@@ -94,7 +109,7 @@ export function encodeImage(
     return data.buffer
 }
 
-function writeint(buff, p, n) {
+function writeint(buff: Uint8Array, p: number, n: number) {
     n = n | 0 // force 32-bit signed two's-complement
     buff[p] = (n >> 24) & 255
     buff[p + 1] = (n >> 16) & 255
@@ -102,7 +117,7 @@ function writeint(buff, p, n) {
     buff[p + 3] = (n >> 0) & 255
 }
 
-function writefloat(buff, p, n) {
+function writefloat(buff: Uint8Array, p: number, n: number) {
     UTIF._binBE.fl32[0] = n
     for (var i = 0; i < 4; i++) {
         buff[p + i] = UTIF._binBE.ui8[3 - i] // write BE
@@ -199,6 +214,7 @@ export function encodeDNG(
     channels: 3 | 4,
     w: number,
     h: number,
+    tonecurve: [number, number][],
     metadata: any
 ) {
     UTIF._writeIFD = writer
@@ -260,7 +276,7 @@ export function encodeDNG(
             0.0556434, -0.2040259, 1.0572252,
         ],
         t50728: [1.0, 1.0, 1.0], // AsShotNeutral
-        t50940: [0, 0, 1, 1],
+        t50940: tonecurve.flat(),
     }
     if (channels == 4) ifd["t338"] = [2]
     if (metadata) {
@@ -272,45 +288,6 @@ export function encodeDNG(
     // ifd.t50712 = [1] // LinearRaw = yes
     // ifd.t50730 = [-2.0] // BaselineExposure (optional)
     // ifd.t50778 = [21] // CalibrationIlluminant1 = D65
-
-    // @ts-ignore
-    UTIF.ttypes = {
-        254: 3,
-        256: 3,
-        257: 3,
-        258: 3,
-        259: 3,
-        262: 3,
-        273: 4,
-        274: 3,
-        277: 3,
-        278: 4,
-        279: 4,
-        282: 5,
-        283: 5,
-        284: 3,
-        286: 5,
-        287: 5,
-        296: 3,
-        305: 2,
-        306: 2,
-        338: 3,
-        513: 4,
-        514: 4,
-        34665: 4,
-        339: 3,
-        50706: 1, // DNGVersion (4 bytes)
-        50707: 1, // DNGBackwardVersion (4 bytes)
-        50708: 2, // UniqueCameraModel (ASCII)
-        50712: 3, // LinearRaw (SHORT)
-        50714: 3, // BlackLevel (SHORT per channel)
-        50717: 3, // WhiteLevel (SHORT per channel)
-        50721: 10, // ColorMatrix1 (RATIONAL)
-        50728: 5, // AsShotNeutral (short)
-        50730: 1, // BaselineExposure (DOUBLE)
-        50778: 3, // CalibrationIlluminant1 (SHORT)
-        50940: 11,
-    }
 
     const prfx = new Uint8Array(UTIF.encode([ifd]))
     const data = new Uint8Array(psz + tsz)
@@ -324,6 +301,7 @@ export function encodeRawDNG(
     im: ArrayBuffer,
     w: number,
     h: number,
+    tonecurve: [number, number][],
     metadata: any
 ) {
     const channels = 1
@@ -395,7 +373,7 @@ export function encodeRawDNG(
         ],
         t50728: [1.0, 1.0, 1.0], // AsShotNeutral
         t50829: [0, 0, 4160, 6240],
-        t50940: [0, 0, 1, 1],
+        t50940: tonecurve.flat(),
     }
     if (channels == 4) ifd["t338"] = [2]
     if (metadata) {
@@ -407,50 +385,6 @@ export function encodeRawDNG(
     // ifd.t50712 = [1] // LinearRaw = yes
     // ifd.t50730 = [-2.0] // BaselineExposure (optional)
     // ifd.t50778 = [21] // CalibrationIlluminant1 = D65
-
-    // @ts-ignore
-    UTIF.ttypes = {
-        254: 3,
-        256: 3,
-        257: 3,
-        258: 3,
-        259: 3,
-        262: 3,
-        273: 4,
-        274: 3,
-        277: 3,
-        278: 4,
-        279: 4,
-        282: 5,
-        283: 5,
-        284: 3,
-        286: 5,
-        287: 5,
-        296: 3,
-        305: 2,
-        306: 2,
-        338: 3,
-        513: 4,
-        514: 4,
-        339: 3,
-        34665: 4,
-        33421: 3, // CFARepeatPatternDim
-        33422: 1, // CFAPattern2
-        50706: 1, // DNGVersion (4 bytes)
-        50707: 1, // DNGBackwardVersion (4 bytes)
-        50708: 2, // UniqueCameraModel (ASCII)
-        50710: 1, // CFAPlaneColor
-        50711: 3, // CFALayout
-        50712: 3, // LinearRaw (SHORT)
-        50714: 3, // BlackLevel (SHORT per channel)
-        50717: 3, // WhiteLevel (SHORT per channel)
-        50721: 10, // ColorMatrix1 (RATIONAL)
-        50728: 5, // AsShotNeutral (short)
-        50730: 1, // BaselineExposure (DOUBLE)
-        50778: 3, // CalibrationIlluminant1 (SHORT)
-        50829: 5,
-        50940: 11,
-    }
 
     const prfx = new Uint8Array(UTIF.encode([ifd]))
     const data = new Uint8Array(psz + tsz)

@@ -41,6 +41,7 @@ export const output_types: Record<
         bit_depth: 8 | 16 | 32
         channels: 3 | 4
         little_endian: boolean
+        apply_tonecurve: boolean
     }
 > = {
     png16: {
@@ -51,6 +52,7 @@ export const output_types: Record<
         bit_depth: 16,
         channels: 3,
         little_endian: true,
+        apply_tonecurve: true,
     },
     png8: {
         name: "8-bit PNG",
@@ -60,6 +62,7 @@ export const output_types: Record<
         bit_depth: 8,
         channels: 3,
         little_endian: true,
+        apply_tonecurve: true,
     },
     tiff32: {
         name: "32-bit Tiff",
@@ -69,6 +72,7 @@ export const output_types: Record<
         bit_depth: 32,
         channels: 3,
         little_endian: false,
+        apply_tonecurve: true,
     },
     tiff16: {
         name: "16-bit Tiff",
@@ -78,6 +82,7 @@ export const output_types: Record<
         bit_depth: 16,
         channels: 3,
         little_endian: false,
+        apply_tonecurve: true,
     },
     tiff8: {
         name: "8-bit Tiff",
@@ -87,6 +92,7 @@ export const output_types: Record<
         bit_depth: 8,
         channels: 3,
         little_endian: false,
+        apply_tonecurve: true,
     },
     dng_dem16: {
         name: "16-bit linear DNG",
@@ -96,6 +102,7 @@ export const output_types: Record<
         bit_depth: 16,
         channels: 3,
         little_endian: false,
+        apply_tonecurve: false,
     },
     dng_raw16: {
         name: "16-bit raw DNG",
@@ -105,6 +112,7 @@ export const output_types: Record<
         bit_depth: 16,
         channels: 3,
         little_endian: false,
+        apply_tonecurve: false,
     },
 }
 export type OutputType = keyof typeof output_types
@@ -138,8 +146,10 @@ export function applyLUT(x: number, LUT: number[] | null): number {
     if (!LUT) {
         return x
     }
-    const index = Math.floor(clamp(x, 0, 1) * 255)
-    return LUT[index]
+    const ifloat = clamp(x, 0, 0.9999999) * 255
+    const i = Math.floor(ifloat)
+    const w = ifloat - i
+    return LUT[i] * (1 - w) + LUT[i + 1] * w
 }
 
 function sRGBGamma(x: number) {
@@ -235,6 +245,7 @@ export function process_color_value(
     conversion_values: ConversionValuesColor,
     exp_shift: number,
     lut: number[] | null,
+    apply_tonecurve: boolean,
     apply_clamp: boolean
 ): Triple {
     const { m, b, d, dmin, invert_toe, matrix1, matrix2 } = conversion_values
@@ -259,12 +270,12 @@ export function process_color_value(
             m[2] * APD[2] + b[2],
         ])
     }
-    const linear_out = mapTriple(
-        (x) => applyLUT(2 ** (x - exp_shift), lut),
-        exp
-    )
-    if (apply_clamp) return mapTriple((x) => Math.min(x, 1), linear_out)
-    else return linear_out
+    const linear = mapTriple((x) => 2 ** x, exp)
+    const out = apply_tonecurve
+        ? mapTriple((x) => applyLUT(x / 2 ** exp_shift, lut), linear)
+        : linear
+    if (apply_clamp) return mapTriple((x) => Math.min(x, 1), out)
+    else return out
 }
 
 export function invertColor(
@@ -274,7 +285,8 @@ export function invertColor(
     channels_out: 3 | 4,
     bit_depth: 8 | 16 | 32,
     linear: boolean,
-    little_endian: boolean
+    little_endian: boolean,
+    apply_tonecurve: boolean
 ): ArrayBuffer {
     const conversion_values = getConversionValuesColor(
         inversion_settings.advanced,
@@ -302,6 +314,7 @@ export function invertColor(
             conversion_values,
             exp_shift,
             LUT,
+            apply_tonecurve,
             bit_depth !== 32
         )
         if (!linear) processed = mapTriple(sRGBGamma, processed)
@@ -399,6 +412,7 @@ export function invertRawColor(
     bit_depth: 8 | 16 | 32,
     linear: boolean,
     little_endian: boolean,
+    apply_tonecurve: boolean,
     cfa: CFA,
     output_offset: [number, number]
 ): ArrayBuffer {
@@ -432,6 +446,7 @@ export function invertRawColor(
                 conversion_values,
                 exp_shift,
                 LUT,
+                apply_tonecurve,
                 true
             )[main]
             if (!linear) processed = sRGBGamma(processed)
