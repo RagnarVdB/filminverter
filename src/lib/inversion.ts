@@ -177,7 +177,7 @@ export function getConversionValuesColor(
         (x) => -Math.log10(x),
         applyCMV(
             matrix1,
-            mapTriple((x) => x / 2 ** 14, settings.dmin)
+            settings.dmin
         )
     )
 
@@ -215,7 +215,7 @@ export function getConversionValuesColor(
         (x) => -Math.log10(x),
         applyCMV(
             matrix1,
-            mapTriple((x) => x / 2 ** 14, selected_neutral_cam)
+            selected_neutral_cam
         )
     )
     console.debug("target_neutral_EXP=", target_neutral_EXP)

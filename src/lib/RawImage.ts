@@ -81,8 +81,8 @@ export const defaultSettings: Settings = {
     matrix2: identity,
     advanced: {
         toe: true,
-        dmin: [6829, 3406, 1956],
-        neutral: [1458, 562, 329],
+        dmin: [6829/2**14, 3406/2**14, 1956/2**14],
+        neutral: [1458/2**14, 562/2**14, 329/2**14],
         exposure: 1.35,
         blue: -0.17,
         green: -0.14,

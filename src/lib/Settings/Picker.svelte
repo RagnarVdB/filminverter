@@ -12,8 +12,8 @@
         $canvas.style.cursor = "default"
         const rect = $canvas.getBoundingClientRect()
 
-        const w = image.width
-        const h = image.height
+        const w = image.large.width
+        const h = image.large.height
 
         const mouseX = e.clientX - rect.left
         const mouseY = e.clientY - rect.top
@@ -36,14 +36,20 @@
         let pickedColor: [number, number, number] = [0, 0, 0]
         for (let i = -2; i < 3; i++) {
             for (let j = -2; j < 3; j++) {
-                pickedColor[0] += image.arr[((y + j) * w + (x + i)) * 4]
-                pickedColor[1] += image.arr[((y + j) * w + (x + i)) * 4 + 1]
-                pickedColor[2] += image.arr[((y + j) * w + (x + i)) * 4 + 2]
+                pickedColor[0] += image.large.arr[((y + j) * w + (x + i)) * 4]
+                pickedColor[1] += image.large.arr[((y + j) * w + (x + i)) * 4 + 1]
+                pickedColor[2] += image.large.arr[((y + j) * w + (x + i)) * 4 + 2]
             }
         }
-        color[0] = Math.round(pickedColor[0] / 25)
-        color[1] = Math.round(pickedColor[1] / 25)
-        color[2] = Math.round(pickedColor[2] / 25)
+        const black = image.raw_conv_settings.black
+        const max = image.raw_conv_settings.max
+        const g = image.raw_conv_settings.gain
+        const bg = image.raw_conv_settings.background
+        const gain = [g[0] / bg[0], g[1] / bg[1], g[2] / bg[2]]
+        console.log("black", black, gain, max)
+        color[0] = (pickedColor[0] / 25 / max - black[0]) * gain[0]
+        color[1] = (pickedColor[1] / 25 / max - black[1]) * gain[1]
+        color[2] = (pickedColor[2] / 25 / max - black[2]) * gain[2]
         $canvas.removeEventListener("click", detectColor)
     }
 
