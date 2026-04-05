@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { deflateSync } from "fflate"
 import UTIF from "utif"
 UTIF.ttypes = {
     254: 3,
@@ -20,6 +21,7 @@ UTIF.ttypes = {
     296: 3,
     305: 2,
     306: 2,
+    317: 3,
     338: 3,
     513: 4,
     514: 4,
@@ -215,6 +217,7 @@ export function encodeDNG(
     w: number,
     h: number,
     tonecurve: [number, number][],
+    compress: boolean,
     metadata: any
 ) {
     UTIF._writeIFD = writer
@@ -302,6 +305,7 @@ export function encodeRawDNG(
     w: number,
     h: number,
     tonecurve: [number, number][],
+    compress: boolean,
     metadata: any
 ) {
     const channels = 1
@@ -310,7 +314,7 @@ export function encodeRawDNG(
     const dpth = bpv * 8
     let img = new Uint8Array(im)
 
-    const cmpr = 1
+    const cmpr = compress ? 8 : 1
     const ss = 1e6 // decoded strip size - 10 MB
     let rps = Math.min(h, 2 * ((ss / (w * channels * bpv)) >>> 1)),
         prts = [],
@@ -322,14 +326,14 @@ export function encodeRawDNG(
     for (let y = 0; y < h; y += rps) {
         const pof = y * w * channels * bpv,
             pln = Math.min(img.length, (y + rps) * w * channels * bpv) - pof
-        const prt = new Uint8Array(img.buffer, pof, pln)
-        prts.push(prt)
+        const rawStrip = new Uint8Array(img.buffer, pof, pln)
+        const compressed = compress ? deflateSync(rawStrip): rawStrip  // ← compress HERE
+        prts.push(compressed)
         offs.push(psz + tsz)
-        bcnt.push(prt.length)
-        tsz += prt.length
+        bcnt.push(compressed.length)
+        tsz += compressed.length
     }
     const dtype_int = dpth == 32 ? 3 : 1
-    //if(cmpr==8) img=pako.deflate(img);
     console.log(Array(channels).fill(dpth), Array(channels).fill(dtype_int))
     let ifd: any = {
         t254: [0],
@@ -360,7 +364,6 @@ export function encodeRawDNG(
         // DNG Specific
         t50706: [1, 4, 0, 0], // DNGVersion
         t50707: [1, 4, 0, 0], // DNGBackwardVersion
-        // t50708: ["Fujifilm X-T3"],
         t50708: ["Film negative"],
         t50710: [0, 1, 2], // CFA Plane
         t50711: [1], // CFA

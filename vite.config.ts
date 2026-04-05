@@ -1,5 +1,5 @@
 import glsl from "vite-plugin-glsl"
-import { defineConfig } from "vite"
+import { defineConfig, searchForWorkspaceRoot } from "vite"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
 import { wasmPackPlugin } from "./vite-wasm-pack"
 
@@ -12,4 +12,15 @@ export default defineConfig({
             "libraw-wasm", // or whatever package imports the worker
         ],
     },
+        server: {
+    fs: {
+      allow: [
+        // search up for workspace root
+        searchForWorkspaceRoot(process.cwd()),
+        // your custom rules
+        '/Users/rvandenbroec/codes/LibRaw-Wasm',
+        '/Users/rvandenbroec/Documents/LibRaw-Wasm',
+      ],
+    },
+  },
 })

@@ -16,6 +16,7 @@
     "@types/utif": "^3.0.6",
     "@types/webgl2": "^0.0.7",
     "fast-png": "^8.0.0",
+    "fflate": "^0.8.2",
     "gl-matrix": "^3.4.3",
     "libraw-wasm": "https://github.com/RagnarVdB/LibRaw-Wasm#filminverter",
     "linear-solve": "^1.2.1",

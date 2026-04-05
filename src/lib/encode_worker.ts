@@ -133,6 +133,7 @@ onmessage = async function (e) {
                     raw_image.width,
                     raw_image.height,
                     tone_curve,
+                    false,
                     {}
                 )
             } else if (type == "dng_raw16") {
@@ -153,6 +154,7 @@ onmessage = async function (e) {
                     raw_image.width,
                     raw_image.height,
                     tone_curve,
+                    false,
                     {}
                 )
             } else {
