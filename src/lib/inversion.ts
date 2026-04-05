@@ -273,7 +273,7 @@ export function process_color_value(
     const linear = mapTriple((x) => 2 ** x, exp)
     const out = apply_tonecurve
         ? mapTriple((x) => applyLUT(x / 2 ** exp_shift, lut), linear)
-        : linear
+        : mapTriple((x) => x / 2 ** exp_shift, linear)
     if (apply_clamp) return mapTriple((x) => Math.min(x, 1), out)
     else return out
 }

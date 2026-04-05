@@ -140,7 +140,9 @@ onmessage = async function (e) {
                 const lut =
                     image.settings.tone_curve == "None"
                         ? [0.0, 1.0]
-                        : luts[image.settings.tone_curve]
+                        : luts[image.settings.tone_curve].filter(
+                              (_, index) => index % 2 === 0
+                          )
                 const tone_curve: [number, number][] = lut.map((x, i) => [
                     i / (lut.length - 1),
                     x,
