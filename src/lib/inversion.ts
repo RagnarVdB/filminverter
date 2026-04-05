@@ -170,15 +170,18 @@ export function getConversionValuesColor(
         settings.gamma * settings.facG,
         settings.gamma * settings.facB,
     ]
-    console.debug(gamma)
-    console.debug(settings.dmin)
+    console.debug(
+        "gamma_settings=",
+        settings.gamma,
+        settings.facG,
+        settings.facB
+    )
+    console.debug("gamma=", gamma)
+    console.debug("dmin=", settings.dmin)
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
     const dminAPD = mapTriple(
         (x) => -Math.log10(x),
-        applyCMV(
-            matrix1,
-            settings.dmin
-        )
+        applyCMV(matrix1, settings.dmin)
     )
 
     const d: Triple = [
@@ -213,10 +216,7 @@ export function getConversionValuesColor(
 
     const selected_neutral_APD = mapTriple(
         (x) => -Math.log10(x),
-        applyCMV(
-            matrix1,
-            selected_neutral_cam
-        )
+        applyCMV(matrix1, selected_neutral_cam)
     )
     console.debug("target_neutral_EXP=", target_neutral_EXP)
     console.debug("selected_neutral_APD=", selected_neutral_APD)
