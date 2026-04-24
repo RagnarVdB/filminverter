@@ -90,7 +90,7 @@ void main() {
     if(toe) {
       color = paper_to_exp(color); // Paper
     } else {
-      color = vec3(m) * color + vec3(b); // Linear
+      color = m * color + b; // Linear
     }
 
     if(show_value) {

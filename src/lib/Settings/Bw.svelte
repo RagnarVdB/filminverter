@@ -2,6 +2,8 @@
     import { createEventDispatcher } from "svelte"
     // @ts-ignore
     import Slider from "@bulatdashiev/svelte-slider"
+    import type { OutputResolution, OutputType } from "../inversion"
+    import { output_types, tc_map } from "../inversion"
     import type { BWSettings, Settings, TCName } from "../RawImage"
     import { getRotationMatrix } from "../rotation"
     import { download } from "../utils"
@@ -25,6 +27,9 @@
     let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
+    let output_type: OutputType = "dng_raw16"
+    let output_resolution: OutputResolution = 1
+
     let copied_settings: BWSettings | null = null
 
     export let settings: Settings
@@ -44,7 +49,7 @@
             show_clipping,
             show_negative,
             rotation,
-            zoom
+            zoom,
         )
     }
 
@@ -59,12 +64,12 @@
         show_clipping: boolean,
         show_negative: boolean,
         rotation: number,
-        zoom: [number, number, number, number]
+        zoom: [number, number, number, number],
     ) {
         if (settings) {
             settings.bw = {
                 toe: toe,
-                blackpoint: dmin,
+                dmin: dmin,
                 exposure: exposure[0] - 5,
                 gamma: gamma[0],
                 toe_width: toe_width[0],
@@ -90,7 +95,7 @@
         show_clipping = sets.show_clipping
         show_negative = sets.show_negative
         rotation = sets.rotation
-        blackpoint = sets.bw.blackpoint
+        blackpoint = sets.bw.dmin
         zoom = sets.zoom
     }
 
@@ -130,8 +135,9 @@
     <br />
     <label for="Tone Curve">Tone Curve</label>
     <select name="Tone Curve" bind:value={tone_curve}>
-        <option value="Default" selected>Default</option>
-        <option value="Filmic">Filmic</option>
+        {#each Object.keys(tc_map) as tc}
+            <option value={tc}>{tc}</option>
+        {/each}
     </select>
 
     <br />
@@ -156,14 +162,45 @@
     Show negative:
     <input type="checkbox" bind:checked={show_negative} />
     <br />
+    Output
+    <select name="Output" bind:value={output_type}>
+        {#each Object.keys(output_types) as type}
+            <option value={type}>{output_types[type].name}</option>
+        {/each}
+    </select>
+    <br />
+    Resolution
+    <select name="Resolution" bind:value={output_resolution}>
+        <option value={1}>Full</option>
+        {#each [2, 4] as x}
+            <option value={x}>1/{x}</option>
+        {/each}
+    </select>
+    <br />
     <button
         on:click={() => {
             rotation = (rotation + 1) % 4
         }}>Rotate</button
     >
     <button on:click={() => dispatch("applyAll")}>Apply all</button>
-    <button on:click={() => dispatch("save", { all: false })}>Save</button>
-    <button on:click={() => dispatch("save", { all: true })}>Save all</button>
+    <button on:click={() => dispatch("save_raw")}>Save Raw </button>
+    <button
+        on:click={() =>
+            dispatch("save", {
+                all: false,
+                type: output_type,
+                resolution: output_resolution,
+            })}
+        >Save
+    </button>
+    <button
+        on:click={() =>
+            dispatch("save", {
+                all: true,
+                type: output_type,
+                resolution: output_resolution,
+            })}>Save all</button
+    >
     <Zoom bind:zoom />
     <button on:click={() => (copied_settings = settings.bw)}
         >Copy settings</button

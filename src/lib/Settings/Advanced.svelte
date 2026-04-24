@@ -201,9 +201,6 @@
         {#each Object.keys(tc_map) as tc}
         <option value={tc}>{tc}</option>
         {/each}
-        <!-- <option value="Default" selected>Default</option>
-        <option value="Filmic">Filmic</option>
-        <option value="Filmic2">Filmic2</option> -->
     </select>
     <br />
     <label for="Matrix1">Matrix1</label>

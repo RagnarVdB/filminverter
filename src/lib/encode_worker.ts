@@ -1,8 +1,8 @@
 import type { ImageData } from "fast-png"
 import { encode } from "fast-png"
 import {
-    invertColor,
-    invertRawColor,
+    invert,
+    invertRaw,
     output_types,
     type OutputResolution,
     type OutputType,
@@ -60,7 +60,7 @@ onmessage = async function (e) {
                 height: 6,
                 offset: [-2, 1],
             }
-            image_buffer = invertRawColor(
+            image_buffer = invertRaw(
                 raw_image,
                 image.raw_conv_settings,
                 image.settings,
@@ -80,7 +80,7 @@ onmessage = async function (e) {
                 const full = await read_and_demoisaic_raw(image.file)
                 raw_image = downSample(full, resolution)
             }
-            image_buffer = invertColor(
+            image_buffer = invert(
                 raw_image,
                 image.raw_conv_settings,
                 image.settings,

@@ -61,7 +61,7 @@ export interface AdvancedSettings {
 
 export interface BWSettings {
     toe: boolean
-    blackpoint: Triple
+    dmin: [number, number, number]
     exposure: number
     gamma: number
     toe_width: number
@@ -98,7 +98,7 @@ export const defaultSettings: Settings = {
     },
     bw: {
         toe: true,
-        blackpoint: [4837, 4874, 5337],
+        dmin: [6829/2**14, 3406/2**14, 1956/2**14],
         exposure: -0.5,
         gamma: 77 / 100,
         toe_width: 0.22,

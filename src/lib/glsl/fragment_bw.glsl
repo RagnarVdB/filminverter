@@ -3,14 +3,20 @@ precision highp float; // ?
 uniform highp usampler2D tex; // ?
 
 uniform bool toe;
+uniform bool use_tone_curve;
 uniform bool show_clipping;
 uniform bool show_negative;
+uniform bool show_value;
+uniform float shown_value;
 
 uniform float tone_curve[256];
 uniform float tc_exp_shift;
 
 uniform vec3 clip_values;
 
+uniform float max_value;
+uniform vec3 gain;
+uniform vec3 raw_black;
 uniform float m;
 uniform vec3 b;
 uniform float d;
@@ -20,7 +26,11 @@ in vec2 pixelCoordinate; // receive pixel position from vertex shader
 out vec4 outColor;
 
 float applyLUT(float x) {
-  return tone_curve[int(x * 255.0f)];
+  if (use_tone_curve) {
+    return tone_curve[int(x * 255.0f)];
+  } else {
+    return x;
+  }
 }
 
 float sRGB_gamma(float x) {
@@ -74,26 +84,34 @@ vec3 clip_white(vec3 color) {
 void main() {
   uvec3 unsignedIntValues = texture(tex, pixelCoordinate).rgb;
   vec3 floatValues0To65535 = vec3(unsignedIntValues);
-  vec3 color = floatValues0To65535 / vec3(16384.0f);
+  vec3 color = (floatValues0To65535) / vec3(max_value);
 
   if(!show_negative) {
+    color = (color - raw_black) * gain;
     color = -log(color) / log(vec3(10.0f)); // Density
     if(toe) {
       color = paper_to_exp(color); // Paper
     } else {
       color = vec3(m) * color + vec3(b); // Linear
     }
-    if(show_clipping) {
-      color = clip_red(color);
+    if(show_value) {
+      if((color[0] + color[1] + color[2]) / 3.0f < shown_value) {
+        color = vec3(0.0f, 0.0f, 0.0f);
+      } else {
+        color = vec3(1.0f, 1.0f, 1.0f);
+      }
     } else {
-      color = clip_white(color);
+      color = color - tc_exp_shift;
+      if(show_clipping) {
+        color = clip_red(color);
+      } else {
+        color = clamp(color, vec3(-100.0f), clip_values);
+      }
+      color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
     }
-    color = color - vec3(tc_exp_shift);
-    color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
   } else {
-    color = log(color) / log(vec3(2.0f));
-    color = color - vec3(tc_exp_shift);
-    color = exp_to_sRGB(pow(vec3(2), color)); //sRGB
+    color = color - raw_black;
+    color = exp_to_sRGB(color);
   }
   outColor = vec4(color[0], color[1], color[2], 1.0f);
 }

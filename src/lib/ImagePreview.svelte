@@ -5,11 +5,7 @@
     // import UPNG from "upng-js"
     import type { ImageData } from "fast-png"
     import { encode } from "fast-png"
-    import {
-        getConversionValuesBw,
-        invertColor,
-        invertJSBW8bit,
-    } from "./inversion"
+    import { invert } from "./inversion"
 
     export let image: Image
     let url: string = ""
@@ -18,33 +14,18 @@
     let img_element: HTMLImageElement
 
     function getPreview(image: Image): string {
-        let inverted: Uint8Array
-        if (!image) {
-            return ""
-        }
-        if (image.settings.mode == "basic") {
-            throw new Error("Basic mode not supported")
-        } else if (image.settings.mode == "advanced") {
-            inverted = new Uint8Array(
-                invertColor(
-                    image.small,
-                    image.raw_conv_settings,
-                    image.settings,
-                    4,
-                    8,
-                    false,
-                    true,
-                    true
-                )
-            )
-        } else {
-            const conversion_values = getConversionValuesBw(image.settings.bw)
-            inverted = invertJSBW8bit(
-                image.small.arr,
-                conversion_values,
-                image.settings.tone_curve
-            )
-        }
+        const inverted = new Uint8Array(
+            invert(
+                image.small,
+                image.raw_conv_settings,
+                image.settings,
+                4,
+                8,
+                false,
+                true,
+                true,
+            ),
+        )
 
         const imdata: ImageData = {
             data: inverted,
