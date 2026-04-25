@@ -542,7 +542,7 @@ export function getConversionValuesBw(
     const m = 1 / (settings.gamma * Math.log10(2))
     const d = settings.toe_width
 
-    const b = mapTriple((x) => settings.exposure - m * (x + 1.2), dmin)
+    const b = mapTriple((x) => settings.exposure - m * (x + 1.1 - settings.blackpoint_shift), dmin)
     const invert_toe = settings.toe
     console.debug({ m, b, d, dmin })
     return { m, b, d, dmin, invert_toe }
