@@ -57,6 +57,7 @@ export interface AdvancedSettings {
     toe_width: number
     toe_facG: number
     toe_facB: number
+    blackpoint_shift: number
 }
 
 export interface BWSettings {
@@ -95,10 +96,11 @@ export const defaultSettings: Settings = {
         toe_width: 0.1,
         toe_facB: 1.7,
         toe_facG: 1.4,
+        blackpoint_shift: 0,
     },
     bw: {
         toe: true,
-        dmin: [6829/2**14, 3406/2**14, 1956/2**14],
+        dmin: [5875/2**14, 6221/2**14, 6895/2**14],
         exposure: -0.5,
         gamma: 77 / 100,
         toe_width: 0.22,

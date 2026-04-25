@@ -40,6 +40,8 @@
     let toe_width: [number, number] = [0.2, 0]
     let toe_facG: [number, number] = [1, 0]
     let toe_facB: [number, number] = [1, 0]
+    let blackpoint_shift: [number, number] = [0.5, 0]
+
 
     let show_clipping = false
     let show_negative = false
@@ -78,6 +80,7 @@
             toe_width,
             toe_facB,
             toe_facG,
+            blackpoint_shift,
             show_clipping,
             show_negative,
             show_value,
@@ -103,6 +106,7 @@
         toe_width: [number, number],
         toe_facB: [number, number],
         toe_facG: [number, number],
+        blackpoint_shift: [number, number],
         show_clipping: boolean,
         show_negative: boolean,
         show_value: boolean,
@@ -124,6 +128,7 @@
                 toe_width: toe_width[0],
                 toe_facB: toe_facB[0],
                 toe_facG: toe_facG[0],
+                blackpoint_shift: blackpoint_shift[0] - 0.2,
             }
             settings.tone_curve = tone_curve
             settings.matrix1 = matrix1
@@ -152,6 +157,7 @@
         toe_width[0] = sets.advanced.toe_width
         toe_facB[0] = sets.advanced.toe_facB
         toe_facG[0] = sets.advanced.toe_facG
+        blackpoint_shift[0] = sets.advanced.blackpoint_shift + 0.2
         rotation = sets.rotation
         dmin = sets.advanced.dmin
         neutral = sets.advanced.neutral
@@ -199,7 +205,7 @@
     <label for="Tone Curve">Tone Curve</label>
     <select name="Tone Curve" bind:value={tone_curve}>
         {#each Object.keys(tc_map) as tc}
-        <option value={tc}>{tc}</option>
+            <option value={tc}>{tc}</option>
         {/each}
     </select>
     <br />
@@ -253,6 +259,9 @@
     toe factor green: {Math.round(toe_facG[0] * 100) / 100}
     <Slider bind:value={toe_facG} min="0" max="3" step="0.01" />
 
+    blackpoint shift: {Math.round((blackpoint_shift[0] - 0.2) * 100) / 100}
+    <Slider bind:value={blackpoint_shift} min="0" max="0.4" step="0.01" />
+
     Show clipping:
     <input type="checkbox" bind:checked={show_clipping} />
     <br />
@@ -271,7 +280,7 @@
             <option value={type}>{output_types[type].name}</option>
         {/each}
     </select>
-    <br>
+    <br />
     Resolution
     <select name="Resolution" bind:value={output_resolution}>
         <option value={1}>Full</option>

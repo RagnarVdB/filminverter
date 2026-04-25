@@ -180,7 +180,7 @@ export function getConversionValuesColor(
     console.debug("dmin=", settings.dmin)
     const m = mapTriple((x) => 1 / (x * Math.log10(2)), gamma)
     const dminAPD = mapTriple(
-        (x) => -Math.log10(x),
+        (x) => -Math.log10(x) + settings.blackpoint_shift,
         applyCMV(matrix1, settings.dmin),
     )
 
