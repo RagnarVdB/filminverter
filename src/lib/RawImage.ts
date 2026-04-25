@@ -30,7 +30,7 @@ export interface Image {
 export type TCName = "Default" | "None" | "Filmic" | "Filmic2"
 
 export interface Settings {
-    mode: "advanced" | "basic" | "bw"
+    mode: "color" | "bw"
     rotation: number
     rotationMatrix: Matrix
     zoom: [number, number, number, number]
@@ -40,11 +40,11 @@ export interface Settings {
     tone_curve: TCName
     matrix1: ColorMatrix
     matrix2: ColorMatrix
-    advanced: AdvancedSettings
+    color: ColorSettings
     bw: BWSettings
 }
 
-export interface AdvancedSettings {
+export interface ColorSettings {
     toe: boolean
     dmin: Triple
     neutral: Triple
@@ -70,7 +70,7 @@ export interface BWSettings {
 }
 
 export const defaultSettings: Settings = {
-    mode: "advanced",
+    mode: "color",
     rotation: 0,
     rotationMatrix: { matrix: [1, 0, 0, 1], m: 2, n: 2 },
     zoom: [1, 1, 0, 0],
@@ -80,9 +80,9 @@ export const defaultSettings: Settings = {
     tone_curve: "Default",
     matrix1: identity,
     matrix2: identity,
-    advanced: {
+    color: {
         toe: true,
-        dmin: [6829/2**14, 3406/2**14, 1956/2**14],
+        dmin: [6829 / 2 ** 14, 3406 / 2 ** 14, 1956 / 2 ** 14],
         neutral: [0.1633474, 0.0668805, 0.0436712],
         exposure: 0,
         blue: 0,
@@ -92,15 +92,15 @@ export const defaultSettings: Settings = {
         // facG: 1.06875,
         gamma: 0.3814546973905106,
         facB: 1.085394120130381,
-        facG: 1.04195592179697 ,
-        toe_width: 0.1,
+        facG: 1.04195592179697,
+        toe_width: 0.18,
         toe_facB: 1.7,
         toe_facG: 1.4,
-        blackpoint_shift: 0,
+        blackpoint_shift: -0.1,
     },
     bw: {
         toe: true,
-        dmin: [5875/2**14, 6221/2**14, 6895/2**14],
+        dmin: [5875 / 2 ** 14, 6221 / 2 ** 14, 6895 / 2 ** 14],
         exposure: -0.5,
         gamma: 77 / 100,
         toe_width: 0.22,

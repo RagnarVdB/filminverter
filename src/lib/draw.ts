@@ -9,7 +9,7 @@ import {
     getConversionValuesColor,
     tc_map,
 } from "./inversion"
-import { type AdvancedSettings, type BWSettings, type Image } from "./RawImage"
+import { type ColorSettings, type BWSettings, type Image } from "./RawImage"
 import { transpose, type ColorMatrix } from "./utils"
 
 interface WebGLArgument<T extends unknown[]> {
@@ -111,7 +111,7 @@ function webGlDraw(
 
 function getShaderParamsColor(
     gl: WebGL2RenderingContext,
-    settings: AdvancedSettings,
+    settings: ColorSettings,
     matrix1: ColorMatrix,
     matrix2: ColorMatrix
 ): WebGLArgument<any[]>[] {
@@ -185,7 +185,7 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
             ? getShaderParamsBw(gl, image.settings.bw)
             : getShaderParamsColor(
                   gl,
-                  image.settings.advanced,
+                  image.settings.color,
                   image.settings.matrix1,
                   image.settings.matrix2
               )

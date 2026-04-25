@@ -13,7 +13,7 @@
         single_to_APD_theory_unnorm,
     } from "../matrices"
     import {
-        type AdvancedSettings,
+        type ColorSettings,
         type Settings,
         type TCName,
     } from "../RawImage"
@@ -54,7 +54,7 @@
     let output_type: OutputType = "dng_raw16"
     let output_resolution: OutputResolution = 1
 
-    let copied_settings: AdvancedSettings | null = null
+    let copied_settings: ColorSettings | null = null
 
     export let settings: Settings
 
@@ -115,7 +115,7 @@
         zoom: [number, number, number, number]
     ) {
         if (settings) {
-            settings.advanced = {
+            settings.color = {
                 toe: toe,
                 dmin: dmin,
                 neutral: neutral,
@@ -147,27 +147,27 @@
         tone_curve = sets.tone_curve
         matrix1 = sets.matrix1
         matrix2 = sets.matrix2
-        toe = sets.advanced.toe
-        exposure[0] = sets.advanced.exposure + 5
-        blue[0] = sets.advanced.blue + 2
-        green[0] = sets.advanced.green + 2
-        gamma[0] = sets.advanced.gamma
-        facB[0] = (sets.advanced.facB - 1) * m + 5
-        facG[0] = (sets.advanced.facG - 1) * m + 5
-        toe_width[0] = sets.advanced.toe_width
-        toe_facB[0] = sets.advanced.toe_facB
-        toe_facG[0] = sets.advanced.toe_facG
-        blackpoint_shift[0] = sets.advanced.blackpoint_shift + 0.2
+        toe = sets.color.toe
+        exposure[0] = sets.color.exposure + 5
+        blue[0] = sets.color.blue + 2
+        green[0] = sets.color.green + 2
+        gamma[0] = sets.color.gamma
+        facB[0] = (sets.color.facB - 1) * m + 5
+        facG[0] = (sets.color.facG - 1) * m + 5
+        toe_width[0] = sets.color.toe_width
+        toe_facB[0] = sets.color.toe_facB
+        toe_facG[0] = sets.color.toe_facG
+        blackpoint_shift[0] = sets.color.blackpoint_shift + 0.2
         rotation = sets.rotation
-        dmin = sets.advanced.dmin
-        neutral = sets.advanced.neutral
+        dmin = sets.color.dmin
+        neutral = sets.color.neutral
         show_clipping = sets.show_clipping
         show_negative = sets.show_negative
         zoom = sets.zoom
     }
 
     async function saveSettings() {
-        const settings_json = JSON.stringify(settings.advanced)
+        const settings_json = JSON.stringify(settings.color)
         const blob = new Blob([settings_json], { type: "application/json" })
         const url = URL.createObjectURL(blob)
         download(url, "settings.json")
@@ -187,7 +187,7 @@
             reader.onload = (e) => {
                 const settings_json = reader.result as string
                 const loaded_settings = JSON.parse(settings_json)
-                settings.advanced = loaded_settings
+                settings.color = loaded_settings
                 updateSliders(settings)
             }
             reader.readAsText(file)
@@ -197,7 +197,7 @@
     }
 </script>
 
-<div class="advanced">
+<div class="color">
     <Picker name="film border" bind:color={dmin} />
 
     <Picker name="neutral" bind:color={neutral} />
@@ -315,14 +315,14 @@
             })}>Save all</button
     >
     <Zoom bind:zoom />
-    <button on:click={() => (copied_settings = settings.advanced)}
+    <button on:click={() => (copied_settings = settings.color)}
         >Copy settings</button
     >
     {#if copied_settings != null}
         <button
             on:click={() => {
                 if (!copied_settings) return
-                settings.advanced = JSON.parse(JSON.stringify(copied_settings))
+                settings.color = JSON.parse(JSON.stringify(copied_settings))
                 updateSliders(settings)
             }}>Paste settings</button
         >

@@ -100,7 +100,7 @@
     }
 
     async function saveSettings() {
-        const settings_json = JSON.stringify(settings.advanced)
+        const settings_json = JSON.stringify(settings.color)
         const blob = new Blob([settings_json], { type: "application/json" })
         const url = URL.createObjectURL(blob)
         download(url, "settings.json")
@@ -119,7 +119,7 @@
             reader.onload = (e) => {
                 const settings_json = reader.result as string
                 const loaded_settings = JSON.parse(settings_json)
-                settings.advanced = loaded_settings
+                settings.color = loaded_settings
                 updateSliders(settings)
             }
             reader.readAsText(file)

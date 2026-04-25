@@ -3,13 +3,11 @@
     import { images, index } from "../../stores"
     import type { Settings } from "../RawImage"
     import { defaultSettings } from "../RawImage"
-    import Advanced from "./Advanced.svelte"
-    import Basic from "./Basic.svelte"
+    import Color from "./Color.svelte"
     import Bw from "./Bw.svelte"
 
     const dispatch = createEventDispatcher()
 
-    //let mode: "basic" | "advanced" | "bw" = "advanced"
 
     let settings: Settings = defaultSettings
     let changes: number = 0
@@ -44,25 +42,14 @@
     <div class="menu">
         <div
             class="menuItem"
-            id="left"
-            class:selected={settings.mode === "basic"}
-            on:click={() => {
-                settings.mode = "basic"
-                $images[$index].settings.mode = "basic"
-            }}
-        >
-            Basic
-        </div>
-        <div
-            class="menuItem"
             id="right"
-            class:selected={settings.mode === "advanced"}
+            class:selected={settings.mode === "color"}
             on:click={() => {
-                settings.mode = "advanced"
-                $images[$index].settings.mode = "advanced"
+                settings.mode = "color"
+                $images[$index].settings.mode = "color"
             }}
         >
-            Advanced
+            Color
         </div>
         <div
             class="menuItem"
@@ -76,10 +63,9 @@
             B&W
         </div>
     </div>
-    {#if settings.mode === "basic"}
-        <Basic />
-    {:else if settings.mode === "advanced"}
-        <Advanced
+
+    {#if settings.mode === "color"}
+        <Color
             bind:settings
             on:save={(e) => dispatch("save", e.detail)}
             on:applyAll={(e) => dispatch("applyAll", e.detail)}

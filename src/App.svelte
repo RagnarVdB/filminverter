@@ -20,6 +20,7 @@
         console.log("Saving raw")
         const image = $images[$index]
         const raw_image = await read_and_demoisaic_raw(image.file)
+        console.log("raw_image: ", raw_image)
         console.log("Done loading")
         const file_buffer = raw_image.arr.buffer as ArrayBuffer
         const url = URL.createObjectURL(

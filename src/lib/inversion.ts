@@ -1,5 +1,5 @@
 import type {
-    AdvancedSettings,
+    ColorSettings,
     BWSettings,
     Image,
     RawConvSettings,
@@ -161,7 +161,7 @@ function sRGBGamma(x: number) {
 }
 
 export function getConversionValuesColor(
-    settings: AdvancedSettings,
+    settings: ColorSettings,
     matrix1: ColorMatrix,
     matrix2: ColorMatrix,
 ): ConversionValuesColor {
@@ -324,7 +324,7 @@ export function invert(
     apply_tonecurve: boolean,
 ): ArrayBuffer {
     let conversion_values_color = getConversionValuesColor(
-        inversion_settings.advanced,
+        inversion_settings.color,
         inversion_settings.matrix1,
         inversion_settings.matrix2,
     )
@@ -332,7 +332,7 @@ export function invert(
         inversion_settings.bw,
     )
     const processor =
-        inversion_settings.mode == "advanced"
+        inversion_settings.mode == "color"
             ? (x: Triple) =>
                   process_color_value(
                       x,
@@ -471,7 +471,7 @@ export function invertRaw(
 ): ArrayBuffer {
     if (im.channels != 3) throw new Error("Raw must have 3 channels")
     let conversion_values_color = getConversionValuesColor(
-        inversion_settings.advanced,
+        inversion_settings.color,
         inversion_settings.matrix1,
         inversion_settings.matrix2,
     )
@@ -479,7 +479,7 @@ export function invertRaw(
         inversion_settings.bw,
     )
     const processor =
-        inversion_settings.mode == "advanced"
+        inversion_settings.mode == "color"
             ? (x: Triple) =>
                   process_color_value(
                       x,
