@@ -6,6 +6,7 @@
     import type { OutputResolution, OutputType } from "./lib/inversion"
     import { download, numberOfWorkers } from "./lib/utils"
     import { images, index } from "./stores"
+    import EncodeWorker from "./lib/encode_worker.ts?worker";
 
     let showImages = false
 
@@ -33,10 +34,7 @@
         const { all, type, resolution } = e.detail
         if (!all) {
             // Only one file
-            const worker = new Worker(
-                new URL("./lib/encode_worker.ts", import.meta.url),
-                { type: "module" }
-            )
+            const worker = new EncodeWorker()
             const image = $images[$index]
             worker.postMessage([[image, type, resolution]])
             worker.onmessage = (message) => {
@@ -49,10 +47,7 @@
             const remainder = $images.length % nWorkers
 
             for (let i = 0; i < nWorkers; i++) {
-                const worker = new Worker(
-                    new URL("./lib/encode_worker.ts", import.meta.url),
-                    { type: "module" }
-                )
+                const worker = new EncodeWorker()
                 const workerImages =
                     i < remainder
                         ? [

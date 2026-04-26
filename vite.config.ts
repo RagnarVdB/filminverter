@@ -12,15 +12,26 @@ export default defineConfig({
             "libraw-wasm", // or whatever package imports the worker
         ],
     },
-        server: {
-    fs: {
-      allow: [
-        // search up for workspace root
-        searchForWorkspaceRoot(process.cwd()),
-        // your custom rules
-        '/Users/rvandenbroec/codes/LibRaw-Wasm',
-        '/Users/rvandenbroec/Documents/LibRaw-Wasm',
-      ],
+    build: {
+        rollupOptions: {
+            external: ["libraw-wasm"], // only if it's loaded at runtime
+        },
     },
-  },
+    worker: {
+        format: "es",
+        rollupOptions: {
+            external: ["libraw-wasm"],
+        },
+    },
+    server: {
+        fs: {
+            allow: [
+                // search up for workspace root
+                searchForWorkspaceRoot(process.cwd()),
+                // your custom rules
+                "/Users/rvandenbroec/codes/LibRaw-Wasm",
+                "/Users/rvandenbroec/Documents/LibRaw-Wasm",
+            ],
+        },
+    },
 })

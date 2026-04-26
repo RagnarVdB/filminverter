@@ -2,8 +2,9 @@
     import { createEventDispatcher } from "svelte"
     import Dropzone from "svelte-file-dropzone"
     import type { Image } from "./RawImage"
-
     import { numberOfWorkers } from "./utils"
+    import DecodeWorker from "./decode_worker.ts?worker";
+
     // @ts-ignore
     import dcp_profile from "/src/assets/Provia_no_huesatmap_no_look.dcp"
     const dispatch = createEventDispatcher()
@@ -32,10 +33,7 @@
         const remainder = files.length % nWorkers
         const filesWithIndex = files.map((file, i) => [i, file])
         for (let i = 0; i < nWorkers; i++) {
-            const worker = new Worker(
-                new URL("./decode_worker.ts", import.meta.url),
-                { type: "module" }
-            )
+            const worker = new DecodeWorker()
             const workerFiles =
                 i < remainder
                     ? [
