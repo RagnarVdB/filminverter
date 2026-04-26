@@ -1,27 +1,21 @@
 import glsl from "vite-plugin-glsl"
 import { defineConfig, searchForWorkspaceRoot } from "vite"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
-import { wasmPackPlugin } from "./vite-wasm-pack"
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [svelte(), wasmPackPlugin(["./rawloader-wasm/pkg"]), glsl()],
+    plugins: [svelte(), glsl()],
     assetsInclude: ["**/*.dcp"],
     optimizeDeps: {
         exclude: [
             "libraw-wasm", // or whatever package imports the worker
         ],
     },
-    build: {
-        rollupOptions: {
-            external: ["libraw-wasm"], // only if it's loaded at runtime
-        },
-    },
     worker: {
         format: "es",
-        rollupOptions: {
-            external: ["libraw-wasm"],
-        },
+        plugins: () => [wasm(), topLevelAwait()],
     },
     server: {
         fs: {
