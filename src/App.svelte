@@ -90,18 +90,12 @@
     function onKeyDown(e: KeyboardEvent) {
         switch (e.key) {
             case "ArrowLeft":
-                if ($index == 0) {
-                    $index = $images.length - 1
-                } else {
-                    $index--
-                }
+                e.preventDefault()
+                $index = ($index - 1 + $images.length) % $images.length
                 break
             case "ArrowRight":
-                if ($index == $images.length - 1) {
-                    $index = 0
-                } else {
-                    $index++
-                }
+                e.preventDefault()
+                $index = ($index + 1) % $images.length
                 break
         }
     }
@@ -117,7 +111,7 @@
     <!-- <Presets/> -->
 </main>
 
-<svelte:window on:keydown|preventDefault={onKeyDown} />
+<svelte:window on:keydown={onKeyDown} />
 
 <style>
     :root {

@@ -87,12 +87,19 @@
     function onKeyDown(e: KeyboardEvent) {
         switch (e.key) {
             case "r":
+                e.preventDefault()
                 settings.rotation = (settings.rotation + 1) % 4
                 break
+            case "e":
+                e.preventDefault()
+                settings.rotation = (settings.rotation - 1 + 4) % 4
+                break
             case "c":
+                e.preventDefault()
                 copied_settings = settings[settings.mode]
                 break
             case "v":
+                e.preventDefault()
                 if (copied_settings) {
                     settings[settings.mode] = JSON.parse(
                         JSON.stringify(copied_settings),
@@ -100,9 +107,11 @@
                     // updateSettings(settings)
                 }
             case "ArrowUp":
+                e.preventDefault()
                 settings[settings.mode].exposure += 0.3
                 break
             case "ArrowDown":
+                e.preventDefault()
                 settings[settings.mode].exposure -= 0.3
                 break
         }
@@ -215,7 +224,7 @@
         >
     </div>
 </div>
-<svelte:window on:keydown|preventDefault={onKeyDown} />
+<svelte:window on:keydown={onKeyDown} />
 
 <style>
     .settings {
