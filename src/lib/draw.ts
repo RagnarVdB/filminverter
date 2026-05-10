@@ -11,6 +11,7 @@ import {
 } from "./inversion"
 import { type ColorSettings, type BWSettings, type Image } from "./RawImage"
 import { transpose, type ColorMatrix } from "./utils"
+import { getRotationMatrix } from "./rotation"
 
 interface WebGLArgument<T extends unknown[]> {
     name: string
@@ -171,7 +172,7 @@ export function draw(gl: WebGL2RenderingContext, image: Image) {
     const h = image.large.height
     const img = image.large.arr
 
-    const rot = image.settings.rotationMatrix.matrix
+    const rot = getRotationMatrix(image.settings.rotation).matrix
     const zoom = image.settings.zoom
 
     const show_clipping = image.settings.show_clipping

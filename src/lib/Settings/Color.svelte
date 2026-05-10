@@ -17,7 +17,6 @@
         type Settings,
         type TCName,
     } from "../RawImage"
-    import { getRotationMatrix } from "../rotation"
     import { download, type ColorMatrix } from "../utils"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
@@ -48,11 +47,8 @@
     let show_value = false
     let shown_value: number = 0
 
-    let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
-    let output_type: OutputType = "dng_raw16"
-    let output_resolution: OutputResolution = 1
 
     let copied_settings: ColorSettings | null = null
 
@@ -85,7 +81,6 @@
             show_negative,
             show_value,
             shown_value,
-            rotation,
             zoom
         )
     }
@@ -111,7 +106,6 @@
         show_negative: boolean,
         show_value: boolean,
         shown_value: number,
-        rotation: number,
         zoom: [number, number, number, number]
     ) {
         if (settings) {
@@ -136,8 +130,6 @@
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
             settings.shown_value = show_value ? shown_value : undefined
-            settings.rotation = rotation
-            settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
         }
     }
@@ -158,7 +150,6 @@
         toe_facB[0] = sets.color.toe_facB
         toe_facG[0] = sets.color.toe_facG
         blackpoint_shift[0] = sets.color.blackpoint_shift + 0.2
-        rotation = sets.rotation
         dmin = sets.color.dmin
         neutral = sets.color.neutral
         show_clipping = sets.show_clipping
@@ -262,74 +253,11 @@
     blackpoint shift: {Math.round((blackpoint_shift[0] - 0.2) * 100) / 100}
     <Slider bind:value={blackpoint_shift} min="0" max="0.4" step="0.01" />
 
-    Show clipping:
-    <input type="checkbox" bind:checked={show_clipping} />
-    <br />
-    Show negative:
-    <input type="checkbox" bind:checked={show_negative} />
-    <br />
 
     Show limit:
     <input type="checkbox" bind:checked={show_value} />
     <input type="number" bind:value={shown_value} />
-    <br />
 
-    Output
-    <select name="Output" bind:value={output_type}>
-        {#each Object.keys(output_types) as type}
-            <option value={type}>{output_types[type].name}</option>
-        {/each}
-    </select>
-    <br />
-    Resolution
-    <select name="Resolution" bind:value={output_resolution}>
-        <option value={1}>Full</option>
-        {#each [2, 4] as x}
-            <option value={x}>1/{x}</option>
-        {/each}
-    </select>
-    <br />
-
-    <button
-        on:click={() => {
-            rotation = (rotation + 1) % 4
-        }}>Rotate</button
-    >
-    <button on:click={() => dispatch("applyAll")}>Apply all</button>
-    <button on:click={() => dispatch("save_raw")}>Save Raw </button>
-    <button
-        on:click={() =>
-            dispatch("save", {
-                all: false,
-                type: output_type,
-                resolution: output_resolution,
-            })}
-        >Save
-    </button>
-    <button
-        on:click={() =>
-            dispatch("save", {
-                all: true,
-                type: output_type,
-                resolution: output_resolution,
-            })}>Save all</button
-    >
-    <Zoom bind:zoom />
-    <button on:click={() => (copied_settings = settings.color)}
-        >Copy settings</button
-    >
-    {#if copied_settings != null}
-        <button
-            on:click={() => {
-                if (!copied_settings) return
-                settings.color = JSON.parse(JSON.stringify(copied_settings))
-                updateSliders(settings)
-            }}>Paste settings</button
-        >
-    {/if}
-
-    <button on:click={saveSettings}>Save settings</button>
-    <button on:click={loadSettings}>Load settings</button>
 </div>
 
 <style>

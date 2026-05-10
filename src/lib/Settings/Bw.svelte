@@ -5,8 +5,6 @@
     import type { OutputResolution, OutputType } from "../inversion"
     import { output_types, tc_map } from "../inversion"
     import type { BWSettings, Settings, TCName } from "../RawImage"
-    import { getRotationMatrix } from "../rotation"
-    import { download } from "../utils"
     import Picker from "./Picker.svelte"
     import Zoom from "./Zoom.svelte"
 
@@ -24,7 +22,6 @@
     let show_clipping = false
     let show_negative = false
 
-    let rotation: number = 0
     let zoom: [number, number, number, number] = [1, 1, 0, 0]
 
     let output_type: OutputType = "dng_raw16"
@@ -48,7 +45,6 @@
             blackpoint_shift,
             show_clipping,
             show_negative,
-            rotation,
             zoom,
         )
     }
@@ -63,7 +59,6 @@
         blackpoint_shift: [number, number],
         show_clipping: boolean,
         show_negative: boolean,
-        rotation: number,
         zoom: [number, number, number, number],
     ) {
         if (settings) {
@@ -78,8 +73,6 @@
             settings.tone_curve = tone_curve
             settings.show_clipping = show_clipping
             settings.show_negative = show_negative
-            settings.rotation = rotation
-            settings.rotationMatrix = getRotationMatrix(rotation)
             settings.zoom = zoom
         }
     }
@@ -94,39 +87,11 @@
         blackpoint_shift[0] = sets.bw.blackpoint_shift + 0.5
         show_clipping = sets.show_clipping
         show_negative = sets.show_negative
-        rotation = sets.rotation
         blackpoint = sets.bw.dmin
         zoom = sets.zoom
     }
 
-    async function saveSettings() {
-        const settings_json = JSON.stringify(settings.color)
-        const blob = new Blob([settings_json], { type: "application/json" })
-        const url = URL.createObjectURL(blob)
-        download(url, "settings.json")
-    }
 
-    function loadSettings() {
-        const input = document.createElement("input")
-        input.type = "file"
-        input.addEventListener("change", (e) => {
-            const files = input.files
-            if (!files || files.length != 1) {
-                return
-            }
-            const file = files[0]
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                const settings_json = reader.result as string
-                const loaded_settings = JSON.parse(settings_json)
-                settings.color = loaded_settings
-                updateSliders(settings)
-            }
-            reader.readAsText(file)
-        })
-
-        input.click()
-    }
 </script>
 
 <div class="bw">
@@ -156,67 +121,6 @@
     blackpoint shift: {Math.round((blackpoint_shift[0] - 0.5) * 100) / 100}
     <Slider bind:value={blackpoint_shift} min="0" max="1" step="0.01" />
 
-    Show clipping:
-    <input type="checkbox" bind:checked={show_clipping} />
-    <br />
-    Show negative:
-    <input type="checkbox" bind:checked={show_negative} />
-    <br />
-    Output
-    <select name="Output" bind:value={output_type}>
-        {#each Object.keys(output_types) as type}
-            <option value={type}>{output_types[type].name}</option>
-        {/each}
-    </select>
-    <br />
-    Resolution
-    <select name="Resolution" bind:value={output_resolution}>
-        <option value={1}>Full</option>
-        {#each [2, 4] as x}
-            <option value={x}>1/{x}</option>
-        {/each}
-    </select>
-    <br />
-    <button
-        on:click={() => {
-            rotation = (rotation + 1) % 4
-        }}>Rotate</button
-    >
-    <button on:click={() => dispatch("applyAll")}>Apply all</button>
-    <button on:click={() => dispatch("save_raw")}>Save Raw </button>
-    <button
-        on:click={() =>
-            dispatch("save", {
-                all: false,
-                type: output_type,
-                resolution: output_resolution,
-            })}
-        >Save
-    </button>
-    <button
-        on:click={() =>
-            dispatch("save", {
-                all: true,
-                type: output_type,
-                resolution: output_resolution,
-            })}>Save all</button
-    >
-    <Zoom bind:zoom />
-    <button on:click={() => (copied_settings = settings.bw)}
-        >Copy settings</button
-    >
-    {#if copied_settings != null}
-        <button
-            on:click={() => {
-                if (!copied_settings) return
-                settings.bw = JSON.parse(JSON.stringify(copied_settings))
-                updateSliders(settings)
-            }}>Paste settings</button
-        >
-    {/if}
-
-    <button on:click={saveSettings}>Save settings</button>
-    <button on:click={loadSettings}>Load settings</button>
 </div>
 
 <style>
