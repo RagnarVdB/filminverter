@@ -26,7 +26,7 @@
     let output_type: OutputType = "dng_raw16"
     let output_resolution: OutputResolution = 1
 
-    let copied_settings: ColorSettings | BWSettings| null = null
+    let copied_settings: ColorSettings | BWSettings | null = null
 
     let settings: Settings = defaultSettings
     let changes: number = 0
@@ -81,8 +81,31 @@
             }
             reader.readAsText(file)
         })
-
         input.click()
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+        switch (e.key) {
+            case "r":
+                settings.rotation = (settings.rotation + 1) % 4
+                break
+            case "c":
+                copied_settings = settings[settings.mode]
+                break
+            case "v":
+                if (copied_settings) {
+                    settings[settings.mode] = JSON.parse(
+                        JSON.stringify(copied_settings),
+                    )
+                    // updateSettings(settings)
+                }
+            case "ArrowUp":
+                settings[settings.mode].exposure += 0.3
+                break
+            case "ArrowDown":
+                settings[settings.mode].exposure -= 0.3
+                break
+        }
     }
 </script>
 
@@ -149,7 +172,9 @@
             <button
                 on:click={() => {
                     if (!copied_settings) return
-                    settings[settings.mode] = JSON.parse(JSON.stringify(copied_settings))
+                    settings[settings.mode] = JSON.parse(
+                        JSON.stringify(copied_settings),
+                    )
                     updateSettings(settings)
                 }}>Paste settings</button
             >
@@ -190,6 +215,7 @@
         >
     </div>
 </div>
+<svelte:window on:keydown|preventDefault={onKeyDown} />
 
 <style>
     .settings {
