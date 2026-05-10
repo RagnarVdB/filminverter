@@ -50,7 +50,7 @@ onmessage = async function (e) {
             apply_tonecurve,
         } = output_types[type]
 
-        let raw_image
+        let raw_image: RawImage
         let image_buffer
         if (cfa_image) {
             raw_image = await read_raw(image.file)
@@ -91,6 +91,7 @@ onmessage = async function (e) {
                 apply_tonecurve
             )
         }
+        const date = raw_image.metadata.date
 
         console.log("Done inverting")
         const filename = image.file.name.split(".")[0] + "." + filetype
@@ -155,7 +156,7 @@ onmessage = async function (e) {
                     raw_image.height,
                     tone_curve,
                     false,
-                    {}
+                    date,
                 )
             } else {
                 throw new Error("unimplemented " + type)

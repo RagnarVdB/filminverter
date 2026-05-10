@@ -16,6 +16,9 @@ export interface RawImage {
     width: number
     height: number
     channels: 3 | 4
+    metadata: {
+        date: Date | null
+    }
 }
 
 export interface Image {
@@ -133,6 +136,7 @@ export async function read_rgb(file: File): Promise<RawImage> {
         width,
         height,
         channels: 3,
+        metadata: { date: null },
     }
 }
 
@@ -144,12 +148,15 @@ export async function read_raw(file: File): Promise<RawImage> {
     // Fetch metadata
     // const meta = await raw.metadata(/* fullOutput=false */)
     const rawData: any = await raw.rawData()
+    const metaData: any = await raw.metadata()
+    console.log("date", metaData.timestamp, metaData.timestamp.getTime())
     console.log(rawData)
     return {
         arr: rawData.data,
         width: rawData.width,
         height: rawData.height,
         channels: 3,
+        metadata: { date: metaData.timestamp },
     }
 }
 
@@ -163,12 +170,14 @@ export async function read_and_demoisaic_raw(file: File): Promise<RawImage> {
     // console.log(meta.color_data.xtrans_pattern)
 
     const imageData: any = await raw.imageData()
-    console.log(imageData)
+    const metaData: any = await raw.metadata()
+    console.log("date", metaData.timestamp )
     return {
         arr: imageData.data,
         width: imageData.width,
         height: imageData.height,
         channels: 3,
+        metadata: { date: metaData.timestamp },
     }
 }
 
@@ -218,5 +227,11 @@ export function downSample(image: RawImage, scale: number): RawImage {
         }
     }
 
-    return { arr: out, width: N, height: M, channels: 4 }
+    return {
+        arr: out,
+        width: N,
+        height: M,
+        channels: 4,
+        metadata: image.metadata,
+    }
 }

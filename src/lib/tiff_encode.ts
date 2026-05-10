@@ -29,6 +29,8 @@ UTIF.ttypes = {
     34665: 4,
     33421: 3, // CFARepeatPatternDim
     33422: 1, // CFAPattern2
+    36867: 2,
+    36868: 2,
     50706: 1, // DNGVersion (4 bytes)
     50707: 1, // DNGBackwardVersion (4 bytes)
     50708: 2, // UniqueCameraModel (ASCII)
@@ -43,6 +45,19 @@ UTIF.ttypes = {
     50778: 3, // CalibrationIlluminant1 (SHORT)
     50829: 5,
     50940: 11,
+}
+
+function formatDate(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+
+  const year  = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day   = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const mins  = pad(date.getMinutes());
+  const secs  = pad(date.getSeconds());
+
+  return `${year}:${month}:${day} ${hours}:${mins}:${secs}`;
 }
 
 export function encodeImage(
@@ -306,7 +321,7 @@ export function encodeRawDNG(
     h: number,
     tonecurve: [number, number][],
     compress: boolean,
-    metadata: any
+    date: Date | null
 ) {
     const channels = 1
     UTIF._writeIFD = writer
@@ -321,7 +336,7 @@ export function encodeRawDNG(
         offs = [],
         bcnt = [],
         tsz = 0
-    const psz = 1000 + (metadata ? 1000 : 0) + Math.ceil(h / rps) * 8
+    const psz = 1000 + 0 + Math.ceil(h / rps) * 8
     console.log("psz", psz, rps, channels, dpth)
     for (let y = 0; y < h; y += rps) {
         const pof = y * w * channels * bpv,
@@ -354,6 +369,7 @@ export function encodeRawDNG(
         t287: [[0, 1]],
         t296: [1],
         t305: ["Filminverter"],
+        t306: [formatDate(date)],
         t339: Array(channels).fill(dtype_int),
         // CFA
         t33421: [6, 6],
@@ -361,6 +377,8 @@ export function encodeRawDNG(
             1, 1, 2, 1, 1, 0, 2, 0, 1, 0, 2, 1, 1, 1, 2, 1, 1, 0, 1, 1, 0, 1, 1,
             2, 0, 2, 1, 2, 0, 1, 1, 1, 0, 1, 1, 2,
         ],
+        t36867: [formatDate(date)],
+        t36868: [formatDate(date)],
         // DNG Specific
         t50706: [1, 4, 0, 0], // DNGVersion
         t50707: [1, 4, 0, 0], // DNGBackwardVersion
@@ -379,11 +397,10 @@ export function encodeRawDNG(
         t50940: tonecurve.flat(),
     }
     if (channels == 4) ifd["t338"] = [2]
-    if (metadata) {
-        for (const i in metadata) {
-            ifd[i] = metadata[i]
-        }
-    }
+    console.log("Date given", date, date?.getTime())
+    // if (date) ifd["t36867"] = [formatDate(date)]
+    // if (date) ifd["t36868"] = [formatDate(date)]
+
 
     // ifd.t50712 = [1] // LinearRaw = yes
     // ifd.t50730 = [-2.0] // BaselineExposure (optional)
