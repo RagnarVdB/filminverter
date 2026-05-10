@@ -78,6 +78,25 @@
             $images[i].iter += 1
         }
     }
+
+    function onKeyDown(e: KeyboardEvent) {
+        switch (e.key) {
+            case "ArrowLeft":
+                if ($index == 0) {
+                    $index = $images.length - 1
+                } else {
+                    $index--
+                }
+                break
+            case "ArrowRight":
+                if ($index == $images.length - 1) {
+                    $index = 0
+                } else {
+                    $index++
+                }
+                break
+        }
+    }
 </script>
 
 <main>
@@ -86,9 +105,11 @@
     {:else}
         <FileSelector on:image={receivedImage} />
     {/if}
-    <Settings on:save={save} on:applyAll={applyAll} on:save_raw={save_raw}/>
+    <Settings on:save={save} on:applyAll={applyAll} on:save_raw={save_raw} />
     <!-- <Presets/> -->
 </main>
+
+<svelte:window on:keydown|preventDefault={onKeyDown} />
 
 <style>
     :root {
